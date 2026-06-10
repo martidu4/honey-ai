@@ -690,7 +690,9 @@ function startServer(proto, port) {
                             if (!fs.existsSync(exfilDir)) {
                                 fs.mkdirSync(exfilDir, { recursive: true });
                             }
-                            const savePath = path.join(exfilDir, `${ip}_${sanitizeFilename}.txt`);
+                            const cleanIp = ip.replace(/:/g, '_').substring(0, 50);
+                            const cleanFilename = sanitizeFilename.substring(0, 100);
+                            const savePath = path.join(exfilDir, `${cleanIp}_${cleanFilename}.txt`);
                             fs.writeFileSync(savePath, exfilContent, 'utf8');
 
                             logEvent({
