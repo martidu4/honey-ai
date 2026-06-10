@@ -352,6 +352,30 @@ The `honey-ai.service` systemd file includes aggressive sandboxing:
 
 ---
 
+## 📡 Live Threat Feed
+
+HoneyAI powers a **public threat intelligence blog** with daily auto-generated reports:
+
+### 🔗 [threats.evitalios.com](https://threats.evitalios.com)
+
+Every night, a pipeline automatically:
+1. **Collects** the day's attack data from all 11 protocols
+2. **Analyzes** attacker behavior, TTY sessions, and malware captures
+3. **Generates** a threat report using a local LLM (Ollama)
+4. **Publishes** to the blog — zero manual intervention
+
+Each report includes:
+- 🌍 Geographic origin analysis (GeoIP)
+- 🔑 SSH brute-force password trends
+- 🕵️ Post-exploitation behavior (real attacker TTY sessions)
+- 🦠 Captured malware samples (linked to VirusTotal)
+- 🪤 Canary token triggers (fake AWS keys used by attackers)
+- 📊 Community defense stats (IPs reported to AbuseIPDB, OTX, DShield, Blocklist.de)
+
+> **Want to see HoneyAI in action before deploying?** Browse the daily reports to see what a Raspberry Pi 5 catches from real-world attackers.
+
+---
+
 ## Contributing
 
 PRs welcome! Ideas for contribution:
