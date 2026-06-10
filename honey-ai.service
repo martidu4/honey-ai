@@ -1,0 +1,55 @@
+[Unit]
+Description=OpenClaw HoneyAI — Proactive AI Honeypot
+Documentation=https://github.com/martidu4/honey-ai
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=honeyai
+WorkingDirectory=/opt/honey-ai
+ExecStart=/usr/bin/node /opt/honey-ai/server.js
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=honey-ai
+Environment=NODE_ENV=production
+
+# Limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# ── Filesystem Sandbox ──────────────────────────────────────────────
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/opt/honey-ai/logs
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+NoNewPrivileges=true
+
+# ── Network Sandbox ─────────────────────────────────────────────────
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+# ── Capabilities ────────────────────────────────────────────────────
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+
+# ── System Calls ────────────────────────────────────────────────────
+SystemCallFilter=@system-service
+SystemCallArchitectures=native
+
+# ── Memory ──────────────────────────────────────────────────────────
+# NOTE: MemoryDenyWriteExecute=true kills V8 JIT — Node.js requires W^X
+MemoryDenyWriteExecute=false
+LockPersonality=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+ProtectHostname=true
+ProtectClock=true
+
+[Install]
+WantedBy=multi-user.target

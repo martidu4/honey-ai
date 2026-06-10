@@ -1,0 +1,16 @@
+version: "3.8"
+services:
+  api:
+    image: ghcr.io/acme-corp/api:latest
+    environment:
+      - DATABASE_URL=postgres://admin:CHANGE_ME_DB_PASS@db.internal.example:5432/production
+      - REDIS_URL=redis://:CHANGE_ME_REDIS_PASS@redis:6379
+      - JWT_SECRET=CHANGE_ME_JWT_SECRET
+      - STRIPE_SECRET_KEY=sk_live_CHANGE_ME_STRIPE_KEY
+      - SENDGRID_API_KEY=SG.CHANGE_ME_SENDGRID_KEY
+    ports:
+      - "3000:3000"
+  db:
+    image: postgres:16
+    environment:
+      - POSTGRES_PASSWORD=CHANGE_ME_DB_PASS
