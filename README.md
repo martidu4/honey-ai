@@ -250,6 +250,29 @@ TELEGRAM_CHAT=your_chat_id
 
 ---
 
+## 📊 Management Dashboard
+
+HoneyAI includes a built-in, local-only web dashboard to monitor attacks, live connection sockets, system resource usage (CPU/Memory), and logs in real-time.
+
+### How to Access
+
+1. Open your browser and navigate to: **`http://127.0.0.1:9999/`**
+   *(Note: The management server binds to localhost only for security. If running on a remote VPS, use SSH port forwarding: `ssh -L 9999:127.0.0.1:9999 user@your-vps`)*
+2. Unlock the panel using your **Management API Key**.
+
+### Getting / Setting your API Key
+
+- **Auto-generated key:** By default, HoneyAI generates a secure random API key at startup and prints it to the console:
+  ```
+  Management API on :9999 (localhost only, key: 3a2c5f10...)
+  ```
+- **Persistent key:** To set a fixed API key that doesn't change on restart, create or edit the `.env` file in the root directory and add:
+  ```env
+  HONEYAI_MGMT_KEY=your_secure_persistent_key
+  ```
+
+---
+
 ## Deploying as a System Service
 
 ```bash
