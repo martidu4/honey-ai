@@ -1,16 +1,19 @@
 <div align="center">
 
-# 🍯 OpenClaw HoneyAI
+# 🍯 HoneyAI
 
 **All-in-one AI-powered honeypot. One process, every protocol.**
 
 Replaces Cowrie · Galah · OpenCanary · Endlessh — with a single Node.js service driven by a local LLM.
 
+[![CI](https://github.com/martidu4/honey-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/martidu4/honey-ai/actions)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
 [![Ollama](https://img.shields.io/badge/AI-Ollama-blue)](https://ollama.ai)
-[![Tests](https://img.shields.io/badge/tests-98%20passing-brightgreen)]()
+[![Docker](https://img.shields.io/badge/Docker-ready-2496ED)](docker-compose.yml)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
+<img src="docs/demo.png" alt="HoneyAI catching attackers in real-time" width="700">
 
 </div>
 
@@ -18,7 +21,7 @@ Replaces Cowrie · Galah · OpenCanary · Endlessh — with a single Node.js ser
 
 ## What is this?
 
-OpenClaw HoneyAI is a **proactive, AI-driven honeypot** that intercepts attackers across every common protocol and responds with dynamically generated, fully convincing deceptive content — powered by a local LLM running via [Ollama](https://ollama.ai).
+HoneyAI is a **proactive, AI-driven honeypot** that intercepts attackers across every common protocol and responds with dynamically generated, fully convincing deceptive content — powered by a local LLM running via [Ollama](https://ollama.ai).
 
 Instead of static responses, the AI **reads the attacker's payload** and generates tailored traps:
 
@@ -54,7 +57,9 @@ Every attacker IP is automatically reported to **5 threat intelligence platforms
 
 ---
 
-## Quick Start
+## Quick Start (bare metal)
+
+> **🐳 Docker?** Skip to [Docker Deployment](#-docker-deployment) for a one-command setup.
 
 ### Requirements
 
@@ -85,6 +90,41 @@ The setup wizard will ask you for:
 - Telegram bot for attack notifications *(optional)*
 
 Configuration is saved to `config.yaml` which is **gitignored** and never committed.
+
+---
+
+## 🐳 Docker Deployment
+
+The fastest way to get started — one command, everything included:
+
+```bash
+git clone https://github.com/martidu4/honey-ai.git
+cd honey-ai
+cp config.example.yaml config.yaml
+
+# Start everything (Ollama + model download + HoneyAI)
+docker compose up -d
+
+# Follow logs
+docker compose logs -f honeyai
+```
+
+Docker Compose automatically:
+- Starts **Ollama** with persistent model storage
+- Pulls the **qwen2.5:1.5b** model on first run
+- Starts **HoneyAI** with all 11 protocols
+
+To use a different model:
+```bash
+AI_MODEL=qwen3:4b docker compose up -d
+```
+
+To add reporting API keys, create a `.env` file:
+```env
+ABUSEIPDB_KEY=your_key
+TELEGRAM_TOKEN=your_bot_token
+TELEGRAM_CHAT=your_chat_id
+```
 
 ---
 
@@ -319,7 +359,6 @@ PRs welcome! Ideas for contribution:
 - 🔌 New protocol handlers (SIP, Modbus/ICS, SNMP, DNS...)
 - 🧠 Better per-protocol AI prompts
 - 📊 Web dashboard UI
-- 🐳 Docker / Docker Compose setup
 - 📦 Kubernetes Helm chart
 - 🌍 Additional identity leak patterns for more languages
 - 📝 Documentation and deployment guides

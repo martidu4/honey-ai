@@ -1,0 +1,90 @@
+# HoneyAI — Docker Compose
+# Run: docker compose up -d
+# Logs: docker compose logs -f honeyai
+
+services:
+  # ─── Ollama (local LLM engine) ──────────────────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: honeyai-ollama
+    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama
+    # GPU support (uncomment for NVIDIA):
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+
+  # ─── Pull the default model on first run ────────────────────────────────────
+  ollama-pull:
+    image: ollama/ollama:latest
+    container_name: honeyai-ollama-pull
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: "no"
+    entrypoint: ["ollama", "pull", "${AI_MODEL:-qwen2.5:1.5b}"]
+    environment:
+      - OLLAMA_HOST=ollama:11434
+
+  # ─── HoneyAI honeypot ──────────────────────────────────────────────────────
+  honeyai:
+    build: .
+    container_name: honeyai
+    restart: unless-stopped
+    depends_on:
+      ollama-pull:
+        condition: service_completed_successfully
+    environment:
+      - OLLAMA_URL=http://ollama:11434
+      - AI_MODEL=${AI_MODEL:-qwen2.5:1.5b}
+      # Reporting (optional — set in .env file)
+      - ABUSEIPDB_KEY=${ABUSEIPDB_KEY:-}
+      - OTX_KEY=${OTX_KEY:-}
+      - DSHIELD_KEY=${DSHIELD_KEY:-}
+      - BLOCKLIST_KEY=${BLOCKLIST_KEY:-}
+      - VT_KEY=${VT_KEY:-}
+      # Notifications (optional)
+      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN:-}
+      - TELEGRAM_CHAT=${TELEGRAM_CHAT:-}
+    ports:
+      # Web
+      - "80:8081"
+      - "8080:8081"
+      # SSH
+      - "22:2222"
+      - "2222:2222"
+      # FTP
+      - "21:2121"
+      # Telnet
+      - "23:2323"
+      # SMTP
+      - "25:2525"
+      # MySQL
+      - "3306:3306"
+      # Redis
+      - "6379:6379"
+      # Git
+      - "9418:9418"
+      # VNC
+      - "5900:59000"
+      # RDP
+      - "3389:3389"
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - ./honeyfs:/app/honeyfs:ro
+      - honeyai_logs:/app/logs
+
+volumes:
+  ollama_data:
+  honeyai_logs:

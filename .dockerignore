@@ -1,0 +1,11 @@
+.git
+.gitignore
+node_modules
+logs
+*.log
+config.yaml
+config.*.yaml
+.env
+.host_key
+scratch/
+dashboard/

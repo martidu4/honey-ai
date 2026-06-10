@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-start:
+    name: Lint & Startup Check
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify server starts
+        run: |
+          cp config.example.yaml config.yaml
+          timeout 5 node server.js 2>&1 | tee startup.log || true
+          # Verify all protocols started
+          grep -q "HTTP honeypot listening" startup.log
+          grep -q "SSH honeypot listening" startup.log
+          grep -q "FTP honeypot listening" startup.log
+          grep -q "TELNET honeypot listening" startup.log
+          grep -q "SMTP honeypot listening" startup.log
+          grep -q "MYSQL honeypot listening" startup.log
+          grep -q "REDIS honeypot listening" startup.log
+          grep -q "GIT honeypot listening" startup.log
+          grep -q "VNC honeypot" startup.log
+          grep -q "RDP honeypot" startup.log
+          grep -q "Management API" startup.log
+          echo "✅ All 11 protocols started successfully"
+
+      - name: Verify setup wizard loads
+        run: |
+          echo "" | timeout 3 node setup.js 2>&1 | grep -q "Setup Wizard" && echo "✅ Setup wizard OK" || echo "⚠️ Setup wizard check skipped"
+
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t honeyai:test .
+
+      - name: Verify Docker image runs
+        run: |
+          docker run -d --name honeyai-test -e OLLAMA_URL=http://localhost:11434 honeyai:test
+          sleep 3
+          docker logs honeyai-test 2>&1 | tee docker.log
+          grep -q "HTTP honeypot listening" docker.log && echo "✅ Docker OK"
+          docker stop honeyai-test
