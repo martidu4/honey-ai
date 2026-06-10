@@ -31,6 +31,7 @@ COPY ai/ ./ai/
 COPY core/ ./core/
 COPY protocols/ ./protocols/
 COPY honeyfs/ ./honeyfs/
+COPY dashboard/ ./dashboard/
 COPY config.example.yaml ./
 
 # Create directories for runtime data
