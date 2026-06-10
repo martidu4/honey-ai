@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🍯 HoneyAI — Threat Control Panel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #05050a;
+            --bg-gradient: radial-gradient(circle at top right, #0d0d21, #05050a 70%);
+            --card-bg: rgba(13, 13, 21, 0.65);
+            --card-border: rgba(255, 255, 255, 0.07);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-red: #ff2d2d;
+            --accent-green: #00ff88;
+            --accent-blue: #00d9ff;
+            --accent-yellow: #ffb800;
+            --accent-purple: #bd00ff;
+            --accent-orange: #ff7b00;
+            --terminal-bg: rgba(5, 5, 8, 0.85);
+            --glass-blur: blur(14px);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            background-image: var(--bg-gradient);
+            background-attachment: fixed;
+            color: var(--text-primary);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        h1, h2, h3, h4 {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+        }
+
+        /* ─── SCROLLBARS ─── */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* ─── UNLOCK OVERLAY (LOGIN) ─── */
+        #unlock-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(4, 4, 6, 0.9);
+            backdrop-filter: blur(25px);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.4s ease, visibility 0.4s;
+        }
+
+        #unlock-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .unlock-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            padding: 40px;
+            border-radius: 24px;
+            width: 90%;
+            max-width: 440px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 100px rgba(255, 45, 45, 0.05);
+            animation: cardEntrance 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .unlock-card h2 {
+            font-size: 28px;
+            margin-top: 15px;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        .unlock-card p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+
+        .logo-glow {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto;
+            background: radial-gradient(circle, rgba(255, 184, 0, 0.2) 0%, transparent 70%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 40px;
+            animation: logoPulse 2s infinite ease-in-out;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 14px 16px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .input-group input:focus {
+            border-color: var(--accent-yellow);
+            box-shadow: 0 0 15px rgba(255, 184, 0, 0.15);
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .btn-unlock {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--accent-yellow) 0%, #ff8800 100%);
+            border: none;
+            border-radius: 12px;
+            color: #000;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(255, 184, 0, 0.2);
+        }
+
+        .btn-unlock:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 25px rgba(255, 184, 0, 0.35);
+        }
+
+        .btn-unlock:active {
+            transform: translateY(0);
+        }
+
+        .unlock-error {
+            color: var(--accent-red);
+            font-size: 13px;
+            margin-top: 15px;
+            min-height: 20px;
+            font-weight: 500;
+        }
+
+        /* ─── APP HEADER ─── */
+        header {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-logo h1 {
+            font-size: 24px;
+            letter-spacing: 0.5px;
+        }
+
+        .header-status {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 255, 136, 0.08);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent-green);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 8px var(--accent-green);
+            animation: pulseDot 2s infinite ease-in-out;
+        }
+
+        .btn-logout {
+            background: transparent;
+            border: 1px solid var(--card-border);
+            color: var(--text-secondary);
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-logout:hover {
+            color: var(--text-primary);
+            border-color: var(--accent-red);
+            background: rgba(255, 45, 45, 0.05);
+        }
+
+        /* ─── MAIN LAYOUT ─── */
+        main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 30px 40px 30px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+        }
+
+        @media (min-width: 1024px) {
+            main {
+                grid-template-columns: 320px 1fr;
+            }
+        }
+
+        /* ─── GLASS CARD ─── */
+        .glass-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 24px;
+            backdrop-filter: var(--glass-blur);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .glass-card:hover {
+            border-color: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-title {
+            font-size: 16px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* ─── LEFT COLUMN: METRICS & DISTRIBUTION ─── */
+        .left-column {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .metric-row {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .metric-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .metric-icon {
+            font-size: 24px;
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .metric-icon.attacks { background: rgba(255, 45, 45, 0.1); color: var(--accent-red); }
+        .metric-icon.ips { background: rgba(0, 217, 255, 0.1); color: var(--accent-blue); }
+        .metric-icon.uptime { background: rgba(0, 255, 136, 0.1); color: var(--accent-green); }
+
+        .metric-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .metric-val {
+            font-size: 22px;
+            font-weight: 700;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .metric-lbl {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 2px;
+        }
+
+        /* ─── CHART BOX ─── */
+        .chart-box {
+            position: relative;
+            height: 220px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* ─── SYSTEM STATUS CARD ─── */
+        .sys-details {
+            font-size: 13px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .sys-detail-item {
+            display: flex;
+            justify-content: space-between;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .sys-detail-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .sys-detail-lbl {
+            color: var(--text-secondary);
+        }
+
+        .sys-detail-val {
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* ─── RIGHT COLUMN: MAIN PANEL ─── */
+        .right-column {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* ─── PROTOCOLS ACTIVE GRID ─── */
+        .protocols-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 16px;
+        }
+
+        .proto-card {
+            background: rgba(10, 10, 16, 0.4);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .proto-card.active {
+            border-color: var(--accent-green);
+            background: rgba(0, 255, 136, 0.03);
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.05);
+        }
+
+        .proto-icon {
+            font-size: 24px;
+            margin-bottom: 10px;
+            transition: transform 0.3s;
+        }
+
+        .proto-card:hover .proto-icon {
+            transform: translateY(-2px);
+        }
+
+        .proto-name {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 2px;
+        }
+
+        .proto-port {
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .proto-connections {
+            margin-top: 10px;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-secondary);
+        }
+
+        .proto-card.active .proto-connections {
+            background: var(--accent-green);
+            color: #000;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.4);
+            animation: pulseGlow 1.5s infinite alternate;
+        }
+
+        /* ─── TERMINAL LOG VIEWER ─── */
+        .terminal-card {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+
+        .terminal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .terminal-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box input {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--card-border);
+            border-radius: 30px;
+            padding: 8px 16px 8px 36px;
+            color: var(--text-primary);
+            font-size: 13px;
+            outline: none;
+            width: 220px;
+            transition: all 0.3s;
+        }
+
+        .search-box input:focus {
+            border-color: rgba(255, 255, 255, 0.25);
+            width: 280px;
+            background: rgba(0, 0, 0, 0.6);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            fill: var(--text-secondary);
+            width: 14px;
+            height: 14px;
+            pointer-events: none;
+        }
+
+        .btn-pause {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            color: var(--text-primary);
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s;
+        }
+
+        .btn-pause:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-pause.paused {
+            background: rgba(255, 184, 0, 0.1);
+            border-color: var(--accent-yellow);
+            color: var(--accent-yellow);
+        }
+
+        .terminal-container {
+            background-color: var(--terminal-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12.5px;
+            height: 380px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .log-row {
+            line-height: 1.6;
+            word-break: break-all;
+            animation: logFadeIn 0.2s ease-out;
+            border-left: 2px solid transparent;
+            padding-left: 8px;
+        }
+
+        .log-time {
+            color: var(--text-secondary);
+            margin-right: 8px;
+        }
+
+        .log-ip {
+            color: var(--accent-blue);
+            font-weight: 500;
+            margin-right: 8px;
+        }
+
+        .log-proto {
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-right: 8px;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Protocol specific text styling */
+        .log-row.proto-http { border-left-color: var(--accent-red); }
+        .log-row.proto-http .log-proto { color: var(--accent-red); background: rgba(255, 45, 45, 0.1); }
+        
+        .log-row.proto-ssh { border-left-color: var(--accent-yellow); }
+        .log-row.proto-ssh .log-proto { color: var(--accent-yellow); background: rgba(255, 184, 0, 0.1); }
+
+        .log-row.proto-telnet { border-left-color: var(--accent-orange); }
+        .log-row.proto-telnet .log-proto { color: var(--accent-orange); background: rgba(255, 123, 0, 0.1); }
+
+        .log-row.proto-mysql { border-left-color: var(--accent-blue); }
+        .log-row.proto-mysql .log-proto { color: var(--accent-blue); background: rgba(0, 217, 255, 0.1); }
+
+        .log-row.proto-redis { border-left-color: var(--accent-purple); }
+        .log-row.proto-redis .log-proto { color: var(--accent-purple); background: rgba(189, 0, 255, 0.1); }
+
+        .log-row.proto-ftp { border-left-color: #0088ff; }
+        .log-row.proto-ftp .log-proto { color: #0088ff; background: rgba(0, 136, 255, 0.1); }
+
+        .log-row.proto-smtp { border-left-color: #ff0099; }
+        .log-row.proto-smtp .log-proto { color: #ff0099; background: rgba(255, 0, 153, 0.1); }
+
+        .log-row.proto-git { border-left-color: #00ffaa; }
+        .log-row.proto-git .log-proto { color: #00ffaa; background: rgba(0, 255, 170, 0.1); }
+
+        .log-row.proto-vnc { border-left-color: #a6ff00; }
+        .log-row.proto-vnc .log-proto { color: #a6ff00; background: rgba(166, 255, 0, 0.1); }
+
+        .log-row.proto-rdp { border-left-color: #33ccff; }
+        .log-row.proto-rdp .log-proto { color: #33ccff; background: rgba(51, 204, 255, 0.1); }
+
+        .log-row.proto-backfire { border-left-color: #ff003c; }
+        .log-row.proto-backfire .log-proto { color: #ff003c; background: rgba(255, 0, 60, 0.1); }
+
+        .log-msg {
+            color: #e2e8f0;
+        }
+
+        .terminal-empty {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        /* ─── ANIMATIONS ─── */
+        @keyframes pulseDot {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.6; }
+        }
+
+        @keyframes pulseGlow {
+            from { box-shadow: 0 0 10px rgba(0, 255, 136, 0.3); }
+            to { box-shadow: 0 0 20px rgba(0, 255, 136, 0.6); }
+        }
+
+        @keyframes cardEntrance {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes logoPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+
+        @keyframes logFadeIn {
+            from { opacity: 0; transform: translateX(-5px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes pulseGlowRed {
+            from { box-shadow: 0 0 10px rgba(255, 45, 45, 0.1); }
+            to { box-shadow: 0 0 20px rgba(255, 45, 45, 0.3); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ─── UNLOCK SCREEN ─── -->
+    <div id="unlock-overlay">
+        <div class="unlock-card">
+            <div class="logo-glow">🍯</div>
+            <h2>HoneyAI Control Panel</h2>
+            <p>Enter the management API key to unlock dashboard access.</p>
+            <div class="input-group">
+                <label for="api-key">Management API Key</label>
+                <input type="password" id="api-key" placeholder="Enter API key..." autocomplete="current-password">
+            </div>
+            <button class="btn-unlock" onclick="attemptUnlock()">Unlock Panel</button>
+            <div class="unlock-error" id="unlock-error"></div>
+        </div>
+    </div>
+
+    <!-- ─── APP CONTAINER ─── -->
+    <header>
+        <div class="header-logo">
+            <span style="font-size: 26px;">🍯</span>
+            <div>
+                <h1>HoneyAI</h1>
+                <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Threat Intelligence Honeypot</div>
+            </div>
+        </div>
+        <div class="header-status">
+            <div class="status-badge">
+                <span class="status-dot"></span>
+                <span>Active Shield</span>
+            </div>
+            <button class="btn-logout" onclick="lockPanel()">Lock Panel</button>
+        </div>
+    </header>
+
+    <main>
+        <!-- LEFT COLUMN: STATS & CHARTS -->
+        <div class="left-column">
+            <!-- Metrics overview -->
+            <div class="glass-card">
+                <h3 class="card-title">
+                    <svg style="width:16px; height:16px; fill:var(--text-secondary);" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+                    Live Overview
+                </h3>
+                <div class="metric-row">
+                    <div class="metric-item">
+                        <div class="metric-icon attacks">💥</div>
+                        <div class="metric-info">
+                            <span class="metric-val" id="val-total-attacks">0</span>
+                            <span class="metric-lbl">Total Events</span>
+                        </div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-icon ips">🕵️‍♂️</div>
+                        <div class="metric-info">
+                            <span class="metric-val" id="val-unique-ips">0</span>
+                            <span class="metric-lbl">Unique Attackers</span>
+                        </div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-icon uptime">⏱️</div>
+                        <div class="metric-info">
+                            <span class="metric-val" id="val-uptime" style="font-size: 14px; font-family: 'JetBrains Mono', monospace; font-weight: 600;">00:00:00</span>
+                            <span class="metric-lbl">System Uptime</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Distribution chart -->
+            <div class="glass-card">
+                <h3 class="card-title">
+                    <svg style="width:16px; height:16px; fill:var(--text-secondary);" viewBox="0 0 24 24"><path d="M11 2v20c-5.07-.5-9-4.79-9-10s3.93-9.5 9-10zm2.03 0v8.99H22c-.47-4.74-4.24-8.52-8.97-8.99zm0 11.01V22c4.74-.47 8.5-4.25 8.97-8.99h-8.97z"/></svg>
+                    Protocols Distribution
+                </h3>
+                <div class="chart-box">
+                    <canvas id="chart-protocols"></canvas>
+                </div>
+            </div>
+
+            <!-- System details -->
+            <div class="glass-card">
+                <h3 class="card-title">
+                    <svg style="width:16px; height:16px; fill:var(--text-secondary);" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-5 14H4v-4h11v4zm0-5H4V9h11v4zm5 5h-4V9h4v9z"/></svg>
+                    Honeypot Process
+                </h3>
+                <div class="sys-details">
+                    <div class="sys-detail-item">
+                        <span class="sys-detail-lbl">PID</span>
+                        <span class="sys-detail-val" id="val-pid">-</span>
+                    </div>
+                    <div class="sys-detail-item">
+                        <span class="sys-detail-lbl">Heap Memory</span>
+                        <span class="sys-detail-val" id="val-mem-heap">-</span>
+                    </div>
+                    <div class="sys-detail-item">
+                        <span class="sys-detail-lbl">RSS Memory</span>
+                        <span class="sys-detail-val" id="val-mem-rss">-</span>
+                    </div>
+                    <div class="sys-detail-item" id="decisions-container" style="display:none; flex-direction:column; gap:6px; width:100%; border-bottom:none; margin-top:8px;">
+                        <span class="sys-detail-lbl" style="margin-bottom:2px; font-weight:600;">CrowdSec Decisions</span>
+                        <div id="val-crowdsec" style="font-family:'JetBrains Mono', monospace; font-size:11px; max-height:80px; overflow-y:auto; color:var(--text-secondary); background:rgba(0,0,0,0.3); padding:6px; border-radius:6px; border:1px solid var(--card-border);">None</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: CHANNELS & TERMINAL -->
+        <div class="right-column">
+            <!-- Active connections per protocol -->
+            <div class="glass-card">
+                <h3 class="card-title">
+                    <svg style="width:16px; height:16px; fill:var(--text-secondary);" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                    Intercept Channels
+                </h3>
+                <div class="protocols-grid" id="proto-grid-container">
+                    <!-- Cards will be populated dynamically -->
+                </div>
+            </div>
+
+            <!-- Terminal Log Viewer -->
+            <div class="glass-card terminal-card">
+                <div class="terminal-header">
+                    <h3 class="card-title" style="margin-bottom:0;">
+                        <svg style="width:16px; height:16px; fill:var(--text-secondary);" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 12H4v-2h8v2zm8-4H4V8h16v4z"/></svg>
+                        Security Log Stream
+                    </h3>
+                    <div class="terminal-controls">
+                        <div class="search-box">
+                            <svg class="search-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 5 9.5 11.99 5 14 5s9 2.01 9 4.5-2.01 4.5-4.5 4.5z"/></svg>
+                            <input type="text" id="log-search" placeholder="Filter by IP, command..." oninput="filterLogs()">
+                        </div>
+                        <button class="btn-pause" id="btn-pause" onclick="togglePauseFeed()">
+                            <svg style="width:12px; height:12px; fill:currentColor;" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                            <span id="pause-text">Pause</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="terminal-container" id="terminal-logs">
+                    <div class="terminal-empty">Establishing connection to database...</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let apiToken = localStorage.getItem('honeyai_mgmt_key') || '';
+        let isPaused = false;
+        let lastEventId = null;
+        let eventsCache = [];
+        let statsChartInstance = null;
+        let updateInterval = null;
+
+        const protocolsList = [
+            { key: 'http', name: 'HTTP', port: '80/8080', icon: '🌐', color: 'rgb(255, 45, 45)' },
+            { key: 'ssh', name: 'SSH Shell', port: '22/2222', icon: '🔑', color: 'rgb(255, 184, 0)' },
+            { key: 'tarpit', name: 'SSH Tarpit', port: '222/2200', icon: '🧲', color: 'rgb(189, 0, 255)' },
+            { key: 'ftp', name: 'FTP', port: '21', icon: '📁', color: 'rgb(0, 136, 255)' },
+            { key: 'telnet', name: 'Telnet', port: '23', icon: '📟', color: 'rgb(255, 123, 0)' },
+            { key: 'smtp', name: 'SMTP Mail', port: '25', icon: '📧', color: 'rgb(255, 0, 153)' },
+            { key: 'mysql', name: 'MySQL', port: '3306', icon: '🗄️', color: 'rgb(0, 217, 255)' },
+            { key: 'redis', name: 'Redis', port: '6379', icon: '🔴', color: 'rgb(189, 0, 255)' },
+            { key: 'git', name: 'Git Repo', port: '9418', icon: '🐙', color: 'rgb(0, 255, 170)' },
+            { key: 'vnc', name: 'VNC', port: '5900', icon: '🖥️', color: 'rgb(166, 255, 0)' },
+            { key: 'rdp', name: 'RDP', port: '3389', icon: '💻', color: 'rgb(51, 204, 255)' }
+        ];
+
+        // Format duration seconds to readable string
+        function formatDuration(seconds) {
+            if (isNaN(seconds) || seconds < 0) return '00:00:00';
+            const days = Math.floor(seconds / 86400);
+            const hrs = Math.floor((seconds % 86400) / 3600);
+            const mins = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            
+            let res = '';
+            if (days > 0) res += `${days}d, `;
+            res += `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            return res;
+        }
+
+        function formatBytes(bytes) {
+            if (!bytes || isNaN(bytes)) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Initialize protocol grid elements
+        function initProtocolGrid() {
+            const container = document.getElementById('proto-grid-container');
+            container.innerHTML = '';
+            
+            protocolsList.forEach(proto => {
+                const card = document.createElement('div');
+                card.className = 'proto-card';
+                card.id = `proto-card-${proto.key}`;
+                card.innerHTML = `
+                    <div class="proto-icon">${proto.icon}</div>
+                    <div class="proto-name">${proto.name}</div>
+                    <div class="proto-port">Port ${proto.port}</div>
+                    <div class="proto-connections" id="proto-conn-${proto.key}">0 active</div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // Initialize or update protocol distribution chart
+        function updateChart(byProtoData) {
+            const ctx = document.getElementById('chart-protocols').getContext('2d');
+            
+            const labels = [];
+            const dataValues = [];
+            const backgroundColors = [];
+            
+            protocolsList.forEach(proto => {
+                const val = byProtoData[proto.key] || 0;
+                if (val > 0) {
+                    labels.push(proto.name);
+                    dataValues.push(val);
+                    backgroundColors.push(proto.color);
+                }
+            });
+
+            // If empty, put default placeholder
+            if (labels.length === 0) {
+                labels.push('No attacks');
+                dataValues.push(1);
+                backgroundColors.push('rgba(255, 255, 255, 0.05)');
+            }
+
+            if (statsChartInstance) {
+                statsChartInstance.data.labels = labels;
+                statsChartInstance.data.datasets[0].data = dataValues;
+                statsChartInstance.data.datasets[0].backgroundColor = backgroundColors;
+                statsChartInstance.update();
+            } else {
+                statsChartInstance = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: dataValues,
+                            backgroundColor: backgroundColors,
+                            borderWidth: 1,
+                            borderColor: '#05050a'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'right',
+                                labels: {
+                                    color: '#94a3b8',
+                                    font: {
+                                        size: 10,
+                                        family: "'Outfit', sans-serif"
+                                    },
+                                    boxWidth: 8,
+                                    padding: 8
+                                }
+                            }
+                        },
+                        cutout: '65%'
+                    }
+                });
+            }
+        }
+
+        // Main data fetcher
+        async function fetchDashboardData() {
+            try {
+                // 1. Fetch stats
+                const statsRes = await fetch('/stats', {
+                    headers: { 'x-api-key': apiToken }
+                });
+                
+                if (statsRes.status === 401 || statsRes.status === 403) {
+                    lockPanel();
+                    return;
+                }
+                
+                const stats = await statsRes.json();
+                
+                // Update stats DOM
+                document.getElementById('val-total-attacks').textContent = stats.total_events || 0;
+                document.getElementById('val-unique-ips').textContent = stats.unique_ips || 0;
+                document.getElementById('val-uptime').textContent = formatDuration(stats.uptime_seconds);
+                
+                // Update chart
+                updateChart(stats.by_protocol || {});
+
+                // 2. Fetch system connection status & memory details
+                const sysRes = await fetch('/sys', {
+                    headers: { 'x-api-key': apiToken }
+                });
+                if (sysRes.ok) {
+                    const sys = await sysRes.json();
+                    
+                    // Update connection counts
+                    if (sys.active_connections) {
+                        protocolsList.forEach(proto => {
+                            const count = sys.active_connections[proto.key] || 0;
+                            const el = document.getElementById(`proto-conn-${proto.key}`);
+                            const card = document.getElementById(`proto-card-${proto.key}`);
+                            if (el) {
+                                el.textContent = `${count} active`;
+                            }
+                            if (card) {
+                                if (count > 0) {
+                                    card.classList.add('active');
+                                } else {
+                                    card.classList.remove('active');
+                                }
+                            }
+                        });
+                    }
+
+                    // Update memory details
+                    if (sys.system) {
+                        document.getElementById('val-pid').textContent = sys.system.pid || '-';
+                        if (sys.system.memory) {
+                            document.getElementById('val-mem-heap').textContent = formatBytes(sys.system.memory.heapUsed);
+                            document.getElementById('val-mem-rss').textContent = formatBytes(sys.system.memory.rss);
+                        }
+                    }
+
+                    // Update CrowdSec decisions
+                    const csContainer = document.getElementById('decisions-container');
+                    const csVal = document.getElementById('val-crowdsec');
+                    if (sys.crowdsec_decisions && csVal && csContainer) {
+                        csContainer.style.display = 'flex';
+                        if (Array.isArray(sys.crowdsec_decisions) && sys.crowdsec_decisions.length > 0) {
+                            let decs = sys.crowdsec_decisions.map(d => {
+                                return `[${d.scope}:${d.value}] ${d.type} - Duration: ${d.duration}`;
+                            }).join('<br>');
+                            csVal.innerHTML = decs;
+                        } else if (sys.crowdsec_decisions.error) {
+                            csVal.textContent = sys.crowdsec_decisions.error;
+                        } else {
+                            csVal.textContent = 'No active ban decisions.';
+                        }
+                    }
+                }
+
+                // 3. Fetch latest logs
+                if (!isPaused) {
+                    const logsRes = await fetch('/events?limit=80', {
+                        headers: { 'x-api-key': apiToken }
+                    });
+                    if (logsRes.ok) {
+                        const events = await logsRes.json();
+                        eventsCache = events;
+                        renderLogs(events);
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to poll api:', err);
+            }
+        }
+
+        // Render events array to terminal element
+        function renderLogs(events) {
+            const terminal = document.getElementById('terminal-logs');
+            const searchVal = document.getElementById('log-search').value.toLowerCase();
+            
+            // Filter logs locally if search query exists
+            const filtered = events.filter(e => {
+                if (!searchVal) return true;
+                const ip = (e.ip || '').toLowerCase();
+                const proto = (e.protocol || '').toLowerCase();
+                const cmd = (e.command || '').toLowerCase();
+                const attack = (e.attack_type || '').toLowerCase();
+                const mail = (e.mail_data || '').toLowerCase();
+                const file = (e.target_file || '').toLowerCase();
+                return ip.includes(searchVal) || proto.includes(searchVal) || cmd.includes(searchVal) || attack.includes(searchVal) || mail.includes(searchVal) || file.includes(searchVal);
+            });
+
+            if (filtered.length === 0) {
+                terminal.innerHTML = '<div class="terminal-empty">No matching log packets captured.</div>';
+                return;
+            }
+
+            terminal.innerHTML = '';
+            filtered.forEach(e => {
+                const date = new Date(e.timestamp);
+                const timeStr = date.toTimeString().split(' ')[0];
+                
+                // Format event details based on protocol
+                let detail = '';
+                if (e.attack_type === 'login_attempt') {
+                    detail = `Authentication failed (user: ${e.username || 'unknown'}, pass: ${e.password || 'unknown'})`;
+                } else if (e.command) {
+                    detail = `Shell command executed: "${e.command}"`;
+                } else if (e.attack_type === 'port_scan_backfire_completed') {
+                    detail = `Port scan complete. Open ports: ${e.open_ports ? e.open_ports.join(', ') : 'none'}`;
+                } else if (e.attack_type === 'web_fingerprint_captured') {
+                    detail = `Client Fingerprint captured: Screen=${e.metadata?.screen || 'N/A'}, TZ=${e.metadata?.timezone || 'N/A'}`;
+                } else if (e.attack_type === 'mysql_rogue_infile_completed') {
+                    detail = `Infile Exfiltration completed for: "${e.target_file}" (${formatBytes(e.exfil_bytes)})`;
+                } else if (e.attack_type === 'smtp_mail_data_received') {
+                    const cleanMail = (e.mail_data || '').substring(0, 100).replace(/\r?\n/g, ' ');
+                    detail = `Mail captured: "${cleanMail}..."`;
+                } else if (e.attack_type === 'gzip_bomb_triggered') {
+                    detail = `Downloaded decoy archive triggers GZIP/compression bomb`;
+                } else if (e.attack_type === 'web_maze_triggered') {
+                    detail = `Crawler trapped in directory recursion maze: ${e.path}`;
+                } else if (e.attack_type === 'http_redirect_loop_triggered') {
+                    detail = `Crawler trapped in redirect loop: ${e.path}`;
+                } else {
+                    detail = `Request captured: ${e.method || ''} ${e.path || ''} ${e.attack_type || ''}`;
+                }
+
+                const row = document.createElement('div');
+                row.className = `log-row proto-${e.protocol}`;
+                row.innerHTML = `
+                    <span class="log-time">[${timeStr}]</span>
+                    <span class="log-proto">${e.protocol}</span>
+                    <span class="log-ip">${e.ip || 'Local'}</span>
+                    <span class="log-msg">${detail}</span>
+                `;
+                terminal.appendChild(row);
+            });
+        }
+
+        // Search filtering handler
+        function filterLogs() {
+            renderLogs(eventsCache);
+        }
+
+        // Toggle logs pause/resume
+        function togglePauseFeed() {
+            isPaused = !isPaused;
+            const btn = document.getElementById('btn-pause');
+            const text = document.getElementById('pause-text');
+            if (isPaused) {
+                btn.classList.add('paused');
+                text.textContent = 'Resume';
+            } else {
+                btn.classList.remove('paused');
+                text.textContent = 'Pause';
+                fetchDashboardData();
+            }
+        }
+
+        // Handle overlay verification UI
+        async function attemptUnlock() {
+            const keyInput = document.getElementById('api-key');
+            const errorEl = document.getElementById('unlock-error');
+            const key = keyInput.value.trim();
+            
+            if (!key) {
+                errorEl.textContent = 'Please enter a key.';
+                return;
+            }
+
+            errorEl.textContent = '';
+            
+            try {
+                // Validate against stats endpoint
+                const res = await fetch('/stats', {
+                    headers: { 'x-api-key': key }
+                });
+                
+                if (res.ok) {
+                    apiToken = key;
+                    localStorage.setItem('honeyai_mgmt_key', key);
+                    document.getElementById('unlock-overlay').classList.add('hidden');
+                    
+                    // Start updates
+                    initProtocolGrid();
+                    fetchDashboardData();
+                    if (updateInterval) clearInterval(updateInterval);
+                    updateInterval = setInterval(fetchDashboardData, 3000);
+                } else {
+                    errorEl.textContent = 'Invalid key. Please check the logs in your server terminal.';
+                }
+            } catch (err) {
+                errorEl.textContent = `Connection error: ${err.message}`;
+            }
+        }
+
+        // Handle enter key on unlock input
+        document.getElementById('api-key').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                attemptUnlock();
+            }
+        });
+
+        // Hide app view, show unlock view
+        function lockPanel() {
+            apiToken = '';
+            localStorage.removeItem('honeyai_mgmt_key');
+            document.getElementById('api-key').value = '';
+            document.getElementById('unlock-error').textContent = '';
+            document.getElementById('unlock-overlay').classList.remove('hidden');
+            if (updateInterval) {
+                clearInterval(updateInterval);
+                updateInterval = null;
+            }
+        }
+
+        // Init page load check
+        window.addEventListener('DOMContentLoaded', () => {
+            if (apiToken) {
+                // Validate if existing token works
+                fetch('/stats', {
+                    headers: { 'x-api-key': apiToken }
+                }).then(res => {
+                    if (res.ok) {
+                        document.getElementById('unlock-overlay').classList.add('hidden');
+                        initProtocolGrid();
+                        fetchDashboardData();
+                        updateInterval = setInterval(fetchDashboardData, 3000);
+                    } else {
+                        lockPanel();
+                    }
+                }).catch(() => {
+                    lockPanel();
+                });
+            } else {
+                lockPanel();
+            }
+        });
+    </script>
+</body>
+</html>

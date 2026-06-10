@@ -93,14 +93,22 @@ mgmt.use((req, res, next) => {
         return res.status(403).end();
     }
     res.removeHeader('Access-Control-Allow-Origin');
-    // API key required for all endpoints except /health
-    if (req.path !== '/health' && req.headers['x-api-key'] !== MGMT_KEY) {
+    
+    // Allow public access to root static assets (dashboard HTML/CSS/JS) and health check
+    const publicPaths = ['/health', '/', '/index.html', '/favicon.ico'];
+    const isPublic = publicPaths.includes(req.path) || req.path.startsWith('/assets/') || req.path.endsWith('.css') || req.path.endsWith('.js') || req.path.endsWith('.png') || req.path.endsWith('.jpg');
+    
+    if (!isPublic && req.headers['x-api-key'] !== MGMT_KEY) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
     next();
 });
 
 mgmt.disable('x-powered-by');
+
+// Serve static dashboard files
+mgmt.use(express.static(path.join(__dirname, 'dashboard')));
+
 mgmt.get('/health', (_, res) => res.json({ status: 'ok', uptime: Math.floor(process.uptime()), pid: process.pid }));
 
 mgmt.get('/stats', (_, res) => {

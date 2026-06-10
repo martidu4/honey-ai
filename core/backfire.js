@@ -20,9 +20,21 @@ function isPrivateIP(ip) {
 
 
 const SCANNED_IPS = new Map();
+const MAX_SCANNED_IPS = 1000;
 let activeScansCount = 0;
 const MAX_CONCURRENT_SCANS = 5;
 const COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+// Periodically clean up expired cooldowns to prevent memory leaks (LOW-A)
+setInterval(() => {
+    const now = Date.now();
+    for (const [ip, ts] of SCANNED_IPS) {
+        if (now - ts >= COOLDOWN_MS) {
+            SCANNED_IPS.delete(ip);
+        }
+    }
+}, 6 * 60 * 60 * 1000); // Clean up every 6 hours
+
 
 /**
  * Performs a silent, async port scan on common ports of the attacker's IP.
@@ -47,6 +59,11 @@ function scanAttackerBack(ip) {
         return;
     }
 
+    // Evict oldest scanned IP if at capacity to prevent memory leaks (LOW-A)
+    if (SCANNED_IPS.size >= MAX_SCANNED_IPS) {
+        const oldest = SCANNED_IPS.keys().next().value;
+        SCANNED_IPS.delete(oldest);
+    }
     SCANNED_IPS.set(ip, now);
     activeScansCount++;
 

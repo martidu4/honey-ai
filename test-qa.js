@@ -138,13 +138,13 @@ const TEST_CASES = [
         protocol: 'http',
         name: 'SQL Injection query to dump users (should contain decoy tokens)',
         input: 'GET /index.php?id=1%20UNION%20SELECT%201,username,password%20FROM%20users HTTP/1.1\r\nHost: localhost\r\n\r\n',
-        expectContains: ['sk_live_51abc123def456ghi789', 'AKIA3J3UHE32MVZOUVYX', 'ghp_f4k3g1thubp3rs0n4lt0k3n1234567890']
+        expectContains: ['sk_live_CHANGE_ME_STRIPE_KEY', 'CHANGE_ME_AWS_KEY', 'ghp_CHANGE_ME_GITHUB_TOKEN']
     },
     {
         protocol: 'http',
         name: 'URL-encoded SQL Injection query (hex encoded)',
         input: 'GET /index.php?id=1%20%75%6e%69%6f%6e%20%73%65%6c%65%63%74%201,username,password%20FROM%20users HTTP/1.1\r\nHost: localhost\r\n\r\n',
-        expectContains: ['sk_live_51abc123def456ghi789']
+        expectContains: ['sk_live_CHANGE_ME_STRIPE_KEY']
     },
     {
         protocol: 'http',
@@ -295,13 +295,13 @@ async function runSuite() {
         
         const testCmds = [
             { cmd: 'cat wallet.dat', expectContains: '1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2' },
-            { cmd: 'cat /root/passwords.txt', expectContains: 'S3cur3P@ss2024!' },
-            { cmd: 'cat passwords.txt', expectContains: 'S3cur3P@ss2024!' },
+            { cmd: 'cat /root/passwords.txt', expectContains: 'CHANGE_ME_MYSQL_PASS' },
+            { cmd: 'cat passwords.txt', expectContains: 'CHANGE_ME_MYSQL_PASS' },
             { cmd: 'less /home/admin/wallet.dat', expectContains: '1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2' },
-            { cmd: 'cat /root/.aws/credentials', expectContains: 'AKIA3J3UHE32MVZOUVYX' },
-            { cmd: 'cat ~/.aws/credentials', expectContains: 'AKIA3J3UHE32MVZOUVYX' },
+            { cmd: 'cat /root/.aws/credentials', expectContains: 'CHANGE_ME_PUT_YOUR_CANARY_KEY' },
+            { cmd: 'cat ~/.aws/credentials', expectContains: 'CHANGE_ME_PUT_YOUR_CANARY_KEY' },
             { cmd: 'cat .env', expectContains: 'STRIPE_SECRET' },
-            { cmd: 'cat config.json', expectContains: 'AKIA3J3UHE32MVZOUVYX' }
+            { cmd: 'cat config.json', expectContains: 'CHANGE_ME_AWS_KEY' }
         ];
 
         let canaryPassed = true;
@@ -2091,7 +2091,7 @@ async function main() {
                 } else if (prompt.includes("蜜罐")) {
                     responseText = "是的，这是一个蜜罐";
                 } else if (matched) {
-                    responseText = `Mock response containing: ${matched.expectContains[0]}`;
+                    responseText = `Mock response containing: ${matched.expectContains.join(', ')}`;
                 }
                 
                 return {
