@@ -1,0 +1,40 @@
+{
+  "name": "openclaw-honeyai",
+  "version": "1.0.0",
+  "description": "All-in-one AI-powered honeypot: SSH, HTTP, FTP, Telnet, MySQL, Redis, SMTP, Git — driven by local LLMs via Ollama",
+  "main": "server.js",
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "setup": "node setup.js",
+    "test": "node test-qa.js"
+  },
+  "keywords": [
+    "honeypot",
+    "security",
+    "ai",
+    "llm",
+    "ollama",
+    "cowrie",
+    "galah",
+    "opencanary",
+    "threat-intelligence"
+  ],
+  "author": "WhatDa (https://github.com/martidu4)",
+  "license": "AGPL-3.0-or-later",
+  "dependencies": {
+    "axios": "^1.9.0",
+    "chalk": "^4.1.2",
+    "express": "^4.21.2",
+    "js-yaml": "^4.1.1",
+    "ssh2": "^1.17.0",
+    "winston": "^3.19.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "qs": ">=6.15.2"
+    }
+  }
+}

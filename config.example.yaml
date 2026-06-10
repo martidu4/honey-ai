@@ -1,0 +1,107 @@
+# OpenClaw HoneyAI — Configuration
+# Copy to config.yaml and customize. Run `pnpm run setup` for guided setup.
+
+honeyai:
+  name: "OpenClaw HoneyAI"
+  version: "1.0.0"
+
+# ─── AI Engine ────────────────────────────────────────────────────────────────
+ai:
+  provider: "ollama"           # "ollama" | "openai" (any OpenAI-compatible API)
+  url: "http://localhost:11434"
+  model: "qwen2.5:1.5b"       # Fast. Use qwen3:4b for richer responses
+  timeout: 60000               # ms - LLMs can be slow
+  temperature: 0.9
+  keep_alive: "10s"            # How long Ollama keeps the model loaded (e.g. "10s", "5m"). Use "0s" to unload immediately.
+
+# ─── Protocols ────────────────────────────────────────────────────────────────
+protocols:
+  http:
+    enabled: true
+    port: 8081                # Caddy proxies :8085 → :8081
+    fake_server_header: "Apache/2.4.51 (Ubuntu)"
+
+  ssh:
+    enabled: true
+    port: 2222
+    banner: "SSH-2.0-OpenSSH_8.9p1 Ubuntu-3ubuntu0.6"
+    fake_hostname: "prod-server-01"
+    tarpit: false              # Set true to switch to infinite-banner tarpit mode
+    tarpit_ports: [222, 2200, 8022]
+
+  ftp:
+    enabled: true
+    port: 2121              # Use 2121 if running without root; firewall/Caddy redirects :21
+    banner: "220 (vsFTPd 3.0.5)"
+
+  telnet:
+    enabled: true
+    port: 2323              # Use 2323 if running without root; firewall redirects :23
+
+  smtp:
+    enabled: true
+    port: 2525              # Use 2525 if running without root; firewall redirects :25
+    banner: "220 mail.example.com ESMTP Postfix"
+
+  mysql:
+    enabled: true
+    port: 3306
+    fake_version: "8.0.35-0ubuntu0.22.04.1"
+
+  redis:
+    enabled: true
+    port: 6379
+
+  git:
+    enabled: true
+    port: 9418
+
+  vnc:
+    enabled: true
+    port: 59000
+
+  rdp:
+    enabled: true
+    port: 3389
+
+# ─── Reporting Platforms ──────────────────────────────────────────────────────
+reporting:
+  cooldown_minutes: 1440         # Don't report same IP more than once per 24 hours
+  enabled: true
+
+  abuseipdb:
+    enabled: false
+    api_key: ""                # Set via setup or .env ABUSEIPDB_KEY
+
+  otx:
+    enabled: false
+    api_key: ""                # Set via setup or .env OTX_KEY
+    ssh_pulse_id: ""
+    http_pulse_id: ""
+
+  dshield:
+    enabled: false
+    api_key: ""                # Set via setup or .env DSHIELD_KEY
+    user_id: ""
+
+  blocklist_de:
+    enabled: false
+    email: ""
+    api_key: ""                # Set via setup or .env BLOCKLIST_KEY
+
+  virustotal:
+    enabled: false
+    api_key: ""                # Set via setup or .env VT_KEY — used for malware samples
+
+# ─── Notifications ────────────────────────────────────────────────────────────
+notifications:
+  telegram:
+    enabled: false
+    bot_token: ""              # Set via setup or .env TELEGRAM_TOKEN
+    chat_id: ""
+
+# ─── Logging ──────────────────────────────────────────────────────────────────
+logging:
+  level: "info"               # "debug" | "info" | "warn" | "error"
+  file: "./logs/honeyai.log"
+  events_file: "./logs/events.json"  # JSONL format — one event per line

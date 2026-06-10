@@ -1,0 +1,87 @@
+# OpenClaw HoneyAI — Pi5 Production Config
+# Generated for this specific deployment — gitignored
+
+honeyai:
+  name: "OpenClaw HoneyAI"
+  version: "1.0.0"
+
+ai:
+  provider: "ollama"
+  url: "http://192.168.1.148:11434"  # Debian Ollama node
+  model: "qwen2.5:1.5b"
+  timeout: 60000
+  temperature: 0.9
+
+protocols:
+  http:
+    enabled: true
+    port: 8081                # Caddy proxies :8085 → :8081 (Crowdsec owns :8080)
+    fake_server_header: "Apache/2.4.51 (Ubuntu)"
+
+  ssh:
+    enabled: true
+    port: 2226                # 2222/2223=Cowrie Docker, 2224=Endlessh
+    banner: "SSH-2.0-OpenSSH_8.9p1 Ubuntu-3ubuntu0.6"
+    fake_hostname: "prod-server-01"
+    tarpit: true
+    tarpit_ports: [2227, 2228]
+
+  ftp:
+    enabled: true
+    port: 2121               # UFW/iptables redirects :21 → :2121
+    banner: "220 (vsFTPd 3.0.5)"
+
+  telnet:
+    enabled: true
+    port: 2323               # UFW/iptables redirects :23 → :2323
+
+  smtp:
+    enabled: true
+    port: 2525               # UFW/iptables redirects :25 → :2525
+    banner: "220 mail.example.com ESMTP Postfix"
+
+  mysql:
+    enabled: true
+    port: 33060              # iptables: :3306 → :33060
+
+  redis:
+    enabled: true
+    port: 63790              # iptables: :6379 → :63790
+
+  git:
+    enabled: true
+    port: 9419               # iptables: :9418 → :9419
+
+reporting:
+  enabled: true
+  cooldown_minutes: 1440
+  abuseipdb:
+    enabled: false
+    api_key: ""
+  otx:
+    enabled: false
+    api_key: ""
+    ssh_pulse_id: ""
+    http_pulse_id: ""
+  dshield:
+    enabled: false
+    api_key: ""
+    user_id: ""
+  blocklist_de:
+    enabled: false
+    api_key: ""
+    email: ""
+  virustotal:
+    enabled: false
+    api_key: ""
+
+notifications:
+  telegram:
+    enabled: false
+    bot_token: ""
+    chat_id: ""
+
+logging:
+  level: "info"
+  file: "./logs/honeyai.log"
+  events_file: "./logs/events.json"

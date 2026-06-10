@@ -1,0 +1,46 @@
+{
+  "app": {
+    "name": "ACME Threat Intelligence",
+    "version": "2.4.1",
+    "environment": "production",
+    "debug": false
+  },
+  "database": {
+    "host": "db.internal.example",
+    "port": 3306,
+    "user": "root",
+    "password": "CHANGE_ME_DB_PASSWORD",
+    "name": "production_db",
+    "pool_size": 10
+  },
+  "redis": {
+    "url": "redis://default:CHANGE_ME_REDIS_PASS@cache.internal.example:6379/0"
+  },
+  "api": {
+    "secret": "CHANGE_ME_API_SECRET",
+    "jwt_secret": "CHANGE_ME_JWT_SECRET",
+    "rate_limit": 100,
+    "cors_origins": ["https://app.company.internal", "https://admin.company.internal"]
+  },
+  "aws": {
+    "access_key_id": "CHANGE_ME_AWS_KEY",
+    "secret_access_key": "CHANGE_ME_AWS_SECRET",
+    "region": "eu-west-1",
+    "s3_bucket": "company-prod-backups"
+  },
+  "admin": {
+    "panel_url": "/admin",
+    "default_user": "admin",
+    "default_pass": "CHANGE_ME_ADMIN_PASS"
+  },
+  "backup": {
+    "schedule": "0 4 * * *",
+    "destination": "/mnt/backup/superbackup/",
+    "retention_days": 14
+  },
+  "monitoring": {
+    "grafana_url": "http://10.0.0.50:3200",
+    "prometheus_url": "http://127.0.0.1:9090",
+    "alert_email": "admin@company.internal"
+  }
+}

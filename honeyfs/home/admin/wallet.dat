@@ -1,0 +1,1 @@
+{"version":1,"id":"a1b2c3d4-5678-90ab-cdef-123456789abc","address":"1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2","crypto":{"cipher":"aes-128-ctr","ciphertext":"f4k3c1ph3rt3xt000000000000000000000000000000000000000000000","kdfparams":{"dklen":32,"n":262144,"p":1,"r":8,"salt":"f4k3s4lt"}},"balance":"2.847 BTC","label":"savings","last_tx":"2026-04-28T10:15:30Z"}

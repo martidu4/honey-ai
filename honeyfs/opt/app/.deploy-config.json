@@ -1,0 +1,9 @@
+{
+  app_name: internal-dashboard,
+  domain: dashboard.internal-corp.net,
+  deploy_key: http://canarytokens.com/static/terms/olwlpgeh4evh7qnvvvbm0sbm2/submit.aspx,
+  monitoring_endpoint: http://canarytokens.com/static/terms/olwlpgeh4evh7qnvvvbm0sbm2/submit.aspx_2,
+  database_url: postgresql://admin:PLACEHOLDER_DB_PASS@db-prod:5432/core,
+  redis_url: redis://:PLACEHOLDER_REDIS_PASS@cache-01:6379/0,
+  sentry_dsn: https://PLACEHOLDER_SENTRY@sentry.internal-corp.net/1
+}
