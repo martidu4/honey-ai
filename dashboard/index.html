@@ -1028,8 +1028,10 @@
                     });
                     if (logsRes.ok) {
                         const events = await logsRes.json();
-                        eventsCache = events;
-                        renderLogs(events);
+                        if (JSON.stringify(events) !== JSON.stringify(eventsCache)) {
+                            eventsCache = events;
+                            renderLogs(events);
+                        }
                     }
                 }
             } catch (err) {
@@ -1054,6 +1056,9 @@
                 return ip.includes(searchVal) || proto.includes(searchVal) || cmd.includes(searchVal) || attack.includes(searchVal) || mail.includes(searchVal) || file.includes(searchVal);
             });
 
+            // Smart autoscroll: check if the user is already near the bottom
+            const isScrolledToBottom = terminal.scrollHeight - terminal.clientHeight <= terminal.scrollTop + 50;
+
             if (filtered.length === 0) {
                 terminal.innerHTML = '<div class="terminal-empty">No matching log packets captured.</div>';
                 return;
@@ -1062,7 +1067,10 @@
             terminal.innerHTML = '';
             filtered.forEach(e => {
                 const date = new Date(e.timestamp);
-                const timeStr = date.toTimeString().split(' ')[0];
+                const timeParts = date.toTimeString().split(' ');
+                const timeStr = timeParts[0];
+                const tzStr = timeParts[1] || '';
+                const displayTime = `${timeStr} ${tzStr}`.trim();
                 
                 // Format event details based on protocol
                 let detail = '';
@@ -1092,13 +1100,18 @@
                 const row = document.createElement('div');
                 row.className = `log-row proto-${e.protocol}`;
                 row.innerHTML = `
-                    <span class="log-time">[${timeStr}]</span>
+                    <span class="log-time">[${displayTime}]</span>
                     <span class="log-proto">${e.protocol}</span>
                     <span class="log-ip">${e.ip || 'Local'}</span>
                     <span class="log-msg">${detail}</span>
                 `;
                 terminal.appendChild(row);
             });
+
+            // Perform autoscroll if user was at the bottom
+            if (isScrolledToBottom) {
+                terminal.scrollTop = terminal.scrollHeight;
+            }
         }
 
         // Search filtering handler
