@@ -426,6 +426,8 @@ const IDENTITY_LEAK_PATTERNS = [
     /soy un(a)? (ia|inteligencia artificial|modelo de lenguaje|chatbot)/i,
     /je suis une? (ia|intelligence artificielle|modèle de langage|chatbot)/i,
     /ich bin ein(e)? (ki|künstliche intelligenz|sprachmodell|chatbot)/i,
+    /sono (un'?|una? )?(ia|intelligenza artificiale|modello linguistico|chatbot)/i,
+    /sou (um |uma )?(ia|intelig[eê]ncia artificial|modelo de linguagem|chatbot)/i,
     /system prompt/i,                                  // Meta prompt leak
     /prompt del sistema|instrucciones del sistema|consigne du système/i,
     /ATTACKER_PAYLOAD/i,                               // Our injection wrapper leaked
@@ -433,6 +435,8 @@ const IDENTITY_LEAK_PATTERNS = [
     /this is (a |)(fake|deceptive|not real)/i,         // Self-identification
     /esto es (falso|una simulación|de mentira|un simulacro)/i,
     /ceci est (un fake|faux|une simulation)/i,
+    /questo è un server (finto|falso|simulato|non reale|non vero)|non sono un (vero|reale) server/i,
+    /isto é um servidor (falso|simulado|não real|não verdadeiro)|não sou um servidor (real|verdadeiro)|não é um servidor real/i,
     /as an ai/i,                                       // Common AI disclosure
     /como una? (ia|inteligencia artificial)/i,
     /en tant que (ia|intelligence artificielle)/i,
@@ -568,4 +572,4 @@ function getStaticTelnetResponse(cmd) {
     return null;
 }
 
-module.exports = { generate };
+module.exports = { generate, validateOutputIdentity };

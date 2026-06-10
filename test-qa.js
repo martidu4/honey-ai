@@ -322,6 +322,62 @@ async function runSuite() {
     }
     console.log(chalk.gray('--------------------------------------------------'));
 
+    // ── Identity Leak Pattern Tests ────────────────────────────────────
+    console.log(chalk.blue('🔍 Testing Identity Leak Pattern Coverage...'));
+    try {
+        const leakCases = [
+            {
+                name: 'Italian AI identity disclosure',
+                text: 'Sono un modello linguistico e non posso accedere al server reale.'
+            },
+            {
+                name: 'Italian fake server disclosure',
+                text: 'Non sono un vero server.'
+            },
+            {
+                name: 'Portuguese AI identity disclosure',
+                text: 'Sou uma inteligência artificial, não um serviço Redis real.'
+            },
+            {
+                name: 'Portuguese fake server disclosure',
+                text: 'Não sou um servidor real.'
+            }
+        ];
+
+        const safeCases = [
+            'Il server ha completato la connessione al database.',
+            'O servidor respondeu com o arquivo de log solicitado.'
+        ];
+
+        let identityPatternsPassed = true;
+        for (const tc of leakCases) {
+            const sanitized = aiEngine.validateOutputIdentity(tc.text, 'http');
+            if (sanitized.includes('500 Internal Server Error')) {
+                console.log(chalk.green(`  [Identity Leak PASS] ${tc.name} blocked.`));
+            } else {
+                console.log(chalk.red(`  [Identity Leak FAIL] ${tc.name} was not blocked.`));
+                identityPatternsPassed = false;
+            }
+        }
+
+        for (const text of safeCases) {
+            const sanitized = aiEngine.validateOutputIdentity(text, 'http');
+            if (sanitized === text) {
+                console.log(chalk.green('  [Identity Leak PASS] Harmless Italian/Portuguese text passed through.'));
+            } else {
+                console.log(chalk.red(`  [Identity Leak FAIL] Harmless text was blocked: "${text}"`));
+                identityPatternsPassed = false;
+            }
+        }
+
+        if (identityPatternsPassed) passed++;
+        else failed++;
+    } catch (err) {
+        console.log(chalk.red(`  [Identity Leak ERROR] Pattern tests failed: ${err.message}`));
+        failed++;
+    }
+    console.log(chalk.gray('--------------------------------------------------'));
+
     // ── Downloader / SSRF Tests ─────────────────────────────────────────
     console.log(chalk.blue('🔍 Testing Downloader & SSRF Protections...'));
     try {
