@@ -131,6 +131,12 @@ def main():
     
     all_ips = []
     
+    # Operación Espina (Backfire scans)
+    backfire_scans = 0
+    backfire_ips = set()
+    backfire_ports_tally = Counter()
+    backfire_targets = []
+    
     for e in events:
         proto = e.get('protocol')
         ip = e.get('ip')
@@ -206,6 +212,18 @@ def main():
             if agent:
                 galah_agents.append(agent)
                 
+        elif proto == 'backfire':
+            backfire_scans += 1
+            backfire_ips.add(ip)
+            open_ports = e.get('open_ports', [])
+            for port in open_ports:
+                backfire_ports_tally[port] += 1
+            backfire_targets.append({
+                "ip": ip,
+                "ports": open_ports,
+                "time": time_str
+            })
+            
         elif proto in ['ftp', 'telnet', 'smtp', 'mysql', 'redis', 'git', 'vnc', 'rdp']:
             oc_events += 1
             oc_ips.add(ip)
@@ -271,6 +289,10 @@ def main():
         "opencanary_ips": len(oc_ips),
         "galah_requests": galah_requests,
         "galah_ips": len(galah_ips),
+        "backfire_scans": backfire_scans,
+        "backfire_ips": len(backfire_ips),
+        "backfire_ports_tally": [{"port": port, "count": count} for port, count in backfire_ports_tally.most_common()],
+        "backfire_targets": backfire_targets,
         "top_ips": top_ips[:5],
         "top_commands": top_commands,
         "top_passwords": top_passwords,
