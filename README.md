@@ -252,6 +252,8 @@ TELEGRAM_CHAT=your_chat_id
 
 ## 📊 Management Dashboard
 
+<img src="docs/dashboard.png" alt="HoneyAI Management Dashboard" width="700">
+
 HoneyAI includes a built-in, local-only web dashboard to monitor attacks, live connection sockets, system resource usage (CPU/Memory), and logs in real-time.
 
 ### How to Access
