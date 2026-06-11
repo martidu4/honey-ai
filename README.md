@@ -381,7 +381,7 @@ The `honey-ai.service` systemd file includes aggressive sandboxing:
 
 HoneyAI powers a **public threat intelligence blog** with daily auto-generated reports:
 
-### 🔗 [threats.evitalios.com](https://threats.evitalios.com)
+### 🔗 [honey-ai.dev](https://honey-ai.dev)
 
 Every night, a pipeline automatically:
 1. **Collects** the day's attack data from all 11 protocols
