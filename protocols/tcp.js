@@ -30,7 +30,7 @@ const PROTOCOLS = {
             'PWD':      '257 "/" is the current directory\r\n',
             'QUIT':     '221 Goodbye.\r\n',
             'TYPE':     '200 Switching to Binary mode.\r\n',
-            'PASV':     '227 Entering Passive Mode (127,0,0,1,8,12).\r\n',
+            'PASV':     '227 Entering Passive Mode (203,0,113,45,39,201).\r\n',
             'PORT':     '200 PORT command successful.\r\n',
             'FEAT':     "211-Features:\r\n EPRT\r\n EPSV\r\n MDTM\r\n PASV\r\n REST STREAM\r\n SIZE\r\n TVFS\r\n211 End\r\n",
             'OPTS':     "200 Always in UTF8 mode.\r\n"
@@ -247,10 +247,29 @@ function startServer(proto, port) {
                 }
 
                 if (proto.key === 'redis') {
+                    // Route known data commands through the AI engine
+                    // (which has static RESP responses for GET, SET, DEL, etc.)
                     const parts = line.split(/\s+/).filter(Boolean);
-                    const cmd = parts[0] || '';
+                    const cmd = (parts[0] || '').toUpperCase();
+                    const REDIS_AI_COMMANDS = ['GET', 'SET', 'DEL', 'MGET', 'HGET', 'HGETALL', 'HSET', 'LRANGE', 'SMEMBERS', 'TTL', 'TYPE', 'EXISTS', 'DBSIZE', 'SCAN'];
+                    if (REDIS_AI_COMMANDS.includes(cmd)) {
+                        // Let the AI engine handle — it has static RESP responses
+                        const redisResponse = await ai.generate({
+                            protocol: 'redis',
+                            attackerInput: line,
+                            context: { ip, port }
+                        });
+                        if (!socket.destroyed) {
+                            let formatted = redisResponse;
+                            if (!formatted.endsWith('\r\n')) formatted += '\r\n';
+                            socket.write(formatted);
+                        }
+                        drainQueue();
+                        return;
+                    }
+                    // Truly unknown commands → ERR
                     const args = parts.slice(1).map(arg => `'${arg}'`).join(' ');
-                    const errResponse = `-ERR unknown command '${cmd}', with args beginning with: ${args ? args + ' ' : ''}\r\n`;
+                    const errResponse = `-ERR unknown command '${cmd.toLowerCase()}', with args beginning with: ${args ? args + ' ' : ''}\r\n`;
                     if (!socket.destroyed) socket.write(errResponse);
                     drainQueue();
                     return;
