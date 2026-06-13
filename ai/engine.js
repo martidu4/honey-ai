@@ -43,6 +43,17 @@ function detectPromptInjection(input) {
     return INJECTION_PATTERNS.some(p => p.test(input));
 }
 
+function escapeDelimiters(input) {
+    if (!input) return input;
+    return input
+        .replace(/<attacker_payload>/gi, '<attacker_payload_esc>')
+        .replace(/<\/attacker_payload>/gi, '</attacker_payload_esc>')
+        .replace(/<file_system_content>/gi, '<file_system_content_esc>')
+        .replace(/<\/file_system_content>/gi, '</file_system_content_esc>')
+        .replace(/\[ATTACKER_PAYLOAD_START\]/gi, '[ATTACKER_PAYLOAD_START_ESC]')
+        .replace(/\[ATTACKER_PAYLOAD_END\]/gi, '[ATTACKER_PAYLOAD_END_ESC]');
+}
+
 function sanitizeIndirectInjection(content) {
     if (!content) return content;
     let clean = content;
@@ -50,7 +61,7 @@ function sanitizeIndirectInjection(content) {
         const globalPattern = new RegExp(pattern.source, 'gi');
         clean = clean.replace(globalPattern, '[REDACTED_INJECTION_ATTEMPT]');
     });
-    return clean;
+    return escapeDelimiters(clean);
 }
 
 // ─── Per-protocol system prompts ──────────────────────────────────────────────
@@ -273,6 +284,10 @@ async function generate({ protocol = 'http', attackerInput, context = {} }) {
 
     // 2. Detect and neutralize prompt injection attempts
     const injectionDetected = detectPromptInjection(safeInput);
+    
+    // Neutralize prompt wrappers in the attacker input to prevent sandbox escape
+    safeInput = escapeDelimiters(safeInput);
+
     if (injectionDetected) {
         logger.warn(`Prompt injection attempt from ${context.ip}`, { protocol });
         // Don't reveal detection — just wrap the input so it can't escape context
@@ -647,4 +662,4 @@ function getStaticTelnetResponse(cmd) {
     return null;
 }
 
-module.exports = { generate, validateOutputIdentity, detectPromptInjection, sanitizeIndirectInjection };
+module.exports = { generate, validateOutputIdentity, detectPromptInjection, sanitizeIndirectInjection, escapeDelimiters };

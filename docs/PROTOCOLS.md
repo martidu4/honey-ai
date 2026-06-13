@@ -158,3 +158,37 @@ Fake Squid 5.7 open proxy.
 - Returns `200 Connection Established` with Squid-style headers
 - Logs proxy destination for intelligence
 - Non-CONNECT requests get a Squid error page
+
+---
+
+## Samba/SMB Log Monitor (`samba.js`)
+
+A passive log detector that integrates with standard Samba installations using the VFS full audit module.
+
+- **Log Source:** Tails the Samba full audit log file (typically `/var/log/samba/full_audit.log` or similar).
+- **Log Parsing:** Extracts information from audit lines formatted by `vfs_full_audit` (e.g., `user|ip|machine|share|op|status|file`).
+- **Extracted Metadata:** 
+  - Connecting User (e.g., `guest`, `admin`)
+  - Attacker IP
+  - Client Machine Name
+  - SMB Share accessed
+  - SMB Operation (e.g., `open`, `unlink`, `rename`)
+  - Operation Status (e.g., `ok`, `fail`)
+  - Target File/Directory path
+- **Actions:** Logs warning events to the main system, reports malicious IPs to external intelligence systems, and triggers a backfire scan against the scanner IP.
+
+---
+
+## Portscan Log Monitor (`portscan.js`)
+
+A passive log detector that parses kernel/firewall logs for port scanning activity.
+
+- **Log Source:** Tails the syslog/kernel log (typically `/var/log/syslog`).
+- **Log Parsing:** Searches for standard iptables logging entries containing a configurable prefix (defaults to `PORTSCAN:`).
+- **Extracted Metadata:**
+  - Source IP (Attacker IP)
+  - Destination IP (Honeypot IP)
+  - Source Port (SPT)
+  - Destination Port (DPT)
+  - Protocol (TCP or UDP)
+- **Actions:** Emits a warning log, registers a structured security event, reports the scanner IP to configured intelligence feeds (e.g., AbuseIPDB), and automatically fires back a port scan via the backfire module.

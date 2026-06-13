@@ -96,7 +96,8 @@ function start(customPort) {
     const { sleep } = require('../core/jitter');
     app.use(async (req, res, next) => {
         // Skip health endpoint (monitoring needs instant response)
-        if (req.path === '/health') return next();
+        // Skip health and fingerprint endpoints (monitoring needs instant response, fingerprinting is client-async and needs to be fast)
+        if (req.path === '/health' || req.path === '/api/fingerprint') return next();
         await sleep(150, 800);
         next();
     });
