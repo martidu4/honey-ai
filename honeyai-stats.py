@@ -115,6 +115,7 @@ def main():
     
     oc_events = 0
     oc_ips = set()
+    oc_commands = []
     
     galah_requests = 0
     galah_ips = set()
@@ -233,7 +234,7 @@ def main():
             if 'input' in e:
                 inp = e.get('input')
                 if inp:
-                    ssh_commands.append(f"[{proto}] {inp}")
+                    oc_commands.append(f"[{proto}] {inp}")
                     
     # Helpers for top lists
     def get_top_items(items, limit=5):
