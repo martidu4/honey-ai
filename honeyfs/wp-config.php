@@ -1,0 +1,16 @@
+<?php
+define('DB_NAME', 'CHANGE_ME_WP_DB_NAME');
+define('DB_USER', 'CHANGE_ME_WP_DB_USER');
+define('DB_PASSWORD', 'CHANGE_ME_WP_DB_PASSWORD');
+define('DB_HOST', 'CHANGE_ME_WP_DB_HOST');
+define('DB_CHARSET', 'utf8');
+define('DB_COLLATE', '');
+define('AUTH_KEY',         'CHANGE_ME_WP_AUTH_KEY');
+define('SECURE_AUTH_KEY',  'CHANGE_ME_WP_SECURE_AUTH_KEY');
+define('LOGGED_IN_KEY',    'CHANGE_ME_WP_LOGGED_IN_KEY');
+define('NONCE_KEY',        'CHANGE_ME_WP_NONCE_KEY');
+define('AUTH_SALT',        'CHANGE_ME_WP_AUTH_SALT');
+define('SECURE_AUTH_SALT', 'CHANGE_ME_WP_SECURE_AUTH_SALT');
+define('LOGGED_IN_SALT',   'CHANGE_ME_WP_LOGGED_IN_SALT');
+define('NONCE_SALT',       'CHANGE_ME_WP_NONCE_SALT');
+?>

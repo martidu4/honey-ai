@@ -1,0 +1,6 @@
+[api]
+secret_key = "CHANGE_ME_STRIPE_SECRET_KEY"
+public_key = "CHANGE_ME_STRIPE_PUBLIC_KEY"
+
+[webhook]
+secret = "CHANGE_ME_STRIPE_WEBHOOK_SECRET"

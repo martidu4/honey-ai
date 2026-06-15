@@ -1,0 +1,8 @@
+[user]
+	name = CHANGE_ME_GIT_NAME
+	email = CHANGE_ME_GIT_EMAIL
+[credential]
+	helper = store
+[github]
+	user = CHANGE_ME_GITHUB_USERNAME
+	token = CHANGE_ME_GITHUB_TOKEN
