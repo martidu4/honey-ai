@@ -99,7 +99,7 @@ services:
     volumes:
       - ./config.yaml:/app/config.yaml:ro
       - ./honeyfs:/app/honeyfs:ro
-      - honeyai_logs:/app/logs
+      - ./logs:/app/logs
       # Passive detectors log mounts from host (optional, required if enabled in config)
       - /var/log/syslog:/var/log/syslog:ro
       - /var/log/samba:/var/log/samba:ro
@@ -110,7 +110,6 @@ services:
 
 volumes:
   ollama_data:
-  honeyai_logs:
 
 networks:
   public_honeypot:
