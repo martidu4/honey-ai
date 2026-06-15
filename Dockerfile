@@ -16,8 +16,9 @@ LABEL description="HoneyAI — AI-powered multi-protocol honeypot"
 LABEL org.opencontainers.image.source="https://github.com/martidu4/honey-ai"
 LABEL org.opencontainers.image.license="AGPL-3.0-or-later"
 
-# Security: run as non-root
-RUN addgroup -g 1000 -S honeyai && adduser -u 1000 -S honeyai -G honeyai
+# Security: run as non-root (delete pre-existing node user/group with GID/UID 1000)
+RUN (deluser --remove-home node || true) && (delgroup node || true) && \
+    addgroup -g 1000 -S honeyai && adduser -u 1000 -S honeyai -G honeyai
 
 WORKDIR /app
 
