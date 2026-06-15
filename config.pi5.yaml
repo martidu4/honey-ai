@@ -20,7 +20,7 @@ protocols:
 
   ssh:
     enabled: true
-    port: 2226
+    port: 2222
     banner: "SSH-2.0-OpenSSH_8.9p1 Ubuntu-3ubuntu0.6"
     fake_hostname: "prod-server-01"
     tarpit: true
@@ -42,15 +42,15 @@ protocols:
 
   mysql:
     enabled: true
-    port: 33060
+    port: 3306
 
   redis:
     enabled: true
-    port: 63790
+    port: 6379
 
   git:
     enabled: true
-    port: 9419
+    port: 9418
 
   mssql:
     enabled: true

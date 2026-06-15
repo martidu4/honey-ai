@@ -45,6 +45,6 @@ EXPOSE 8081 2222 2121 2323 2525 3306 6379 9418 59000 3389 9999
 
 # Health check via management API
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget -qO- http://localhost:9999/health || exit 1
+  CMD wget -qO- http://127.0.0.1:9999/health || exit 1
 
 CMD ["node", "server.js"]
