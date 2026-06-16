@@ -33,6 +33,11 @@ for ip in $ips; do
         continue
     fi
 
+    # Skip localhost/loopback IPs to prevent blocking internal services or tests
+    if [[ "$ip" =~ ^127\. ]] || [ "$ip" = "0.0.0.0" ]; then
+        continue
+    fi
+
     # Check if already processed to save execution time
     if grep -qFx "$ip" "$STATE_FILE"; then
         continue
