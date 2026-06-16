@@ -131,6 +131,20 @@ TELEGRAM_TOKEN=your_bot_token
 TELEGRAM_CHAT=your_chat_id
 ```
 
+### Using an External LLM Server
+
+If you already run Ollama on a more powerful machine, skip the bundled Ollama containers:
+
+```bash
+# Set your external Ollama URL in .env
+echo 'OLLAMA_URL=http://your-ollama-server:11434' >> .env
+
+# Start with the external LLM override (disables bundled Ollama)
+docker compose -f docker-compose.yml -f docker-compose.external-llm.yml up -d
+```
+
+This is useful when deploying HoneyAI on low-power devices (e.g. Raspberry Pi) while running the LLM on a separate server with more CPU/GPU.
+
 ---
 
 ## Architecture
@@ -207,11 +221,9 @@ honey-ai/
 
 The `honeyfs/` directory contains **fake sensitive files** that attackers will find when browsing via SSH or HTTP. These are your **canary tokens** — bait credentials that, when used by an attacker, alert you to a compromise.
 
-**⚠️ IMPORTANT: Replace ALL `CHANGE_ME_*` values with your own bait credentials before deploying.**
+All files ship with **realistic-looking default credentials** (fake AWS keys, SSH keys, database passwords, etc.) that are ready to deploy out of the box. For maximum detection capability, replace them with your own [canarytokens.org](https://canarytokens.org/) bait:
 
 ```bash
-# Example: Generate your own canary AWS keys at https://canarytokens.org/
-# Then replace in:
 honeyfs/root/.aws/credentials     # Fake AWS keys
 honeyfs/root/.env                 # Fake DB/Stripe/AWS credentials
 honeyfs/root/config.json          # Fake full application config
@@ -219,12 +231,12 @@ honeyfs/root/passwords.txt        # Fake master password list
 honeyfs/root/.ssh/id_rsa          # Fake SSH private key
 honeyfs/root/.github-token        # Fake GitHub PAT
 honeyfs/opt/app/.env              # Fake app environment
-honeyfs/opt/app/docker-compose.yml # Fake Docker stack
+honeyfs/opt/app/docker-compose.yml # Fake Docker stack with secrets
 honeyfs/opt/k8s/secrets.yaml      # Fake Kubernetes secrets
 honeyfs/opt/infra/terraform.tfstate # Fake Terraform state
 ```
 
-The idea: when an attacker steals these credentials and tries to use them, you'll detect the breach via the canary token service. Use [canarytokens.org](https://canarytokens.org/) or your own detection mechanism.
+The idea: when an attacker steals these credentials and tries to use them, you'll detect the breach via the canary token service.
 
 ---
 
@@ -383,7 +395,21 @@ HONEYAI_HOST=127.0.0.1 node test-stress.js
 
 ## Security Hardening
 
-The `honey-ai.service` systemd file includes aggressive sandboxing:
+### Docker (recommended)
+
+The Docker deployment includes aggressive isolation:
+
+- `read_only: true` — read-only container filesystem
+- `no-new-privileges` — prevent privilege escalation
+- `cap_drop: ALL` — zero Linux capabilities
+- `pids_limit: 256` — prevent fork bombs
+- `mem_limit: 512m` + `cpus: 1.0` — resource caps
+- Separate `ai_backend` network (internal, no internet) for LLM traffic
+- `public_honeypot` network with static IP for firewall rules
+
+### Systemd (bare metal)
+
+The `honey-ai.service` file includes aggressive sandboxing:
 
 - `ProtectSystem=strict` — read-only root filesystem
 - `ProtectHome=read-only` — no writes to home directories
@@ -398,9 +424,11 @@ The `honey-ai.service` systemd file includes aggressive sandboxing:
 - **Use a dedicated VM, VPS, or Raspberry Pi** — not your dev machine
 - **Management API** binds to `127.0.0.1` only — never expose it externally
 - `config.yaml` and `.env` are gitignored — double-check before any commit
-- The AI engine filters identity leaks (honeypot, AI, simulation) in **8 languages** with 39 regex patterns
+- The AI engine filters identity leaks (honeypot, AI, simulation) in **8 languages** with 39+ regex patterns
 - Prompt injection defense: attacker input wrapped in `[ATTACKER_PAYLOAD_START/END]` + XML tags
 - Output sanitization: strips `<think>` tags, markdown fences, and AI meta-markers
+- All protocol handlers sanitize server banners — no real hostnames or software versions leak
+- Canary files contain realistic credentials — no `CHANGE_ME` placeholders or honeypot markers
 
 ---
 

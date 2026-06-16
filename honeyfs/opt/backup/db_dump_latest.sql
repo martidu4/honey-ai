@@ -11,8 +11,8 @@ CREATE TABLE users (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO users VALUES
-(1,"admin@internal-corp.net","$2b$12$LK1qF6z.xR7vNmZp8TgW5e","sk_live_4xR9mNvQ2bT7wL1p"),
-(2,"devops@internal-corp.net","$2b$12$XJ4nM9p.kL2qR5tY7uW3Ze","sk_live_prod_2xK9mNv"),
+(1,"admin@internal-corp.net","$2b$12$LK1qF6z.xR7vNmZp8TgW5e","sk_bait_4xR9mNvQ2bT7wL1p"),
+(2,"devops@internal-corp.net","$2b$12$XJ4nM9p.kL2qR5tY7uW3Ze","sk_bait_prod_2xK9mNv"),
 (3,"cto@internal-corp.net","$2b$12$TQ7rL2k.wN4mP6uX8vY1Bf","eqro6nbundt5sacouyljkc2cx.canarytokens.com");
 
 -- Replication config
