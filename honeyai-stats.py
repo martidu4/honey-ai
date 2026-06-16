@@ -137,6 +137,23 @@ def main():
     backfire_ips = set()
     backfire_ports_tally = Counter()
     backfire_targets = []
+
+    # New protocol-specific counters
+    mcp_requests = 0
+    mcp_ips = set()
+    mcp_tools_called = []
+    mssql_events = 0
+    mssql_ips = set()
+    mssql_credentials = []
+    snmp_events = 0
+    snmp_ips = set()
+    snmp_communities = []
+    portscan_events = 0
+    portscan_ips = set()
+    portscan_ports = Counter()
+    prompt_injection_blocked = 0
+    identity_leak_blocked = 0
+    all_protos = []  # Track all protocol names for breakdown
     
     for e in events:
         proto = e.get('protocol')
@@ -147,8 +164,19 @@ def main():
         
         if not ip or ip.startswith('127.') or ip.startswith('192.168.') or ip == '::1' or ip == 'localhost':
             continue
-            
+
         all_ips.append(ip)
+        if proto:
+            all_protos.append(proto)
+
+        # Handle event_type-based events (prompt injection / identity leak)
+        event_type = e.get('event_type', '')
+        if event_type == 'prompt_injection_blocked':
+            prompt_injection_blocked += 1
+            continue
+        elif event_type == 'identity_leak_blocked':
+            identity_leak_blocked += 1
+            continue
         
         if proto == 'ssh':
             ssh_connections += 1
@@ -229,12 +257,49 @@ def main():
         elif proto in ['ftp', 'telnet', 'smtp', 'mysql', 'redis', 'git', 'vnc', 'rdp']:
             oc_events += 1
             oc_ips.add(ip)
-            
+
             # Treat TCP inputs as commands/activity
             if 'input' in e:
                 inp = e.get('input')
                 if inp:
                     oc_commands.append(f"[{proto}] {inp}")
+
+        elif proto == 'mcp':
+            mcp_requests += 1
+            mcp_ips.add(ip)
+            oc_events += 1  # Also count in oc_events for backward compat
+            oc_ips.add(ip)
+            tool = e.get('tool_name', '')
+            method = e.get('method', '')
+            if tool:
+                mcp_tools_called.append(tool)
+            elif method:
+                mcp_tools_called.append(method)
+
+        elif proto == 'mssql':
+            mssql_events += 1
+            mssql_ips.add(ip)
+            oc_events += 1
+            oc_ips.add(ip)
+            user = e.get('username', '')
+            if user:
+                mssql_credentials.append(user)
+
+        elif proto == 'snmp':
+            snmp_events += 1
+            snmp_ips.add(ip)
+            oc_events += 1
+            oc_ips.add(ip)
+            community = e.get('community', '')
+            if community:
+                snmp_communities.append(community)
+
+        elif proto == 'portscan':
+            portscan_events += 1
+            portscan_ips.add(ip)
+            dpt = e.get('dst_port')
+            if dpt:
+                portscan_ports[int(dpt)] += 1
                     
     # Helpers for top lists
     def get_top_items(items, limit=5):
@@ -312,7 +377,23 @@ def main():
             "top_paths": top_paths_cve,
             "cve_detections": cve_dedup[:20],
             "mitre_tactics": mitre_summary
-        }
+        },
+        # New protocol-specific stats
+        "mcp_requests": mcp_requests,
+        "mcp_ips": len(mcp_ips),
+        "mcp_tools_called": get_top_items(mcp_tools_called, 5),
+        "mssql_events": mssql_events,
+        "mssql_ips": len(mssql_ips),
+        "mssql_top_credentials": get_top_items(mssql_credentials, 5),
+        "snmp_events": snmp_events,
+        "snmp_ips": len(snmp_ips),
+        "snmp_top_communities": get_top_items(snmp_communities, 5),
+        "portscan_events": portscan_events,
+        "portscan_ips": len(portscan_ips),
+        "portscan_top_ports": [{"port": p, "count": c} for p, c in portscan_ports.most_common(10)],
+        "prompt_injection_blocked": prompt_injection_blocked,
+        "identity_leak_blocked": identity_leak_blocked,
+        "protocol_breakdown": [{"protocol": p, "events": c} for p, c in Counter(all_protos).most_common() if c > 0],
     }
     
     print(json.dumps(stats, indent=2))

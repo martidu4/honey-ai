@@ -8,7 +8,7 @@
 
 const axios  = require('axios');
 const config = require('../core/config');
-const { logger } = require('../core/logger');
+const { logger, logEvent } = require('../core/logger');
 
 const ai = config.ai;
 
@@ -343,6 +343,12 @@ async function generate({ protocol = 'http', attackerInput, context = {} }) {
 
     if (injectionDetected) {
         logger.warn(`Prompt injection attempt from ${context.ip}`, { protocol });
+        logEvent({
+            protocol,
+            ip: context.ip,
+            event_type: 'prompt_injection_blocked',
+            input: safeInput.substring(0, 200)
+        });
         // Don't reveal detection — just wrap the input so it can't escape context
         safeInput = `[ATTACKER_PAYLOAD_START]${safeInput}[ATTACKER_PAYLOAD_END]`;
     }
@@ -612,6 +618,12 @@ function validateOutputIdentity(text, protocol, context = {}) {
     for (const pattern of IDENTITY_LEAK_PATTERNS) {
         if (pattern.test(text)) {
             logger.warn(`LLM response leaked honeypot identity (${protocol}) — matched: ${pattern} — Content: "${text}"`, { protocol });
+            logEvent({
+                protocol,
+                ip: context.ip || 'unknown',
+                event_type: 'identity_leak_blocked',
+                matched_pattern: pattern.toString().substring(0, 50)
+            });
             return getFallback(protocol, context);
         }
     }
