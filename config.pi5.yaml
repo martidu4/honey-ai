@@ -64,6 +64,10 @@ protocols:
     enabled: true
     port: 8180
 
+  mcp:
+    enabled: true
+    port: 8000
+
   samba:
     enabled: false
     log_path: "/var/log/samba/full_audit.log"
