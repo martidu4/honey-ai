@@ -9,6 +9,8 @@ const { Readable } = require('stream');
 const { logger } = require('./logger');
 
 // ─── 1. Dynamic GZIP Bomb Streamer ──────────────────────────────────────────
+let activeBombs = 0;
+const MAX_CONCURRENT_BOMBS = 3;
 /**
  * Streams a highly compressed stream of zero bytes on the fly.
  * Compresses 5GB of zeros down to ~4.8MB on the wire.
@@ -18,10 +20,21 @@ const { logger } = require('./logger');
  * @param {string} filename
  */
 function streamGzipBomb(res, filename = 'backup.sql.gz') {
+    // SEC: Limit concurrent bombs to prevent OOM (container has 512MB limit)
+    if (activeBombs >= MAX_CONCURRENT_BOMBS) {
+        logger.warn(`GZIP bomb rejected: ${activeBombs} already active (max ${MAX_CONCURRENT_BOMBS})`, { protocol: 'http' });
+        res.writeHead(503, { 'Content-Type': 'text/plain' });
+        res.end('Service temporarily unavailable');
+        return;
+    }
+    activeBombs++;
+
     try {
+        // SEC: Sanitize filename to prevent Content-Disposition header injection
+        const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
         res.writeHead(200, {
             'Content-Type': 'application/x-gzip',
-            'Content-Disposition': `attachment; filename="${filename}"`,
+            'Content-Disposition': `attachment; filename="${safeName}"`,
             'Cache-Control': 'no-cache, no-store, must-revalidate',
             'X-Content-Type-Options': 'nosniff'
         });
@@ -54,7 +67,13 @@ function streamGzipBomb(res, filename = 'backup.sql.gz') {
         });
 
         zeroStream.pipe(gzip).pipe(res);
+
+        // Decrement counter when stream ends or client disconnects
+        const decrementBombs = () => { activeBombs = Math.max(0, activeBombs - 1); };
+        res.on('close', decrementBombs);
+        res.on('finish', decrementBombs);
     } catch (err) {
+        activeBombs = Math.max(0, activeBombs - 1);
         logger.error(`Failed to initialize GZIP bomb: ${err.message}`, { protocol: 'http' });
         if (!res.headersSent) {
             res.writeHead(500, { 'Content-Type': 'text/plain' });

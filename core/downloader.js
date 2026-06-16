@@ -202,8 +202,10 @@ function isPrivateTarget(hostname) {
  * Parses input for http/https URLs
  */
 function extractURLs(text) {
+    // SEC: Limit input length before regex to prevent ReDoS on large attacker payloads
+    const safeText = typeof text === 'string' ? text.substring(0, 10000) : '';
     const regex = /https?:\/\/[^\s'";\)\<\>\`]+/gi;
-    return text.match(regex) || [];
+    return safeText.match(regex) || [];
 }
 
 /**
