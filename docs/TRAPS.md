@@ -177,3 +177,30 @@ After jitter:
 ```
 
 This makes template responses look like a slow Apache+PHP server instead of instant static files.
+
+---
+
+## 12. Decoy Model Context Protocol (MCP) Server
+
+**What it does:** Simulates a developer Model Context Protocol (MCP) tools endpoint to trap compromised AI assistants (Cursor, Claude Code, etc.) or hackers scanning for administrative endpoints.
+
+**How it works:**
+- Listens on port `8000` (configurable).
+- Advertises standard JSON-RPC tools (`get_database_credentials`, `execute_system_command`, `read_private_ssh_key`).
+- When a client attempts to execute any tool, it intercepts the call, returns a convincing permission error, and issues a critical alert log with `"action": "tarpit"` and `"severity": "critical"`.
+- Triggers a reverse portscan backfire and reports the attacker's IP.
+
+---
+
+## 13. Host-Level Tarpit Redirection (Active Defense)
+
+**What it does:** Dynamically redirects all TCP traffic from severe attackers to the local Endlessh tarpit (port `2224`) at the firewall level.
+
+**How it works:**
+- When HoneyAI core identifies a high-severity attack (such as a prompt injection attempt, a successful MySQL rogue server exfiltration, or a decoy MCP tool call), it logs the event to `events.json` with the flag `"action": "tarpit"`.
+- A host-level script `scripts/honeyai-tarpit-redirect.sh` (running via cron every minute on the host) parses `events.json`.
+- When it detects an offending IP, it adds a dynamic prerouting redirect rule in `iptables`:
+  ```bash
+  sudo iptables -t nat -A PREROUTING -s "$ip" -p tcp -j REDIRECT --to-ports 2224
+  ```
+- All subsequent connections from that attacker (on any port) are immediately hijacked by the Endlessh tarpit, wasting their network resources and halting their attacks.

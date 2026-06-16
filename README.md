@@ -39,6 +39,9 @@ Every attacker IP is automatically reported to **5 threat intelligence platforms
 
 | Feature | Description |
 |---------|-------------|
+| 🤖 **MCP Server** | Decoy Model Context Protocol (MCP) server on port `8000` to trap compromised AI assistants (Cursor, Claude Code) |
+| ✍️ **Custom Commands** | Low-code custom SSH/Telnet static/regex overrides directly in `config.yaml` with capture group backreferences |
+| 🛡️ **Tarpit Redirection** | Host-level active defense script (`honeyai-tarpit-redirect.sh`) to firewall severe attackers to Endlessh |
 | 🌐 **HTTP/HTTPS** | Catch-all web honeypot. Mimics WordPress, Apache, phpMyAdmin, Laravel. Replaces [Galah](https://github.com/0x4D31/galah) |
 | 🔑 **SSH** | Interactive fake bash shell with canary filesystem. Accepts all credentials. Replaces [Cowrie](https://github.com/cowrie/cowrie) |
 | 🧲 **SSH Tarpit** | Infinite banner on configurable ports. Replaces [Endlessh](https://github.com/skeeto/endlessh) |

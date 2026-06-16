@@ -7,6 +7,7 @@ HoneyAI simulates 14 network protocols. Each handler speaks the real wire protoc
 | Protocol | Port | Transport | Handler | AI? | Static Responses? |
 |----------|------|-----------|---------|-----|-------------------|
 | HTTP/HTTPS | 8081 | TCP | `http.js` (Express) | ✅ | ✅ (.env, wp-config, robots.txt) |
+| Model Context Protocol (MCP) | 8000 | TCP | `mcp.js` (Express) | ❌ | ✅ (JSON-RPC tools list & call) |
 | SSH | 2226 | TCP | `ssh.js` (ssh2) | ✅ | ✅ (honeyfs file reads) |
 | SSH Tarpit | 2200 | TCP | `ssh.js` | ❌ | ✅ (infinite banner drip) |
 | FTP | 2121 | TCP | `tcp.js` | ✅ | ✅ (USER/PASS/LIST/QUIT) |
@@ -192,3 +193,24 @@ A passive log detector that parses kernel/firewall logs for port scanning activi
   - Destination Port (DPT)
   - Protocol (TCP or UDP)
 - **Actions:** Emits a warning log, registers a structured security event, reports the scanner IP to configured intelligence feeds (e.g., AbuseIPDB), and automatically fires back a port scan via the backfire module.
+
+---
+
+## Model Context Protocol (MCP) (`mcp.js`)
+
+A decoy server implementing the Model Context Protocol (MCP) standard, running on port `8000`. It is designed to trap compromised AI agents (such as cursor, claude-code) or attackers looking to exploit agent tools.
+
+- **Transport protocols supported**:
+  - **Server-Sent Events (SSE)**: Standard SSE client connection on GET `/sse` which sends the endpoint event back, allowing POST requests to `/message?sessionId=...`.
+  - **Direct JSON-RPC POST**: Accepts standard JSON-RPC payloads directly on `/` and `/rpc` for simple/custom clients.
+- **Realistic Landing Page**: Standard GET `/` requests receive a corporate-looking developer status/documentation page for an "MCP Dev Server" to entice the attacker.
+- **Simulated Tools advertised (`tools/list`)**:
+  - `get_database_credentials` - Mock database credential retriever.
+  - `execute_system_command` - Local command shell executor.
+  - `read_private_ssh_key` - Primary host SSH key reader.
+- **Execution Interception (`tools/call`)**:
+  - When an attacker calls any decoy tool, the request is blocked.
+  - It returns a realistic permission error (e.g. `Access temporarily denied. Invalid api_key...`).
+  - Logs a warning and logs the event to `events.json` with `"action": "tarpit"` and `"severity": "critical"`.
+  - Reports the attacker's IP to all configured intelligence platforms.
+  - Triggers a reverse portscan backfire check against the attacker IP.
