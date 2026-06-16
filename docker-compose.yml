@@ -76,7 +76,7 @@ services:
       - TELEGRAM_CHAT=${TELEGRAM_CHAT:-}
       # Management API key
       - HONEYAI_MGMT_KEY=${HONEYAI_MGMT_KEY:-}
-      # Proxy secret for X-Forwarded-For trust
+      # Proxy secret for X-Forwarded-For trust (optional)
       - HONEYAI_PROXY_SECRET=${HONEYAI_PROXY_SECRET:-}
     ports:
       # Web

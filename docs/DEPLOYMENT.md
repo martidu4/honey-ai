@@ -171,7 +171,11 @@ your-domain.com {
 }
 ```
 
-The `X-HoneyAI-Secret` header tells HoneyAI to trust the `X-Forwarded-For` header from Caddy for accurate IP logging.
+To make this work, you must define the corresponding secret in your `.env` file:
+```env
+HONEYAI_PROXY_SECRET=your_secret_here
+```
+The `X-HoneyAI-Secret` header tells HoneyAI to trust the `X-Forwarded-For` header from the proxy for accurate IP logging. When they match, HoneyAI logs the client's real public IP instead of the proxy/docker gateway IP.
 
 ---
 
