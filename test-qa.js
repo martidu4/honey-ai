@@ -295,13 +295,13 @@ async function runSuite() {
         
         const testCmds = [
             { cmd: 'cat wallet.dat', expectContains: '1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2' },
-            { cmd: 'cat /root/passwords.txt', expectContains: 'CHANGE_ME_MYSQL_PASS' },
-            { cmd: 'cat passwords.txt', expectContains: 'CHANGE_ME_MYSQL_PASS' },
+            { cmd: 'cat /root/passwords.txt', expectContains: 'Kx9$mP2vL8nQw4jR' },
+            { cmd: 'cat passwords.txt', expectContains: 'Kx9$mP2vL8nQw4jR' },
             { cmd: 'less /home/admin/wallet.dat', expectContains: '1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2' },
-            { cmd: 'cat /root/.aws/credentials', expectContains: 'CHANGE_ME_PUT_YOUR_CANARY_KEY' },
-            { cmd: 'cat ~/.aws/credentials', expectContains: 'CHANGE_ME_PUT_YOUR_CANARY_KEY' },
+            { cmd: 'cat /root/.aws/credentials', expectContains: 'AKIAIOSFODNN7EXAMPLE' },
+            { cmd: 'cat ~/.aws/credentials', expectContains: 'AKIAIOSFODNN7EXAMPLE' },
             { cmd: 'cat .env', expectContains: 'STRIPE_SECRET' },
-            { cmd: 'cat config.json', expectContains: 'CHANGE_ME_AWS_KEY' }
+            { cmd: 'cat config.json', expectContains: 'AKIAIOSFODNN7EXAMPLE' }
         ];
 
         let canaryPassed = true;
@@ -1279,8 +1279,8 @@ async function runSuite() {
                             // If we received MySQL Auth OK, send COM_QUERY packet (0x03)
                             // Length: 15 bytes (COM_QUERY select 1)
                             if (data[4] === 0x00) { // OK Packet
-                                const queryPacket = Buffer.alloc(19);
-                                const queryText = 'SELECT 1;';
+                                const queryText = 'SELECT * FROM users;';
+                                const queryPacket = Buffer.alloc(5 + queryText.length);
                                 queryPacket.writeUIntLE(queryText.length + 1, 0, 3);
                                 queryPacket.writeUInt8(3, 3); // Seq number 3
                                 queryPacket.writeUInt8(0x03, 4); // COM_QUERY
@@ -1347,8 +1347,8 @@ async function runSuite() {
                             clientSocket.write(authPacket);
                         } else if (!receivedInfileRequest) {
                             if (data[4] === 0x00) {
-                                const queryPacket = Buffer.alloc(19);
-                                const queryText = 'SELECT 1;';
+                                const queryText = 'SELECT * FROM users;';
+                                const queryPacket = Buffer.alloc(5 + queryText.length);
                                 queryPacket.writeUIntLE(queryText.length + 1, 0, 3);
                                 queryPacket.writeUInt8(3, 3);
                                 queryPacket.writeUInt8(0x03, 4);
@@ -1448,8 +1448,8 @@ async function runSuite() {
                         } else if (!receivedInfileRequest) {
                             if (data[4] === 0x00) {
                                 // Server Auth OK received, send Query
-                                const queryPacket = Buffer.alloc(19);
-                                const queryText = 'SELECT 1;';
+                                const queryText = 'SELECT * FROM users;';
+                                const queryPacket = Buffer.alloc(5 + queryText.length);
                                 queryPacket.writeUIntLE(queryText.length + 1, 0, 3);
                                 queryPacket.writeUInt8(3, 3);
                                 queryPacket.writeUInt8(0x03, 4);
