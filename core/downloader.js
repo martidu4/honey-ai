@@ -1,5 +1,5 @@
 /**
- * OpenClaw HoneyAI — Malware Downloader & Analyzer
+ * HoneyAI — Malware Downloader & Analyzer
  * Safe, SSRF-resistant download agent with VirusTotal integration
  */
 

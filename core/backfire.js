@@ -1,5 +1,5 @@
 /**
- * OpenClaw HoneyAI — Port Scan Backfire Module
+ * HoneyAI — Port Scan Backfire Module
  * Performs lightweight, asynchronous reverse port scans on public attacker IPs.
  */
 

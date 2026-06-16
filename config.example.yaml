@@ -1,8 +1,8 @@
-# OpenClaw HoneyAI — Configuration
+# HoneyAI — Configuration
 # Copy to config.yaml and customize. Run `pnpm run setup` for guided setup.
 
 honeyai:
-  name: "OpenClaw HoneyAI"
+  name: "HoneyAI"
   version: "1.0.0"
 
 # ─── AI Engine ────────────────────────────────────────────────────────────────
@@ -58,7 +58,7 @@ protocols:
 
   vnc:
     enabled: true
-    port: 59000
+    port: 5900
 
   rdp:
     enabled: true

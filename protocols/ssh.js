@@ -1,5 +1,5 @@
 /**
- * OpenClaw HoneyAI — SSH Honeypot
+ * HoneyAI — SSH Honeypot
  * Replaces Cowrie. Fake interactive SSH shell + optional tarpit ports.
  * Uses the `ssh2` library to handle the SSH handshake properly.
  */

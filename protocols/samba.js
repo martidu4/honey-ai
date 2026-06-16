@@ -1,5 +1,5 @@
 /**
- * OpenClaw HoneyAI — Samba VFS Audit Log Monitor
+ * HoneyAI — Samba VFS Audit Log Monitor
  * Tails the Samba vfs_full_audit log file, parses actions, and reports attacker IPs.
  */
 

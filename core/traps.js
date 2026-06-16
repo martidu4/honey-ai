@@ -1,5 +1,5 @@
 /**
- * OpenClaw HoneyAI — Active Defense Traps ("Operation Spine")
+ * HoneyAI — Active Defense Traps ("Operation Spine")
  * Implements GZIP bombs, infinite recursive web mazes, and slow-drip tarpits.
  */
 

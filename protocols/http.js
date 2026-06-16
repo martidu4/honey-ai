@@ -1,5 +1,5 @@
 /**
- * OpenClaw HoneyAI — HTTP Honeypot v2
+ * HoneyAI — HTTP Honeypot v2
  * Security hardened: rate limiting, input size cap, sanitized logs, hardened headers.
  */
 

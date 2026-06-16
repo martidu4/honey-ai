@@ -1,5 +1,5 @@
 /**
- * OpenClaw HoneyAI — Unified Logger
+ * HoneyAI — Unified Logger
  * Logs to console (colored) + file (JSON lines for easy parsing)
  */
 

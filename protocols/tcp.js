@@ -1,5 +1,5 @@
 /**
- * OpenClaw HoneyAI — Generic TCP Protocol Handler v2
+ * HoneyAI — Generic TCP Protocol Handler v2
  * Fixed: command queue (no parallel AI calls), proper line buffering,
  * input sanitization, rate limiting, memory-safe logging.
  */

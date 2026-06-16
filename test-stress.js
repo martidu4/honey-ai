@@ -1,5 +1,5 @@
 /**
- * OpenClaw HoneyAI — Stress & Security Evasion Test Suite
+ * HoneyAI — Stress & Security Evasion Test Suite
  * 
  * Attempts to bypass prompt defenses, leak identity, crash the services
  * under high concurrency, and test path escapes.

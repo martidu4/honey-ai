@@ -1,8 +1,8 @@
-# OpenClaw HoneyAI — Pi5 Production Config
+# HoneyAI — Pi5 Production Config
 # API keys loaded from .env via config.js env var overrides
 
 honeyai:
-  name: "OpenClaw HoneyAI"
+  name: "HoneyAI"
   version: "1.0.0"
 
 ai:

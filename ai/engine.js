@@ -1,5 +1,5 @@
 /**
- * OpenClaw HoneyAI — AI Engine v2
+ * HoneyAI — AI Engine v2
  * Security hardened: prompt injection defense, input sanitization,
  * output validation, timeout per-call, no secrets in prompts.
  */

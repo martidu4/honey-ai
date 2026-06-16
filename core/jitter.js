@@ -1,5 +1,5 @@
 /**
- * OpenClaw HoneyAI — Jitter & Latency Injection Utility
+ * HoneyAI — Jitter & Latency Injection Utility
  */
 
 'use strict';

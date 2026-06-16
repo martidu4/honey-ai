@@ -1,5 +1,5 @@
 /**
- * OpenClaw HoneyAI — HTTP Proxy Honeypot
+ * HoneyAI — HTTP Proxy Honeypot
  * Emulates a Squid web proxy, traps hijack attempts, and alerts.
  */
 

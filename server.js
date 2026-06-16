@@ -1,5 +1,5 @@
 /**
- * OpenClaw HoneyAI — Main Orchestrator
+ * HoneyAI — Main Orchestrator
  * Starts all enabled protocol honeypots and the management API.
  *
  * Usage:
@@ -35,12 +35,12 @@ const { readLastLinesSync } = require('./core/fileReader');
 const chalk = require('chalk');
 
 console.log(chalk.red.bold(`
-  ██████╗ ██████╗ ███████╗███╗   ██╗ ██████╗██╗      █████╗ ██╗    ██╗
- ██╔═══██╗██╔══██╗██╔════╝████╗  ██║██╔════╝██║     ██╔══██╗██║    ██║
- ██║   ██║██████╔╝█████╗  ██╔██╗ ██║██║     ██║     ███████║██║ █╗ ██║
- ██║   ██║██╔═══╝ ██╔══╝  ██║╚██╗██║██║     ██║     ██╔══██║██║███╗██║
- ╚██████╔╝██║     ███████╗██║ ╚████║╚██████╗███████╗██║  ██║╚███╔███╔╝
-  ╚═════╝ ╚═╝     ╚══════╝╚═╝  ╚═══╝ ╚═════╝╚══════╝╚═╝  ╚═╝ ╚══╝╚══╝
+  ██╗  ██╗ ██████╗ ███╗   ██╗███████╗██╗   ██╗ █████╗ ██╗
+  ██║  ██║██╔═══██╗████╗  ██║██╔════╝╚██╗ ██╔╝██╔══██╗██║
+  ███████║██║   ██║██╔██╗ ██║█████╗   ╚████╔╝ ███████║██║
+  ██╔══██║██║   ██║██║╚██╗██║██╔══╝    ╚██╔╝  ██╔══██║██║
+  ██║  ██║╚██████╔╝██║ ╚████║███████╗   ██║   ██║  ██║██║
+  ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝
 `));
 console.log(chalk.yellow('  🍯 HoneyAI — AI-Powered Multi-Protocol Honeypot'));
 console.log(chalk.gray(`  AI: ${config.ai.provider} → ${config.ai.url} (${config.ai.model})`));
@@ -75,7 +75,7 @@ global.activeConnections = {
 };
 
 // ─── Start all protocol honeypots ─────────────────────────────────────────────
-logger.info('Starting OpenClaw HoneyAI...', { protocol: 'core' });
+logger.info('Starting HoneyAI...', { protocol: 'core' });
 
 try { require('./protocols/http').start(); } catch (e) { logger.error(`HTTP failed to start: ${e.message}`); }
 try { require('./protocols/mcp').start();  } catch (e) { logger.error(`MCP failed to start: ${e.message}`); }

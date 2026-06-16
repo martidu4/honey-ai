@@ -1,5 +1,5 @@
 /**
- * OpenClaw HoneyAI — Portscan Log Monitor
+ * HoneyAI — Portscan Log Monitor
  * Tails syslog/kern.log, parses iptables LOG packets, and reports scanner IPs.
  */
 

@@ -1,5 +1,5 @@
 /**
- * OpenClaw HoneyAI — SNMP UDP Honeypot
+ * HoneyAI — SNMP UDP Honeypot
  * Emulates a basic SNMP daemon, parses SNMP requests using a native BER parser, and alerts.
  */
 

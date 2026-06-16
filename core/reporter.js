@@ -1,5 +1,5 @@
 /**
- * OpenClaw HoneyAI — Threat Intelligence Reporter
+ * HoneyAI — Threat Intelligence Reporter
  * Reports attacker IPs to: AbuseIPDB, OTX, DShield, Blocklist.de, VirusTotal
  * Handles cooldowns, deduplication, and per-platform error recovery.
  */

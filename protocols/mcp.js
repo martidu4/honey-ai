@@ -1,5 +1,5 @@
 /**
- * OpenClaw HoneyAI — Model Context Protocol (MCP) Decoy Server
+ * HoneyAI — Model Context Protocol (MCP) Decoy Server
  * Simulates a JSON-RPC / SSE MCP server to trap compromised AI agents or hackers
  * attempting to access admin tools.
  */

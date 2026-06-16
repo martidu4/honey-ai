@@ -1,5 +1,5 @@
 /**
- * OpenClaw HoneyAI — Core Config Loader
+ * HoneyAI — Core Config Loader
  * Merges config.yaml with env vars. Env vars always win.
  */
 

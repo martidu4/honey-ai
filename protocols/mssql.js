@@ -1,5 +1,5 @@
 /**
- * OpenClaw HoneyAI — MSSQL Honeypot
+ * HoneyAI — MSSQL Honeypot
  * Emulates Microsoft SQL Server TDS protocol pre-login handshake and login authentication.
  */
 

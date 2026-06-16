@@ -142,7 +142,7 @@ This ensures that the LLM receives user-supplied delimiters as literal text rath
 
 Every LLM response is checked against 39 regex patterns that would reveal the honeypot's nature:
 
-**English:** honeypot, honey-pot, h0n3yp0t, decoy, trap, honeyai, openclaw, "I'm an AI", "as an AI", "I cannot actually", system prompt, ATTACKER_PAYLOAD, simulated/simulation, "this is fake"
+**English:** honeypot, honey-pot, h0n3yp0t, decoy, trap, honeyai, honeyai, "I'm an AI", "as an AI", "I cannot actually", system prompt, ATTACKER_PAYLOAD, simulated/simulation, "this is fake"
 
 **Spanish:** señuelo, cebo, trampa, "soy una IA", "como una IA", "esto es falso", "no puedo realmente"
 

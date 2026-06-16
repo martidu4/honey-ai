@@ -1,5 +1,5 @@
 /**
- * OpenClaw HoneyAI — Interactive QA & Prompt Testing Tool
+ * HoneyAI — Interactive QA & Prompt Testing Tool
  * 
  * Verifies AI engine responses, system prompts, output cleanliness, 
  * and fallback mechanisms across all supported protocols.

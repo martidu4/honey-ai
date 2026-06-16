@@ -1,5 +1,5 @@
 /**
- * OpenClaw HoneyAI — Efficient File Reader
+ * HoneyAI — Efficient File Reader
  * Reads last N lines from the end of a file using backward chunk seeking.
  * Prevents memory issues and event loop blocking on huge log files.
  */
