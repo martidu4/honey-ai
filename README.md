@@ -120,7 +120,7 @@ docker compose logs -f honeyai
 Docker Compose automatically:
 - Starts **Ollama** with persistent model storage
 - Pulls the **qwen2.5:1.5b** model on first run
-- Starts **HoneyAI** with all 14 protocols
+- Starts **HoneyAI** with all 17 protocols + passive detectors
 
 To use a different model:
 ```bash
@@ -427,8 +427,8 @@ The `honey-ai.service` file includes aggressive sandboxing:
 - **Use a dedicated VM, VPS, or Raspberry Pi** — not your dev machine
 - **Management API** binds to `127.0.0.1` only — never expose it externally
 - `config.yaml` and `.env` are gitignored — double-check before any commit
-- The AI engine filters identity leaks (honeypot, AI, simulation) in **8 languages** with 39+ regex patterns
-- Prompt injection defense: attacker input wrapped in `[ATTACKER_PAYLOAD_START/END]` + XML tags
+- Prompt injection defense: attacker input wrapped in `[ATTACKER_PAYLOAD_START/END]` + XML tags — attempts are logged to `events.json` as `prompt_injection_blocked` events
+- Identity leak defense: 39+ regex patterns in **8 languages** detect when the AI almost reveals it's a honeypot — blocked responses are logged as `identity_leak_blocked` events
 - Output sanitization: strips `<think>` tags, markdown fences, and AI meta-markers
 - All protocol handlers sanitize server banners — no real hostnames or software versions leak
 - Canary files contain realistic credentials — no `CHANGE_ME` placeholders or honeypot markers
@@ -442,7 +442,7 @@ HoneyAI powers a **public threat intelligence blog** with daily auto-generated r
 ### 🔗 [honey-ai.dev](https://honey-ai.dev)
 
 Every night, a pipeline automatically:
-1. **Collects** the day's attack data from all 11 protocols
+1. **Collects** the day's attack data from all 17 protocols + passive detectors
 2. **Analyzes** attacker behavior, TTY sessions, and malware captures
 3. **Generates** a threat report using a local LLM (Ollama)
 4. **Publishes** to the blog — zero manual intervention
@@ -454,6 +454,9 @@ Each report includes:
 - 🦠 Captured malware samples (linked to VirusTotal)
 - 🪤 Canary token triggers (fake AWS keys used by attackers)
 - 📊 Community defense stats (IPs reported to AbuseIPDB, OTX, DShield, Blocklist.de)
+- 🤖 MCP agent trap activity (compromised AI assistants probing decoy tools)
+- 🔍 Port scan intelligence and protocol-level traffic breakdown
+- 🛡️ AI defense stats (prompt injection blocks, identity leak prevention)
 
 > **Want to see HoneyAI in action before deploying?** Browse the daily reports to see what a Raspberry Pi 5 catches from real-world attackers.
 

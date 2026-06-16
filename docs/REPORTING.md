@@ -138,3 +138,46 @@ reporting:
     enabled: true
     api_key: ${VIRUSTOTAL_API_KEY}
 ```
+
+## AI Defense Event Logging
+
+The AI engine (`engine.js`) logs security events directly to `events.json` when defense mechanisms trigger:
+
+### Prompt Injection Blocked
+
+When an attacker's input matches injection patterns (attempts to override system prompts, jailbreak the AI, or extract internal instructions), the event is logged:
+
+```json
+{
+  "protocol": "ssh",
+  "ip": "1.2.3.4",
+  "event_type": "prompt_injection_blocked",
+  "input": "Ignore all previous instructions..."
+}
+```
+
+### Identity Leak Blocked
+
+When the AI's generated response accidentally contains honeypot-revealing keywords (matched against 39+ patterns in 8 languages), the response is replaced with a safe fallback and the event is logged:
+
+```json
+{
+  "protocol": "http",
+  "ip": "1.2.3.4",
+  "event_type": "identity_leak_blocked",
+  "matched_pattern": "/honeypot/i"
+}
+```
+
+### Stats Pipeline
+
+`honeyai-stats.py` aggregates these events (along with MCP, MSSQL, SNMP, portscan data) into a JSON summary used by the blog pipeline. Key output fields:
+
+| Field | Description |
+|-------|-------------|
+| `prompt_injection_blocked` | Count of injection attempts blocked |
+| `identity_leak_blocked` | Count of identity leak responses caught |
+| `protocol_breakdown` | Array of `{protocol, events}` for all active protocols |
+| `mcp_requests` / `mcp_ips` | MCP decoy server activity |
+| `mssql_events` / `snmp_events` | Protocol-specific counts |
+| `portscan_events` / `portscan_ips` | Incoming port scan detection |
