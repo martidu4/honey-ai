@@ -98,7 +98,7 @@ async function report(ip, { protocol, comment, port, categories } = {}) {
     if (!shouldReport(ip)) return;
     markReported(ip);
 
-    const defaultComment = `HoneyAI attack via ${protocol?.toUpperCase() || 'UNKNOWN'} on port ${port || '?'}. Detected by OpenClaw HoneyAI.`;
+    const defaultComment = `Malicious activity via ${protocol?.toUpperCase() || 'UNKNOWN'} on port ${port || '?'}. Detected by automated IDS.`;
     const finalComment   = comment || defaultComment;
 
     logger.info(`Reporting ${ip} to threat intel platforms`, { protocol: 'reporter', ip });
@@ -165,7 +165,7 @@ async function reportOTX(ip, protocol) {
     try {
         await axios.patch(
             `https://otx.alienvault.com/api/v1/pulses/${pulseId}`,
-            { indicators: { add: [{ indicator: ip, type: 'IPv4', description: `Attacked via ${protocol} honeypot` }] } },
+            { indicators: { add: [{ indicator: ip, type: 'IPv4', description: `Attacked via ${protocol} service` }] } },
             { headers: { 'X-OTX-API-KEY': rep.otx.api_key }, timeout: 10000 }
         );
         logger.info(`OTX: added ${ip} to pulse ${pulseId}`, { protocol: 'reporter', ip });

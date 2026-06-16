@@ -314,7 +314,7 @@ async function generate({ protocol = 'http', attackerInput, context = {} }) {
             return '$22\r\nPostgres!Pr0d#2024@db1';
         }
         if (cleanInput === 'INFO') {
-            return '$16\r\nredis_version:7.2.4';
+            return '$169\r\n# Server\r\nredis_version:7.2.4\r\nredis_mode:standalone\r\nos:Linux 6.1.0 x86_64\r\narch_bits:64\r\ntcp_port:6379\r\nuptime_in_seconds:864000\r\nuptime_in_days:10\r\n\r\n# Clients\r\nconnected_clients:3\r\n\r\n# Memory\r\nused_memory:1048576\r\nused_memory_human:1.00M\r\n';
         }
         if (cleanInput.startsWith('CONFIG')) {
             return '-ERR unknown command';
@@ -326,7 +326,7 @@ async function generate({ protocol = 'http', attackerInput, context = {} }) {
             return '+OK';
         }
         if (cleanInput.startsWith('COMMAND')) {
-            return '-ERR unknown command';
+            return '+OK';
         }
         if (cleanInput.startsWith('SET') || cleanInput.startsWith('DEL')) {
             return '+OK';
@@ -391,7 +391,7 @@ CRITICAL: NEVER use words like "simulated", "simulation", "mock", "fake", "decoy
 <attacker_payload>
 ${safeInput}
 </attacker_payload>
-Generate the simulated protocol response (raw output only):`;
+Generate the protocol response (raw output only):`;
 
     if (context.fileContents) {
         const sanitizedFS = sanitizeIndirectInjection(context.fileContents);
@@ -585,6 +585,16 @@ const IDENTITY_LEAK_PATTERNS = [
     // Romanian (RO)
     /capcană\s+cu\s+miere|server\s+fals|sistem\s+capcană/i,
     /eu\s+sunt\s+(?:un\s+)?(?:AI|inteligență\s+artificială)|acesta\s+este\s+fals/i,
+
+    // HIGH-04: "Made for security testing purpose" and similar disclosure patterns
+    /security\s+testing/i,                             // Direct honeypot tool disclosure
+    /made\s+for\s+(security|testing|research|hacking)/i,
+    /testing\s+purpose/i,
+    /research\s+purpose/i,
+    /designed\s+(for|to)\s+(security|test|research|detect)/i,
+    /sandbox\s+(environment|system)/i,
+    /fake\s+(server|system|service|host)/i,
+    /emulat(ed|ing|or)\s+(server|service|system|host)/i,
 ];
 
 function validateOutputIdentity(text, protocol, context = {}) {

@@ -29,11 +29,32 @@ const PROTOCOLS = {
             'SYST':     '215 UNIX Type: L8\r\n',
             'PWD':      '257 "/" is the current directory\r\n',
             'QUIT':     '221 Goodbye.\r\n',
-            'TYPE':     '200 Switching to Binary mode.\r\n',
-            'PASV':     '227 Entering Passive Mode (203,0,113,45,39,201).\r\n',
             'PORT':     '200 PORT command successful.\r\n',
             'FEAT':     "211-Features:\r\n EPRT\r\n EPSV\r\n MDTM\r\n PASV\r\n REST STREAM\r\n SIZE\r\n TVFS\r\n211 End\r\n",
-            'OPTS':     "200 Always in UTF8 mode.\r\n"
+            'OPTS':     "200 Always in UTF8 mode.\r\n",
+            'NOOP':     '200 NOOP ok.\r\n',
+            'CWD':      '250 Directory successfully changed.\r\n',
+            'CDUP':     '250 Directory successfully changed.\r\n',
+            'MKD':      '257 "/new" created\r\n',
+            'DELE':     '250 Delete operation successful.\r\n',
+            'RMD':      '250 Remove directory operation successful.\r\n',
+            'SIZE':     '213 45321\r\n',
+            'MDTM':     '213 20240115102400\r\n'
+        },
+        // MED-03 + LOW-01: Dynamic FTP responses that need runtime logic
+        dynamicHardcoded: {
+            'TYPE': (args) => {
+                const mode = (args || '').toUpperCase();
+                if (mode === 'A') return '200 Switching to ASCII mode.\r\n';
+                return '200 Switching to Binary mode.\r\n';
+            },
+            'PASV': () => {
+                const p1 = Math.floor(Math.random() * 200) + 30;
+                const p2 = Math.floor(Math.random() * 255);
+                return `227 Entering Passive Mode (192,168,1,50,${p1},${p2}).\r\n`;
+            },
+            'LIST': () => '150 Here comes the directory listing.\r\n-rw-r--r-- 1 root root 45321 Jan 15 backup_db.sql\r\n-rw-r--r-- 1 root root 12890 Feb 03 passwords.txt\r\n-rw-r--r-- 1 root root 89234 Mar 22 .ssh_keys.tar.gz\r\n226 Directory send OK.\r\n',
+            'RETR': () => '550 Failed to open file.\r\n'
         }
     },
     telnet: {
@@ -59,7 +80,8 @@ const PROTOCOLS = {
             'RSET':     '250 2.0.0 Ok\r\n',
             'VRFY':     '252 2.1.5 Send mail to address anyway\r\n',
             'NOOP':     '250 2.0.0 OK\r\n',
-            'QUIT':     '221 2.0.0 Bye\r\n'
+            'QUIT':     '221 2.0.0 Bye\r\n',
+            'DATA':     '354 End data with <CR><LF>.<CR><LF>\r\n'
         }
     },
     mysql: {
@@ -79,13 +101,21 @@ const PROTOCOLS = {
         // Redis uses request-response: hardcoded responses for known commands
         hardcoded: {
             'PING':     '+PONG\r\n',
-            'INFO':     '$16\r\nredis_version:7.2.4\r\n',
+            'INFO':     '$169\r\n# Server\r\nredis_version:7.2.4\r\nredis_mode:standalone\r\nos:Linux 6.1.0 x86_64\r\narch_bits:64\r\ntcp_port:6379\r\nuptime_in_seconds:864000\r\nuptime_in_days:10\r\n\r\n# Clients\r\nconnected_clients:3\r\n\r\n# Memory\r\nused_memory:1048576\r\nused_memory_human:1.00M\r\n\r\n',
             'CONFIG':   '-ERR unknown command\r\n',
             'AUTH':     '-ERR Client sent AUTH, but no password is set\r\n',
             'SELECT':   '+OK\r\n',
             'QUIT':     '+OK\r\n',
-            'COMMAND':  '-ERR unknown command\r\n',
-            'KEYS':     '*5\r\n$13\r\nsession:admin\r\n$11\r\nuser:admin\r\n$13\r\nconfig:dbpass\r\n$17\r\napi_key:production\r\n$14\r\nbackup:latest\r\n'
+            'COMMAND':  '+OK\r\n',
+            'KEYS':     '*5\r\n$13\r\nsession:admin\r\n$11\r\nuser:admin\r\n$13\r\nconfig:dbpass\r\n$17\r\napi_key:production\r\n$14\r\nbackup:latest\r\n',
+            'CLIENT':   '$0\r\n\r\n',
+            'CLUSTER':  '$19\r\ncluster_enabled:0\r\n',
+            'DBSIZE':   ':5\r\n',
+            'FLUSHALL': '+OK\r\n',
+            'FLUSHDB':  '+OK\r\n',
+            'RANDOMKEY':'$13\r\nsession:admin\r\n',
+            'TIME':     '*2\r\n$10\r\n1718534400\r\n$6\r\n123456\r\n',
+            'TYPE':     '+string\r\n'
         }
     },
     git: {
@@ -246,12 +276,44 @@ function startServer(proto, port) {
                     return;
                 }
 
+                // MED-03 + LOW-01: Dynamic FTP responses (TYPE A/I, PASV with random port)
+                if (proto.dynamicHardcoded && proto.dynamicHardcoded[cmdKey]) {
+                    const args = line.split(/\s+/).slice(1).join(' ');
+                    const dynamicResponse = proto.dynamicHardcoded[cmdKey](args);
+                    if (!socket.destroyed) socket.write(dynamicResponse);
+                    drainQueue();
+                    return;
+                }
+
                 if (proto.key === 'redis') {
                     // Route known data commands through the AI engine
                     // (which has static RESP responses for GET, SET, DEL, etc.)
                     const parts = line.split(/\s+/).filter(Boolean);
                     const cmd = (parts[0] || '').toUpperCase();
-                    const REDIS_AI_COMMANDS = ['GET', 'SET', 'DEL', 'MGET', 'HGET', 'HGETALL', 'HSET', 'LRANGE', 'SMEMBERS', 'TTL', 'TYPE', 'EXISTS', 'DBSIZE', 'SCAN'];
+                    const REDIS_AI_COMMANDS = ['MGET', 'HGET', 'HGETALL', 'HSET', 'LRANGE', 'SMEMBERS', 'TTL', 'EXISTS', 'SCAN'];
+                    
+                    // MED-02: Handle GET with static RESP — known keys return data, unknown return $-1
+                    if (cmd === 'GET') {
+                        const key = (parts[1] || '').toLowerCase();
+                        const KNOWN_KEYS = {
+                            'session:admin': '$36\r\n{"user":"admin","role":"superadmin","token":"abc"}\r\n',
+                            'user:admin': '$28\r\n{"name":"admin","level":"root"}\r\n',
+                            'config:dbpass': '$22\r\nPostgres!Pr0d#2024@db1\r\n',
+                            'api_key:production': '$40\r\nsk_live_51abc123def456ghi789jkl012mno345\r\n',
+                            'backup:latest': '$19\r\n2024-06-15T03:00:00Z\r\n'
+                        };
+                        const resp = KNOWN_KEYS[key] || '$-1\r\n';
+                        if (!socket.destroyed) socket.write(resp);
+                        drainQueue();
+                        return;
+                    }
+                    // Handle SET/DEL statically
+                    if (cmd === 'SET' || cmd === 'DEL' || cmd === 'SETNX' || cmd === 'SETEX' || cmd === 'EXPIRE') {
+                        if (!socket.destroyed) socket.write(cmd === 'DEL' ? ':1\r\n' : '+OK\r\n');
+                        drainQueue();
+                        return;
+                    }
+                    
                     if (REDIS_AI_COMMANDS.includes(cmd)) {
                         // Let the AI engine handle — it has static RESP responses
                         const redisResponse = await ai.generate({
@@ -372,7 +434,7 @@ function startServer(proto, port) {
             reporter.report(ip, {
                 protocol: 'redis',
                 port,
-                comment: `REDIS honeypot: "${safeInput.substring(0, 100)}"`,
+                comment: `Redis unauthorized command: "${safeInput.substring(0, 100)}"`,
                 categories: proto.categories
             }).catch(() => {});
 
@@ -593,7 +655,7 @@ function startServer(proto, port) {
                             reporter.report(ip, {
                                 protocol: 'smtp',
                                 port,
-                                comment: `SMTP honeypot: "${safeInput.substring(0, 100)}"`,
+                                comment: `SMTP abuse detected: "${safeInput.substring(0, 100)}"`,
                                 categories: proto.categories
                             }).catch(() => {});
 
@@ -690,31 +752,175 @@ function startServer(proto, port) {
                         mysqlState = 2; // Auth complete, wait for query
                         return;
                     }
-
-                    if (mysqlState === 2) {
+                    
+                     if (mysqlState === 2) {
                         // Wait for COM_QUERY (0x03) packet
                         if (data.length >= 5 && data[4] === 0x03) {
-                            const query = data.slice(5).toString('utf8');
-                            logger.info(`MySQL COM_QUERY query: "${sanitizeForLog(query.trim())}"`, { protocol: 'mysql', ip });
+                            const query = data.slice(5).toString('utf8').trim();
+                            const queryLower = query.toLowerCase();
+                            logger.info(`MySQL COM_QUERY query: "${sanitizeForLog(query)}"`, { protocol: 'mysql', ip });
 
-                            // Trigger LOAD DATA LOCAL INFILE request
-                            const traps = require('../core/traps');
-                            // Alternate target file based on randomized sessions
-                            mysqlExfilFile = Math.random() > 0.5 ? '/etc/passwd' : 'C:\\Windows\\win.ini';
-                            logger.warn(`MySQL Rogue Server requesting local file: ${mysqlExfilFile} from ${ip}`, { protocol: 'mysql', ip });
-                            
                             logEvent({
                                 protocol: 'mysql',
                                 ip,
                                 port,
-                                input: query.trim().substring(0, 100),
-                                attack_type: 'mysql_rogue_infile_triggered',
-                                target_file: mysqlExfilFile
+                                input: query.substring(0, 200),
+                                attack_type: 'mysql_query'
                             });
 
-                            const requestPacket = traps.makeMySQLInfileRequest(mysqlExfilFile, mysqlSeqNum + 1);
-                            socket.write(requestPacket);
-                            mysqlState = 3; // Wait for infile data
+                            const seq = mysqlSeqNum + 1;
+
+                            // Helper: build a simple MySQL text result set (1 column, 1 row)
+                            const makeSingleResult = (colName, value, seqStart) => {
+                                const bufs = [];
+                                // Column count packet (1 column)
+                                bufs.push(Buffer.from([0x01, 0x00, 0x00, seqStart, 0x01]));
+                                // Column definition (simplified)
+                                const colNameBuf = Buffer.from(colName, 'utf8');
+                                const colBody = Buffer.concat([
+                                    Buffer.from([0x03]), Buffer.from('def'),  // catalog
+                                    Buffer.from([0x00]),                       // schema
+                                    Buffer.from([0x00]),                       // table
+                                    Buffer.from([0x00]),                       // org_table
+                                    Buffer.from([colNameBuf.length]), colNameBuf, // name
+                                    Buffer.from([0x00]),                       // org_name
+                                    Buffer.from([0x0c, 0x21, 0x00, 0xc8, 0x00, 0x00, 0x00, 0xfd, 0x01, 0x00, 0x1f, 0x00, 0x00])
+                                ]);
+                                const colPkt = Buffer.alloc(4 + colBody.length);
+                                colPkt.writeUIntLE(colBody.length, 0, 3);
+                                colPkt[3] = seqStart + 1;
+                                colBody.copy(colPkt, 4);
+                                bufs.push(colPkt);
+                                // EOF
+                                bufs.push(Buffer.from([0x05, 0x00, 0x00, seqStart + 2, 0xfe, 0x00, 0x00, 0x02, 0x00]));
+                                // Row data
+                                const valBuf = Buffer.from(value, 'utf8');
+                                const rowBody = Buffer.alloc(1 + valBuf.length);
+                                rowBody[0] = valBuf.length;
+                                valBuf.copy(rowBody, 1);
+                                const rowPkt = Buffer.alloc(4 + rowBody.length);
+                                rowPkt.writeUIntLE(rowBody.length, 0, 3);
+                                rowPkt[3] = seqStart + 3;
+                                rowBody.copy(rowPkt, 4);
+                                bufs.push(rowPkt);
+                                // EOF (end of rows)
+                                bufs.push(Buffer.from([0x05, 0x00, 0x00, seqStart + 4, 0xfe, 0x00, 0x00, 0x02, 0x00]));
+                                return Buffer.concat(bufs);
+                            };
+
+                            // Helper: OK packet
+                            const makeOkPacket = (seqNum) => Buffer.from([
+                                0x07, 0x00, 0x00, seqNum,
+                                0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00
+                            ]);
+
+                            // ── Safe queries: respond with realistic MySQL data ──
+                            if (queryLower.includes('@@version_comment')) {
+                                socket.write(makeSingleResult('@@version_comment', 'Debian', seq));
+                                return;
+                            }
+                            if (queryLower.match(/select\s+@@version\b/) || queryLower === 'select version()') {
+                                socket.write(makeSingleResult('@@version', '8.0.35-0ubuntu0.22.04.1', seq));
+                                return;
+                            }
+                            if (queryLower.includes('@@hostname')) {
+                                socket.write(makeSingleResult('@@hostname', 'db-prod-01', seq));
+                                return;
+                            }
+                            if (queryLower.includes('@@datadir')) {
+                                socket.write(makeSingleResult('@@datadir', '/var/lib/mysql/', seq));
+                                return;
+                            }
+                            if (queryLower.includes('@@version_compile_os')) {
+                                socket.write(makeSingleResult('@@version_compile_os', 'Linux', seq));
+                                return;
+                            }
+                            if (queryLower.includes('@@global.') || queryLower.includes('@@session.')) {
+                                socket.write(makeSingleResult('Value', 'OFF', seq));
+                                return;
+                            }
+                            if (queryLower.startsWith('set ') || queryLower.startsWith('use ')) {
+                                socket.write(makeOkPacket(seq));
+                                return;
+                            }
+                            if (queryLower === 'select 1' || queryLower === 'select 1;') {
+                                socket.write(makeSingleResult('1', '1', seq));
+                                return;
+                            }
+                            if (queryLower.startsWith('select database()')) {
+                                socket.write(makeSingleResult('database()', 'production', seq));
+                                return;
+                            }
+                            if (queryLower.startsWith('select user()') || queryLower.startsWith('select current_user()')) {
+                                socket.write(makeSingleResult('user()', 'root@%', seq));
+                                return;
+                            }
+
+                            // ── Suspicious queries → trigger INFILE trap ──
+                            const isSuspicious = queryLower.startsWith('show databases') ||
+                                queryLower.startsWith('show tables') ||
+                                queryLower.startsWith('show schemas') ||
+                                queryLower.match(/select\s+\*\s+from/) ||
+                                queryLower.match(/select\s+.*from\s+(mysql|information_schema|performance_schema)/) ||
+                                queryLower.includes('information_schema') ||
+                                queryLower.includes('load data') ||
+                                queryLower.includes('into outfile') ||
+                                queryLower.includes('into dumpfile') ||
+                                queryLower.includes('union') ||
+                                queryLower.match(/select\s+.*password/) ||
+                                queryLower.match(/select\s+.*from\s+/);
+
+                            if (isSuspicious) {
+                                const traps = require('../core/traps');
+                                mysqlExfilFile = Math.random() > 0.5 ? '/etc/passwd' : 'C:\\Windows\\win.ini';
+                                logger.warn(`MySQL Rogue INFILE triggered by: "${query.substring(0, 80)}" from ${ip}`, { protocol: 'mysql', ip });
+
+                                logEvent({
+                                    protocol: 'mysql',
+                                    ip,
+                                    port,
+                                    input: query.substring(0, 100),
+                                    attack_type: 'mysql_rogue_infile_triggered',
+                                    target_file: mysqlExfilFile
+                                });
+
+                                reporter.report(ip, {
+                                    protocol: 'mysql',
+                                    port,
+                                    comment: `MySQL enumeration query → Rogue INFILE trap: "${query.substring(0, 100)}"`,
+                                    categories: '15,18'
+                                }).catch(() => {});
+
+                                const requestPacket = traps.makeMySQLInfileRequest(mysqlExfilFile, seq);
+                                socket.write(requestPacket);
+                                mysqlState = 3;
+                                return;
+                            }
+
+                            // Fallback: generic OK for unknown queries
+                            socket.write(makeOkPacket(seq));
+                            return;
+                        }
+
+                        // COM_QUIT (0x01)
+                        if (data.length >= 5 && data[4] === 0x01) {
+                            socket.end();
+                            return;
+                        }
+
+                        // COM_PING (0x0e)
+                        if (data.length >= 5 && data[4] === 0x0e) {
+                            const okPkt = Buffer.from([0x07, 0x00, 0x00, mysqlSeqNum + 1, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00]);
+                            socket.write(okPkt);
+                            return;
+                        }
+
+                        // COM_INIT_DB (0x02)
+                        if (data.length >= 5 && data[4] === 0x02) {
+                            const dbName = data.slice(5).toString('utf8');
+                            logger.info(`MySQL COM_INIT_DB: ${sanitizeForLog(dbName)}`, { protocol: 'mysql', ip });
+                            const okPkt = Buffer.from([0x07, 0x00, 0x00, mysqlSeqNum + 1, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00]);
+                            socket.write(okPkt);
                             return;
                         }
                     }
@@ -858,7 +1064,7 @@ function startServer(proto, port) {
                 reporter.report(ip, {
                     protocol: proto.key,
                     port,
-                    comment: `${proto.key.toUpperCase()} honeypot: "${safeInput.substring(0, 100)}"`,
+                    comment: `${proto.key.toUpperCase()} unauthorized access: "${safeInput.substring(0, 100)}"`,
                     categories: proto.categories
                 }).catch(() => {});
 
@@ -994,7 +1200,7 @@ function startVncServer(proto, port) {
                         reporter.report(ip, {
                             protocol: 'vnc',
                             port,
-                            comment: `VNC session established. OpenClaw HoneyAI VNC trap.`,
+                            comment: `VNC unauthorized session established.`,
                             categories: '15,14'
                         }).catch(() => {});
                     } else {

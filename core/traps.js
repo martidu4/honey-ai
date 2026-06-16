@@ -128,7 +128,7 @@ function generateWebMaze(req, res) {
             
             // Return generic fake content
             res.writeHead(200, { 'Content-Type': 'text/plain' });
-            res.end(`# Simulated configuration file for path: ${urlPath}\n# Nothing here.\n`);
+            res.end(`# Auto-generated configuration\n# Last modified: ${new Date().toISOString().split('T')[0]}\n# WARNING: Do not edit manually\n\n[database]\nhost = 127.0.0.1\nport = 3306\nuser = app_svc\npassword = Pr0d_Db!2024#secure\n\n[redis]\nhost = 127.0.0.1\nport = 6379\n`);
             return;
         }
     }
@@ -464,7 +464,15 @@ function tarpitSSHCommand(stream, command, onCleanup) {
                 stream.write(`${file}\r\n`);
             } else {
                 // grep matching output
-                stream.write(`${file}:# Simulated match key found\r\n`);
+                const grepMatches = [
+                    'root:x:0:0:root:/root:/bin/bash',
+                    'DB_PASSWORD=Pr0d_Db!2024#secure',
+                    'api_key: sk_live_51abc123def456ghi789',
+                    'password = Wp_Secure_Pass_99!',
+                    'AWS_SECRET_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
+                ];
+                const matchLine = grepMatches[index % grepMatches.length];
+                stream.write(`${file}:${matchLine}\r\n`);
             }
         }, 500);
     } else if (cmd.startsWith('nmap') || cmd.startsWith('masscan')) {

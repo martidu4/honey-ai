@@ -268,7 +268,7 @@ function startInteractiveSSH(cfg) {
             reporter.report(ip, {
                 protocol: 'ssh',
                 port: cfg.port || 2222,
-                comment: `SSH brute-force login to honeypot. OpenClaw HoneyAI.`,
+                comment: `SSH brute-force login detected. Automated IDS report.`,
                 categories: '22,18'
             }).catch(() => {});
 
@@ -328,7 +328,32 @@ const STATIC_SSH_COMMANDS = Object.assign(Object.create(null), {
     'kubectl get pods': 'NAME                            READY   STATUS    RESTARTS   AGE\napi-gateway-7f8b9-x2b4a         1/1     Running   0          5d12h\nauth-service-d48e2-9k8f7        1/1     Running   0          5d12h\nuser-db-0                       1/1     Running   0          24d\nredis-session-cache-7d8a-9f82   1/1     Running   1          2d4h',
     'kubectl get pods -A': 'NAMESPACE     NAME                            READY   STATUS    RESTARTS   AGE\ndefault       api-gateway-7f8b9-x2b4a         1/1     Running   0          5d12h\ndefault       auth-service-d48e2-9k8f7        1/1     Running   0          5d12h\ndefault       user-db-0                       1/1     Running   0          24d\ndefault       redis-session-cache-7d8a-9f82   1/1     Running   1          2d4h\nkube-system   coredns-5c6b6c5476-8f72a        1/1     Running   0          25d\nkube-system   kube-proxy-8x9d2                1/1     Running   0          25d',
     'kubectl get nodes': 'NAME           STATUS   ROLES    AGE   VERSION\nk8s-master-1   Ready    control-plane   25d   v1.28.2\nk8s-node-01    Ready    worker          25d   v1.28.2\nk8s-node-02    Ready    worker          25d   v1.28.2',
-    'kubectl cluster-info': 'Kubernetes control plane is running at https://192.168.1.150:6443\nCoreDNS is running at https://192.168.1.150:6443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy\n\nTo further debug and diagnose cluster problems, use \'kubectl cluster-info dump\'.'
+    'kubectl cluster-info': 'Kubernetes control plane is running at https://192.168.1.150:6443\nCoreDNS is running at https://192.168.1.150:6443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy\n\nTo further debug and diagnose cluster problems, use \'kubectl cluster-info dump\'.',
+    // HIGH-03: /proc filesystem responses to prevent honeypot detection
+    'ls -la /proc/self/exe': 'lrwxrwxrwx 1 root root 0 Jun 16 10:20 /proc/self/exe -> /usr/bin/bash',
+    'ls /proc/self/exe': '/proc/self/exe',
+    'readlink /proc/self/exe': '/usr/bin/bash',
+    'cat /proc/self/status': 'Name:\tbash\nUmask:\t0022\nState:\tS (sleeping)\nTgid:\t1842\nNgid:\t0\nPid:\t1842\nPPid:\t1841\nTracerPid:\t0\nUid:\t0\t0\t0\t0\nGid:\t0\t0\t0\t0\nFDSize:\t256\nGroups:\t0\nVmPeak:\t   12864 kB\nVmSize:\t   12864 kB\nVmRSS:\t    5120 kB\nThreads:\t1',
+    'cat /proc/1/cmdline': '/sbin/init',
+    'cat /proc/version': 'Linux version 6.1.0-9-amd64 (debian-kernel@lists.debian.org) (gcc-12 (Debian 12.2.0-14) 12.2.0, GNU ld (GNU Binutils for Debian) 2.40) #1 SMP PREEMPT_DYNAMIC Debian 6.1.27-1 (2023-05-08)',
+    'cat /proc/meminfo': 'MemTotal:        8123048 kB\nMemFree:         4128912 kB\nMemAvailable:    5692016 kB\nBuffers:          312456 kB\nCached:          1542736 kB\nSwapCached:            0 kB\nActive:          2834560 kB\nInactive:        1024512 kB\nSwapTotal:       2097148 kB\nSwapFree:        2097148 kB',
+    'mount': '/dev/sda1 on / type ext4 (rw,relatime,errors=remount-ro)\ntmpfs on /run type tmpfs (rw,nosuid,nodev,noexec,relatime,size=812304k,mode=755,inode64)\ndevpts on /dev/pts type devpts (rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=000)\nproc on /proc type proc (rw,nosuid,nodev,noexec,relatime)\nsysfs on /sys type sysfs (rw,nosuid,nodev,noexec,relatime)',
+    'cat /proc/1/environ': 'HOME=/root\x00TERM=linux\x00BOOT_IMAGE=/vmlinuz-6.1.0-9-amd64\x00PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\x00',
+    'printenv': 'HOME=/root\nUSER=root\nLOGNAME=root\nPATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\nSHELL=/bin/bash\nTERM=xterm-256color\nLANG=en_US.UTF-8',
+    'env': 'HOME=/root\nUSER=root\nLOGNAME=root\nPATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\nSHELL=/bin/bash\nTERM=xterm-256color\nLANG=en_US.UTF-8',
+    'ip addr show': '1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000\n    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00\n    inet 127.0.0.1/8 scope host lo\n       valid_lft forever preferred_lft forever\n2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000\n    link/ether 52:54:00:a1:b2:c3 brd ff:ff:ff:ff:ff:ff\n    inet 10.0.2.15/24 brd 10.0.2.255 scope global dynamic eth0\n       valid_lft 86399sec preferred_lft 86399sec',
+    'ip a': '1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000\n    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00\n    inet 127.0.0.1/8 scope host lo\n       valid_lft forever preferred_lft forever\n2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000\n    link/ether 52:54:00:a1:b2:c3 brd ff:ff:ff:ff:ff:ff\n    inet 10.0.2.15/24 brd 10.0.2.255 scope global dynamic eth0\n       valid_lft 86399sec preferred_lft 86399sec',
+    'ifconfig': 'eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500\n        inet 10.0.2.15  netmask 255.255.255.0  broadcast 10.0.2.255\n        ether 52:54:00:a1:b2:c3  txqueuelen 1000  (Ethernet)\n        RX packets 1234567  bytes 987654321 (987.6 MB)\n        TX packets 654321  bytes 123456789 (123.4 MB)\n\nlo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536\n        inet 127.0.0.1  netmask 255.0.0.0\n        loop  txqueuelen 1000  (Local Loopback)',
+    'hostname -f': 'prod-server-01.internal.company.net',
+    'hostname -I': '10.0.2.15 ',
+    'cat /etc/os-release': 'PRETTY_NAME="Debian GNU/Linux 12 (bookworm)"\nNAME="Debian GNU/Linux"\nVERSION_ID="12"\nVERSION="12 (bookworm)"\nVERSION_CODENAME=bookworm\nID=debian\nHOME_URL="https://www.debian.org/"\nSUPPORT_URL="https://www.debian.org/support"\nBUG_REPORT_URL="https://bugs.debian.org/"',
+    'lsb_release -a': 'Distributor ID:\tDebian\nDescription:\tDebian GNU/Linux 12 (bookworm)\nRelease:\t12\nCodename:\tbookworm',
+    'ls -la /.dockerenv': 'ls: cannot access \'/.dockerenv\': No such file or directory',
+    'systemctl list-units --type=service': '  UNIT                        LOAD   ACTIVE SUB     DESCRIPTION\n  cron.service                loaded active running Regular background program processing daemon\n  dbus.service                loaded active running D-Bus System Message Bus\n  docker.service              loaded active running Docker Application Container Engine\n  nginx.service               loaded active running A high performance web server\n  ssh.service                 loaded active running OpenBSD Secure Shell server\n  systemd-journald.service    loaded active running Journal Service\n  systemd-timesyncd.service   loaded active running Network Time Synchronization\n\n7 loaded units listed.',
+    'dpkg -l': 'Desired=Unknown/Install/Remove/Purge/Hold\n| Status=Not/Inst/Conf-files/Unpacked/halF-conf/Half-inst/trig-aWait/Trig-pend\n|/ Err?=(none)/Reinst-required (Status,Err: uppercase=bad)\n||/ Name                     Version          Architecture Description\n+++-========================-================-============-===========\nii  adduser                  3.134            all          add and remove users and groups\nii  apt                      2.6.1            amd64        commandline package manager\nii  base-files               12.4+deb12u5     amd64        Debian base system miscellaneous files\nii  bash                     5.2.15-2+b2      amd64        GNU Bourne Again SHell\nii  coreutils                9.1-1            amd64        GNU core utilities',
+    'ps aux': 'USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND\nroot           1  0.0  0.1 166824 12364 ?        Ss   Jun02   0:12 /sbin/init\nroot         312  0.0  0.0  18112  7480 ?        Ss   Jun02   0:00 /lib/systemd/systemd-journald\nroot         421  0.0  0.0  30000  6492 ?        Ss   Jun02   0:01 /usr/sbin/cron -f\nroot         442  0.0  0.0  15420  6128 ?        Ss   Jun02   0:00 /usr/sbin/sshd -D\nwww-data     512  0.0  0.2  49288 21340 ?        S    Jun02   0:15 nginx: worker process\nroot         534  0.0  0.1  78460 14368 ?        Ssl  Jun02   0:32 /usr/bin/dockerd\nmysql        678  0.1  2.1 1891612 174192 ?      Sl   Jun02  14:23 /usr/sbin/mysqld\nredis        721  0.0  0.1  54260  9856 ?        Ssl  Jun02   1:45 /usr/bin/redis-server *:6379\nroot        1842  0.0  0.0  12864  5120 pts/0    Ss   10:40   0:00 -bash\nroot        1901  0.0  0.0  14500  3412 pts/0    R+   10:45   0:00 ps aux',
+    'ps -ef': 'UID          PID    PPID  C STIME TTY          TIME CMD\nroot           1       0  0 Jun02 ?        00:00:12 /sbin/init\nroot         312       1  0 Jun02 ?        00:00:00 /lib/systemd/systemd-journald\nroot         421       1  0 Jun02 ?        00:00:01 /usr/sbin/cron -f\nroot         442       1  0 Jun02 ?        00:00:00 /usr/sbin/sshd -D\nwww-data     512     442  0 Jun02 ?        00:00:15 nginx: worker process\nroot         534       1  0 Jun02 ?        00:00:32 /usr/bin/dockerd\nmysql        678     534  0 Jun02 ?        00:14:23 /usr/sbin/mysqld\nredis        721       1  0 Jun02 ?        00:01:45 /usr/bin/redis-server *:6379\nroot        1842    1841  0 10:40 pts/0    00:00:00 -bash\nroot        1901    1842  0 10:45 pts/0    00:00:00 ps -ef',
+    'lscpu': 'Architecture:            x86_64\n  CPU op-mode(s):        32-bit, 64-bit\n  Byte Order:            Little Endian\nCPU(s):                  4\n  On-line CPU(s) list:   0-3\nVendor ID:               GenuineIntel\n  Model name:            Intel(R) Core(TM) i5-8265U CPU @ 1.60GHz\n  CPU family:            6\n  Stepping:              11\n  CPU MHz:               1800.000\n  CPU max MHz:           3900.0000\n  BogoMIPS:              3600.00\nCaches (sum of all):\n  L1d:                   128 KiB\n  L1i:                   128 KiB\n  L2:                    1 MiB\n  L3:                    6 MiB'
 });
 
 function getStaticSSHResponse(cmd, sessionState) {
@@ -573,7 +598,7 @@ async function runFakeShell(stream, ip, cfg, sessionState) {
                             const filePath = resolvePath(sessionState.cwd, filename);
 
                             // Load actual content if it is a small text script (under 100KB, no null bytes)
-                            let content = '#!/bin/bash\n# Simulated payload\n';
+                            let content = '#!/bin/bash\n# Auto-generated wrapper\n';
                             const savedPath = path.join(__dirname, '../logs/downloads', result.sha256);
                             if (fs.existsSync(savedPath) && result.size < 100 * 1024) {
                                 const raw = fs.readFileSync(savedPath);
@@ -704,7 +729,7 @@ async function handleExecCommand(stream, command, ip, cfg, sessionState) {
             const filePath = resolvePath(sessionState.cwd, filename);
 
             // Load actual content if it is a small text script (under 100KB, no null bytes)
-            let content = '#!/bin/bash\n# Simulated payload\n';
+            let content = '#!/bin/bash\n# Auto-generated wrapper\n';
             const savedPath = path.join(__dirname, '../logs/downloads', result.sha256);
             if (fs.existsSync(savedPath) && result.size < 100 * 1024) {
                 const raw = fs.readFileSync(savedPath);

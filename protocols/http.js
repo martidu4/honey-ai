@@ -60,6 +60,7 @@ function start(customPort) {
 
     // Remove headers that reveal this is Node/Express
     app.disable('x-powered-by');
+    app.disable('etag');  // HIGH-01: Express ETag format (W/"hash") leaks Node.js identity
 
     // Track active HTTP connections
     app.use((req, res, next) => {
@@ -335,7 +336,7 @@ define( 'DB_COLLATE', '' );
 
             const filePath = nodePath.join(__dirname, `../honeyfs/etc/${fileName}`);
             if (fs.existsSync(filePath)) {
-                logger.info(`HTTP LFI request for /etc/${fileName} -> Serving simulated file`, { protocol: 'http', ip });
+                logger.info(`HTTP LFI request for /etc/${fileName} -> Serving canary file`, { protocol: 'http', ip });
                 logEvent({
                     protocol: 'http',
                     ip,
@@ -418,7 +419,7 @@ define( 'DB_COLLATE', '' );
         reporter.report(ip, {
             protocol: 'http',
             port: cfg.port,
-            comment: `HTTP honeypot attack: ${method} ${path} (${attackType}). UA: ${ua.substring(0, 100)}`,
+            comment: `HTTP attack detected: ${method} ${path} (${attackType}). UA: ${ua.substring(0, 100)}`,
             categories: '21,14'  // Web App Attack + Port Scan
         }).catch(() => {});
 
@@ -432,6 +433,19 @@ define( 'DB_COLLATE', '' );
         if (typeof responsePayload === 'string' && /<\/html>|<\/body>/i.test(responsePayload)) {
             const traps = require('../core/traps');
             responsePayload = traps.injectFingerprint(responsePayload, ua);
+        }
+
+        // NEW-06 fix: Set Content-Type based on AI response content
+        const trimmed = (typeof responsePayload === 'string' ? responsePayload : '').trim();
+        if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        } else if (trimmed.startsWith('<?xml')) {
+            res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+        } else if (!trimmed.startsWith('<')) {
+            // Plain text responses (config files, shell output, etc.)
+            res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        } else {
+            res.setHeader('Content-Type', 'text/html; charset=UTF-8');
         }
 
         res.status(status).send(responsePayload);

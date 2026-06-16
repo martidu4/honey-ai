@@ -9,29 +9,29 @@
     "host": "db.internal.example",
     "port": 3306,
     "user": "root",
-    "password": "CHANGE_ME_DB_PASSWORD",
+    "password": "Kx9$mP2vL8nQw4jR",
     "name": "production_db",
     "pool_size": 10
   },
   "redis": {
-    "url": "redis://default:CHANGE_ME_REDIS_PASS@cache.internal.example:6379/0"
+    "url": "redis://default:r3d1s_pr0d_p4ssw0rd!@cache.internal.example:6379/0"
   },
   "api": {
-    "secret": "CHANGE_ME_API_SECRET",
-    "jwt_secret": "CHANGE_ME_JWT_SECRET",
+    "secret": "f8e2a9d1c7b64503e1d0f9a8b7c6d5e4",
+    "jwt_secret": "a7f2c9e1b4d83056f9e8d7c6b5a43210",
     "rate_limit": 100,
     "cors_origins": ["https://app.company.internal", "https://admin.company.internal"]
   },
   "aws": {
-    "access_key_id": "CHANGE_ME_AWS_KEY",
-    "secret_access_key": "CHANGE_ME_AWS_SECRET",
+    "access_key_id": "AKIAIOSFODNN7EXAMPLE",
+    "secret_access_key": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
     "region": "eu-west-1",
     "s3_bucket": "company-prod-backups"
   },
   "admin": {
     "panel_url": "/admin",
     "default_user": "admin",
-    "default_pass": "CHANGE_ME_ADMIN_PASS"
+    "default_pass": "Adm1n_Pr0d_2024!"
   },
   "backup": {
     "schedule": "0 4 * * *",
