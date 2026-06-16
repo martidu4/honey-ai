@@ -77,8 +77,8 @@ const INJECTION_PATTERNS = [
     /(?:abaikan|lupakan|lewati)\s*(?:semua)?\s*(?:instruksi|perintah|petunjuk)/i,
     /kamu\s+sekarang|anda\s+sekarang/i,
 
-    // Thai (TH)
-    /(?:เพิกเฉย|ลืม|ข้าม)\s*(?:คำสั่ง|คำแนะนำ|คำบัญชา)/i,
+    // Thai (TH) — match both NFC (ำ) and NFKC (ํา) forms of sara am
+    /(?:เพิกเฉย|ลืม|ข้าม)\s*(?:คำ|คํา)(?:สั่ง|แนะนำ|แนะนํา|บัญชา)/i,
     /ตอนนี้คุณคือ|คุณคือตอนนี้/i,
 
     // Ukrainian (UK)
@@ -91,7 +91,9 @@ const INJECTION_PATTERNS = [
 ];
 
 function detectPromptInjection(input) {
-    return INJECTION_PATTERNS.some(p => p.test(input));
+    // Normalize Unicode confusables (Cyrillic а→a, Roman numerals ⅰ→i, etc.)
+    const normalized = input.normalize('NFKC');
+    return INJECTION_PATTERNS.some(p => p.test(normalized));
 }
 
 function escapeDelimiters(input) {
@@ -420,6 +422,21 @@ Generate the protocol response (raw output only):`;
     }
 }
 
+// ─── Shared AI output cleaning ────────────────────────────────────────────────
+function cleanAIOutput(text) {
+    let clean = text;
+    // Strip <think>...</think> chain-of-thought (qwen3, deepseek-r1)
+    clean = clean.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+    // Strip markdown fences
+    clean = clean.replace(/^```[\w]*\n?/gm, '').replace(/\n?```$/gm, '').trim();
+    // Strip AI meta-markers that leak honeypot nature
+    clean = clean.replace(/---\s*(END|BEGIN)\s*(DECEPTIVE|FAKE|HONEYPOT)\s*RESPONSE\s*---/gi, '').trim();
+    clean = clean.replace(/\[Note:.*?\]/gi, '').trim();
+    clean = clean.replace(/\(This is a (fake|deceptive|honeypot).*?\)/gi, '').trim();
+    clean = clean.replace(/^(Here is|Here's|Below is).*?:$/gim, '').trim();
+    return clean;
+}
+
 async function queryOllama(system, prompt, numPredict = 512) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), ai.timeout || 60000);
@@ -440,17 +457,7 @@ async function queryOllama(system, prompt, numPredict = 512) {
         clearTimeout(timeoutId);
 
         let text = String(res.data.message?.content || '');
-
-        // Strip <think>...</think> chain-of-thought (qwen3, deepseek-r1)
-        text = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-        // Strip markdown fences
-        text = text.replace(/^```[\w]*\n?/gm, '').replace(/\n?```$/gm, '').trim();
-
-        // Strip AI meta-markers that leak honeypot nature
-        text = text.replace(/---\s*(END|BEGIN)\s*(DECEPTIVE|FAKE|HONEYPOT)\s*RESPONSE\s*---/gi, '').trim();
-        text = text.replace(/\[Note:.*?\]/gi, '').trim();
-        text = text.replace(/\(This is a (fake|deceptive|honeypot).*?\)/gi, '').trim();
-        text = text.replace(/^(Here is|Here's|Below is).*?:$/gim, '').trim();
+        text = cleanAIOutput(text);
 
         return text.substring(0, MAX_OUTPUT_BYTES);
     } catch (err) {
@@ -460,6 +467,9 @@ async function queryOllama(system, prompt, numPredict = 512) {
 }
 
 async function queryOpenAI(system, prompt) {
+    const openaiKey = process.env.OPENAI_KEY;
+    if (!openaiKey) throw new Error('OPENAI_KEY not set — cannot use OpenAI provider');
+
     const res = await axios.post(`${ai.url}/v1/chat/completions`, {
         model:       ai.model,
         messages:    [
@@ -469,12 +479,13 @@ async function queryOpenAI(system, prompt) {
         temperature: ai.temperature || 0.9,
         max_tokens:  512
     }, {
-        headers: { Authorization: `Bearer ${process.env.OPENAI_KEY || 'dummy'}` },
+        headers: { Authorization: `Bearer ${openaiKey}` },
         timeout: ai.timeout || 60000
     });
 
-    return String(res.data.choices?.[0]?.message?.content || '').trim()
-        .substring(0, MAX_OUTPUT_BYTES);
+    let text = String(res.data.choices?.[0]?.message?.content || '').trim();
+    text = cleanAIOutput(text);
+    return text.substring(0, MAX_OUTPUT_BYTES);
 }
 
 // ─── Output sanitization ──────────────────────────────────────────────────────

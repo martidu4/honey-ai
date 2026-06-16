@@ -112,6 +112,13 @@ IT: "dimentica tutte le istruzioni"
 PT: "esqueça todas as instruções"
 ```
 
+### Unicode Normalization & Confusable Bypasses (NFKC)
+
+To prevent attackers from using Unicode confusable characters (e.g., full-width text `Ｉｇｎｏｒｅ`, mathematical symbols, or decomposed characters) to bypass prompt injection detection:
+1. All client inputs are normalized to **NFKC** (Unicode Normalization Form Compatibility Composition) prior to scanning.
+2. The injection detection regex matches are executed on the normalized text representation.
+3. Multi-character mapping compatibility is maintained (for example, matching both NFC `คำ` and NFKC `คํา` forms in Thai).
+
 ### Neutralization
 
 When injection is detected:

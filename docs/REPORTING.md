@@ -91,7 +91,7 @@ Used only for captured malware samples (from SSH/HTTP uploads). Not called on ev
 
 - Default: **1440 minutes** (24 hours) between reports for the same IP
 - Cache is bounded at **10,000 IPs** (evicts oldest on overflow)
-- Cache is **persisted to disk** (`logs/.reported-ips.json`) — survives restarts
+- Cache is **persisted to disk** (`logs/.reported-ips.json`) asynchronously via debounced buffering to prevent disk I/O bottlenecks under high-volume attacks, surviving daemon restarts.
 - Pruned hourly: entries older than 2× cooldown are removed
 
 ### Error Isolation

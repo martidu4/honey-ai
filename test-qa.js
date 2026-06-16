@@ -1037,7 +1037,7 @@ async function runSuite() {
         };
 
         traps.streamGzipBomb(mockRes, 'test.sql.gz');
-        if (mockRes.headers['Content-Encoding'] === 'gzip' && mockRes.headers['Content-Type'] === 'application/x-gzip') {
+        if (mockRes.headers['Content-Type'] === 'application/x-gzip' && mockRes.headers['Content-Disposition']?.includes('test.sql.gz')) {
             console.log(chalk.green('  [GZIP Bomb PASS] Headers initialized correctly.'));
             passed++;
         } else {

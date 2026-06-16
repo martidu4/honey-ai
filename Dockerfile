@@ -38,6 +38,8 @@ COPY config.example.yaml ./
 # Create directories for runtime data
 RUN mkdir -p logs && chown -R honeyai:honeyai /app
 
+ENV NODE_ENV=production
+
 USER honeyai
 
 # Expose all honeypot ports

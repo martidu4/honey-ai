@@ -21,7 +21,6 @@ function streamGzipBomb(res, filename = 'backup.sql.gz') {
     try {
         res.writeHead(200, {
             'Content-Type': 'application/x-gzip',
-            'Content-Encoding': 'gzip',
             'Content-Disposition': `attachment; filename="${filename}"`,
             'Cache-Control': 'no-cache, no-store, must-revalidate',
             'X-Content-Type-Options': 'nosniff'
@@ -67,7 +66,7 @@ function streamGzipBomb(res, filename = 'backup.sql.gz') {
 // ─── 2. Infinite Web Directory Generator ─────────────────────────────────────
 // Seedable pseudo-random generator to make the maze stateless but consistent
 function getSeededRandom(seed) {
-    const hash = crypto.createHash('sha256').update(seed).digest();
+    let hash = crypto.createHash('sha256').update(seed).digest();
     let index = 0;
     return () => {
         if (index >= hash.length) {
@@ -272,12 +271,14 @@ function generateWebMaze(req, res) {
 </html>
 `;
 
+    const ua = req.headers?.['user-agent'] || '';
+
     res.writeHead(200, {
         'Content-Type': 'text/html; charset=utf-8',
         'X-Content-Type-Options': 'nosniff',
         'Cache-Control': 'no-cache, no-store, must-revalidate'
     });
-    res.end(injectFingerprint(html));
+    res.end(injectFingerprint(html, ua));
 }
 
 // ─── 3. Reverse-Slowloris Tarpit Drip ────────────────────────────────────────
@@ -334,13 +335,18 @@ function dripSlowResponse(socket, data, intervalMs = 5000) {
 function floodRedisMonitor(socket, ip) {
     if (!socket || socket.destroyed || !socket.writable) return;
 
+    let messageCount = 0;
+    const MAX_FLOOD_MESSAGES = 6000; // ~5 minutes at 50ms interval
+
     const floodInterval = setInterval(() => {
-        if (socket.destroyed || !socket.writable) {
+        if (socket.destroyed || !socket.writable || messageCount >= MAX_FLOOD_MESSAGES) {
             clearInterval(floodInterval);
+            if (!socket.destroyed) socket.end();
             return;
         }
 
         try {
+            messageCount++;
             const timestamp = (Date.now() / 1000).toFixed(6);
             const fakeCommands = [
                 `+${timestamp} [0 ${ip}:53210] "PING"`,

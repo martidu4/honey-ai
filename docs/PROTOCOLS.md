@@ -85,7 +85,7 @@ Single handler that identifies the protocol from the first bytes received.
 - Banner: `220 (vsFTPd 3.0.5)`
 - Accepts all credentials
 - AI-generated directory listings
-- PASV mode returns plausible public IP (203.0.113.45)
+- PASV mode dynamically returns the socket's local IP address (or a generic fallback if unavailable) and a random passive port.
 
 ### Telnet
 - Cisco IOS mode with static `show` command responses

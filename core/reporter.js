@@ -60,6 +60,16 @@ setInterval(() => {
         try {
             const data = Object.fromEntries(reported);
             fs.writeFileSync(CACHE_FILE, JSON.stringify(data), 'utf8');
+            cacheIsDirty = false;
+        } catch (e) {
+            logger.error(`Failed to save reported IPs cache: ${e.message}`, { protocol: 'reporter' });
+        }
+    } else if (cacheIsDirty) {
+        // Debounced save for markReported() changes
+        try {
+            const data = Object.fromEntries(reported);
+            fs.writeFileSync(CACHE_FILE, JSON.stringify(data), 'utf8');
+            cacheIsDirty = false;
         } catch (e) {
             logger.error(`Failed to save reported IPs cache: ${e.message}`, { protocol: 'reporter' });
         }
@@ -76,6 +86,8 @@ function shouldReport(ip) {
     return !lastSeen || (Date.now() - lastSeen) > cooldown;
 }
 
+let cacheIsDirty = false;
+
 function markReported(ip) {
     // Evict oldest entry if at capacity
     if (reported.size >= MAX_REPORTED) {
@@ -83,14 +95,7 @@ function markReported(ip) {
         reported.delete(oldest);
     }
     reported.set(ip, Date.now());
-
-    // Save cache to file
-    try {
-        const data = Object.fromEntries(reported);
-        fs.writeFileSync(CACHE_FILE, JSON.stringify(data), 'utf8');
-    } catch (e) {
-        logger.error(`Failed to save reported IPs cache: ${e.message}`, { protocol: 'reporter' });
-    }
+    cacheIsDirty = true;
 }
 
 // ─── Main entry point ─────────────────────────────────────────────────────────
@@ -177,7 +182,7 @@ async function reportOTX(ip, protocol) {
 // ─── SANS DShield ─────────────────────────────────────────────────────────────
 async function reportDShield(ip, port, protocol) {
     if (!rep.dshield?.enabled || !rep.dshield.api_key) return;
-    const date = new Date().toISOString().split('T')[0].replace(/-/g, '-');
+    const date = new Date().toISOString().split('T')[0];
     // DShield format: date\ttime\ttz\tsrc\tnatkts\tdst\tport\tproto
     const line = `${date}\t00:00:00\t0\t${ip}\t1\t0.0.0.0\t${port || 0}\t6\n`;
     try {

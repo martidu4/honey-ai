@@ -316,9 +316,30 @@ const STATIC_SSH_COMMANDS = Object.assign(Object.create(null), {
     'free': '               total        used        free      shared  buff/cache   available\nMem:         8123048     2138944     4128912      102432     1855192     5692016\nSwap:        2097148           0     2097148',
     'free -m': '               total        used        free      shared  buff/cache   available\nMem:            7932        2039        3937          97        1769        5428\nSwap:           2047           0        2047',
     'free -h': '               total        used        free      shared  buff/cache   available\nMem:           7.7Gi       2.0Gi       3.8Gi        97Mi       1.7Gi       5.3Gi\nSwap:          2.0Gi        0.B        2.0Gi',
-    'w': ' 08:45:12 up 14 days,  3:12,  1 user,  load average: 0.00, 0.01, 0.05\nUSER     TTY      FROM             LOGIN@   IDLE   JCPU   PCPU WHAT\nroot     pts/0    10.0.0.2         08:40    1.00s  0.02s  0.00s w',
-    'who': 'root     pts/0        2026-06-09 08:40 (10.0.0.2)',
-    'uptime': ' 08:45:15 up 14 days,  3:12,  1 user,  load average: 0.00, 0.01, 0.05',
+    'w': (state) => {
+        const up = Math.floor(process.uptime());
+        const days = Math.floor(up / 86400);
+        const hours = Math.floor((up % 86400) / 3600);
+        const mins = Math.floor((up % 3600) / 60);
+        const now = new Date();
+        const time = now.toTimeString().substring(0, 8);
+        return ` ${time} up ${days} days,  ${hours}:${String(mins).padStart(2, '0')},  1 user,  load average: 0.00, 0.01, 0.05\nUSER     TTY      FROM             LOGIN@   IDLE   JCPU   PCPU WHAT\nroot     pts/0    10.0.0.2         ${time.substring(0, 5)}    1.00s  0.02s  0.00s w`;
+    },
+    'who': (state) => {
+        const now = new Date();
+        const dateStr = now.toISOString().split('T')[0];
+        const time = now.toTimeString().substring(0, 5);
+        return `root     pts/0        ${dateStr} ${time} (10.0.0.2)`;
+    },
+    'uptime': (state) => {
+        const up = Math.floor(process.uptime());
+        const days = Math.floor(up / 86400);
+        const hours = Math.floor((up % 86400) / 3600);
+        const mins = Math.floor((up % 3600) / 60);
+        const now = new Date();
+        const time = now.toTimeString().substring(0, 8);
+        return ` ${time} up ${days} days,  ${hours}:${String(mins).padStart(2, '0')},  1 user,  load average: 0.00, 0.01, 0.05`;
+    },
     'pwd': (state) => state.cwd,
     'cat /proc/cpuinfo': 'processor\t: 0\nvendor_id\t: GenuineIntel\ncpu family\t: 6\nmodel\t\t: 142\nmodel name\t: Intel(R) Core(TM) i5-8265U CPU @ 1.60GHz\nstepping\t: 11\ncpu MHz\t\t: 1800.000\ncache size\t: 6144 KB\nphysical id\t: 0\nsiblings\t: 4\ncore id\t\t: 0\ncpu cores\t: 4\napicid\t\t: 0\ninitial apicid\t: 0\nfpu\t\t: yes\nfpu_exception\t: yes\ncpuid level\t: 22\nwp\t\t: yes\nflags\t\t: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc cpuid aperfmperf pni pclmulqdq dtes64 monitor ds_cpl vmx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch cpuid_fault epb invpcid_single pti ssbd ibrs ibpb stibp tpr_shadow vnmi flexpriority ept vpid ept_ad fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid mpx rdseed adx smap clflushopt intel_pt sgx xsaveopt xsavec xgetbv1 xsaves dtherm\nbugs\t\t: spectre_v1 spectre_v2 spec_store_bypass mds swapgs taa itlb_multihit srbds mmio_stale_data retbleed gds\nbogomips\t: 3600.00\nclflush size\t: 64\ncache_alignment\t: 64\naddress sizes\t: 39 bits physical, 48 bits virtual\npower management:\n',
     'cat /proc/self/cgroup': '12:pids:/docker/c1e3a5f78b90a6e8f812d34e9100fa1b\n11:devices:/docker/c1e3a5f78b90a6e8f812d34e9100fa1b\n10:memory:/docker/c1e3a5f78b90a6e8f812d34e9100fa1b\n9:cpu,cpuacct:/docker/c1e3a5f78b90a6e8f812d34e9100fa1b\n8:cpuset:/docker/c1e3a5f78b90a6e8f812d34e9100fa1b\n7:net_cls,net_prio:/docker/c1e3a5f78b90a6e8f812d34e9100fa1b\n6:blkio:/docker/c1e3a5f78b90a6e8f812d34e9100fa1b\n5:perf_event:/docker/c1e3a5f78b90a6e8f812d34e9100fa1b\n4:hugetlb:/docker/c1e3a5f78b90a6e8f812d34e9100fa1b\n3:freezer:/docker/c1e3a5f78b90a6e8f812d34e9100fa1b\n2:rdma:/docker/c1e3a5f78b90a6e8f812d34e9100fa1b\n1:name=systemd:/docker/c1e3a5f78b90a6e8f812d34e9100fa1b',
@@ -351,8 +372,20 @@ const STATIC_SSH_COMMANDS = Object.assign(Object.create(null), {
     'ls -la /.dockerenv': 'ls: cannot access \'/.dockerenv\': No such file or directory',
     'systemctl list-units --type=service': '  UNIT                        LOAD   ACTIVE SUB     DESCRIPTION\n  cron.service                loaded active running Regular background program processing daemon\n  dbus.service                loaded active running D-Bus System Message Bus\n  docker.service              loaded active running Docker Application Container Engine\n  nginx.service               loaded active running A high performance web server\n  ssh.service                 loaded active running OpenBSD Secure Shell server\n  systemd-journald.service    loaded active running Journal Service\n  systemd-timesyncd.service   loaded active running Network Time Synchronization\n\n7 loaded units listed.',
     'dpkg -l': 'Desired=Unknown/Install/Remove/Purge/Hold\n| Status=Not/Inst/Conf-files/Unpacked/halF-conf/Half-inst/trig-aWait/Trig-pend\n|/ Err?=(none)/Reinst-required (Status,Err: uppercase=bad)\n||/ Name                     Version          Architecture Description\n+++-========================-================-============-===========\nii  adduser                  3.134            all          add and remove users and groups\nii  apt                      2.6.1            amd64        commandline package manager\nii  base-files               12.4+deb12u5     amd64        Debian base system miscellaneous files\nii  bash                     5.2.15-2+b2      amd64        GNU Bourne Again SHell\nii  coreutils                9.1-1            amd64        GNU core utilities',
-    'ps aux': 'USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND\nroot           1  0.0  0.1 166824 12364 ?        Ss   Jun02   0:12 /sbin/init\nroot         312  0.0  0.0  18112  7480 ?        Ss   Jun02   0:00 /lib/systemd/systemd-journald\nroot         421  0.0  0.0  30000  6492 ?        Ss   Jun02   0:01 /usr/sbin/cron -f\nroot         442  0.0  0.0  15420  6128 ?        Ss   Jun02   0:00 /usr/sbin/sshd -D\nwww-data     512  0.0  0.2  49288 21340 ?        S    Jun02   0:15 nginx: worker process\nroot         534  0.0  0.1  78460 14368 ?        Ssl  Jun02   0:32 /usr/bin/dockerd\nmysql        678  0.1  2.1 1891612 174192 ?      Sl   Jun02  14:23 /usr/sbin/mysqld\nredis        721  0.0  0.1  54260  9856 ?        Ssl  Jun02   1:45 /usr/bin/redis-server *:6379\nroot        1842  0.0  0.0  12864  5120 pts/0    Ss   10:40   0:00 -bash\nroot        1901  0.0  0.0  14500  3412 pts/0    R+   10:45   0:00 ps aux',
-    'ps -ef': 'UID          PID    PPID  C STIME TTY          TIME CMD\nroot           1       0  0 Jun02 ?        00:00:12 /sbin/init\nroot         312       1  0 Jun02 ?        00:00:00 /lib/systemd/systemd-journald\nroot         421       1  0 Jun02 ?        00:00:01 /usr/sbin/cron -f\nroot         442       1  0 Jun02 ?        00:00:00 /usr/sbin/sshd -D\nwww-data     512     442  0 Jun02 ?        00:00:15 nginx: worker process\nroot         534       1  0 Jun02 ?        00:00:32 /usr/bin/dockerd\nmysql        678     534  0 Jun02 ?        00:14:23 /usr/sbin/mysqld\nredis        721       1  0 Jun02 ?        00:01:45 /usr/bin/redis-server *:6379\nroot        1842    1841  0 10:40 pts/0    00:00:00 -bash\nroot        1901    1842  0 10:45 pts/0    00:00:00 ps -ef',
+    'ps aux': (state) => {
+        const now = new Date();
+        const bootDate = new Date(Date.now() - process.uptime() * 1000);
+        const bootStr = bootDate.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }).replace(',', '');
+        const loginTime = now.toTimeString().substring(0, 5);
+        return `USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND\nroot           1  0.0  0.1 166824 12364 ?        Ss   ${bootStr}   0:12 /sbin/init\nroot         312  0.0  0.0  18112  7480 ?        Ss   ${bootStr}   0:00 /lib/systemd/systemd-journald\nroot         421  0.0  0.0  30000  6492 ?        Ss   ${bootStr}   0:01 /usr/sbin/cron -f\nroot         442  0.0  0.0  15420  6128 ?        Ss   ${bootStr}   0:00 /usr/sbin/sshd -D\nwww-data     512  0.0  0.2  49288 21340 ?        S    ${bootStr}   0:15 nginx: worker process\nroot         534  0.0  0.1  78460 14368 ?        Ssl  ${bootStr}   0:32 /usr/bin/dockerd\nmysql        678  0.1  2.1 1891612 174192 ?      Sl   ${bootStr}  14:23 /usr/sbin/mysqld\nredis        721  0.0  0.1  54260  9856 ?        Ssl  ${bootStr}   1:45 /usr/bin/redis-server *:6379\nroot        ${1800 + Math.floor(Math.random() * 100)}  0.0  0.0  12864  5120 pts/0    Ss   ${loginTime}   0:00 -bash\nroot        ${1900 + Math.floor(Math.random() * 100)}  0.0  0.0  14500  3412 pts/0    R+   ${loginTime}   0:00 ps aux`;
+    },
+    'ps -ef': (state) => {
+        const bootDate = new Date(Date.now() - process.uptime() * 1000);
+        const bootStr = bootDate.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }).replace(',', '');
+        const loginTime = new Date().toTimeString().substring(0, 5);
+        const bashPid = 1800 + Math.floor(Math.random() * 100);
+        return `UID          PID    PPID  C STIME TTY          TIME CMD\nroot           1       0  0 ${bootStr} ?        00:00:12 /sbin/init\nroot         312       1  0 ${bootStr} ?        00:00:00 /lib/systemd/systemd-journald\nroot         421       1  0 ${bootStr} ?        00:00:01 /usr/sbin/cron -f\nroot         442       1  0 ${bootStr} ?        00:00:00 /usr/sbin/sshd -D\nwww-data     512     442  0 ${bootStr} ?        00:00:15 nginx: worker process\nroot         534       1  0 ${bootStr} ?        00:00:32 /usr/bin/dockerd\nmysql        678     534  0 ${bootStr} ?        00:14:23 /usr/sbin/mysqld\nredis        721       1  0 ${bootStr} ?        00:01:45 /usr/bin/redis-server *:6379\nroot        ${bashPid}    ${bashPid - 1}  0 ${loginTime} pts/0    00:00:00 -bash\nroot        ${bashPid + 59}    ${bashPid}  0 ${loginTime} pts/0    00:00:00 ps -ef`;
+    },
     'lscpu': 'Architecture:            x86_64\n  CPU op-mode(s):        32-bit, 64-bit\n  Byte Order:            Little Endian\nCPU(s):                  4\n  On-line CPU(s) list:   0-3\nVendor ID:               GenuineIntel\n  Model name:            Intel(R) Core(TM) i5-8265U CPU @ 1.60GHz\n  CPU family:            6\n  Stepping:              11\n  CPU MHz:               1800.000\n  CPU max MHz:           3900.0000\n  BogoMIPS:              3600.00\nCaches (sum of all):\n  L1d:                   128 KiB\n  L1i:                   128 KiB\n  L2:                    1 MiB\n  L3:                    6 MiB'
 });
 
@@ -867,7 +900,9 @@ function startTarpit(port) {
 
         socket.on('error',  () => clearInterval(interval));
         socket.on('close',  () => clearInterval(interval));
-        socket.setTimeout(3600000); // Keep alive for up to 1 hour
+        socket.setTimeout(3600000, () => {
+            socket.destroy(); // Force close after 1 hour
+        });
     });
 
     // MED-01: Cap concurrent tarpit connections to prevent fd exhaustion

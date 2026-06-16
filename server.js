@@ -200,8 +200,9 @@ mgmt.get('/sys', async (_, res) => {
             }
         }
 
+        const { execFile } = require('child_process');
         return new Promise((resolve) => {
-            exec('cscli decisions list -o json', (err, stdout) => {
+            execFile('cscli', ['decisions', 'list', '-o', 'json'], (err, stdout) => {
                 if (err) {
                     resolve({ error: err.message });
                 } else {
@@ -233,7 +234,7 @@ mgmt.get('/sys', async (_, res) => {
 });
 
 mgmt.listen(MGMT_PORT, '127.0.0.1', () => {
-    logger.info(`Management API on :${MGMT_PORT} (localhost only, key: ${MGMT_KEY.substring(0, 8)}…)`, { protocol: 'core' });
+    logger.info(`Management API on :${MGMT_PORT} (localhost only, key: ***)`, { protocol: 'core' });
 });
 
 // ─── Process resilience — don't crash on unhandled errors ─────────────────────

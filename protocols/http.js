@@ -58,6 +58,13 @@ function start(customPort) {
     app.use(express.text({ type: '*/*', limit: '8kb' }));
     app.use(express.json({ limit: '8kb' }));
 
+    // Suppress Expect: 100-continue — Node.js handles it differently from Apache,
+    // allowing timing-based fingerprinting of the server platform
+    app.use((req, res, next) => {
+        delete req.headers['expect'];
+        next();
+    });
+
     // Remove headers that reveal this is Node/Express
     app.disable('x-powered-by');
     app.disable('etag');  // HIGH-01: Express ETag format (W/"hash") leaks Node.js identity

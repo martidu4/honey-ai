@@ -48,10 +48,15 @@ const PROTOCOLS = {
                 if (mode === 'A') return '200 Switching to ASCII mode.\r\n';
                 return '200 Switching to Binary mode.\r\n';
             },
-            'PASV': () => {
+            'PASV': (args, socket) => {
                 const p1 = Math.floor(Math.random() * 200) + 30;
                 const p2 = Math.floor(Math.random() * 255);
-                return `227 Entering Passive Mode (192,168,1,50,${p1},${p2}).\r\n`;
+                // Use socket local address or fallback to a generic public-looking IP
+                let localIp = '0,0,0,0';
+                if (socket && socket.localAddress) {
+                    localIp = socket.localAddress.replace(/^::ffff:/, '').split('.').join(',');
+                }
+                return `227 Entering Passive Mode (${localIp},${p1},${p2}).\r\n`;
             },
             'LIST': () => '150 Here comes the directory listing.\r\n-rw-r--r-- 1 root root 45321 Jan 15 backup_db.sql\r\n-rw-r--r-- 1 root root 12890 Feb 03 passwords.txt\r\n-rw-r--r-- 1 root root 89234 Mar 22 .ssh_keys.tar.gz\r\n226 Directory send OK.\r\n',
             'RETR': () => '550 Failed to open file.\r\n'
@@ -279,7 +284,7 @@ function startServer(proto, port) {
                 // MED-03 + LOW-01: Dynamic FTP responses (TYPE A/I, PASV with random port)
                 if (proto.dynamicHardcoded && proto.dynamicHardcoded[cmdKey]) {
                     const args = line.split(/\s+/).slice(1).join(' ');
-                    const dynamicResponse = proto.dynamicHardcoded[cmdKey](args);
+                    const dynamicResponse = proto.dynamicHardcoded[cmdKey](args, socket);
                     if (!socket.destroyed) socket.write(dynamicResponse);
                     drainQueue();
                     return;
@@ -1038,7 +1043,7 @@ function startServer(proto, port) {
                             attack_type: 'telnet_login_success',
                             username: telnetUsername
                         });
-                        socket.write('\r\nLinux debian-pi5 6.1.0-rpi7-rpi-2712 #1 SMP PREEMPT Debian 6.1.63-1+rpt1 (2023-11-24) aarch64\r\n\r\nLast login: Fri Jun 12 10:24:15 2026 from 192.168.1.100\r\n');
+                        socket.write('\r\nLinux web-01 6.1.0-rpi7-rpi-2712 #1 SMP PREEMPT Debian 6.1.63-1+rpt1 (2023-11-24) aarch64\r\n\r\nLast login: Fri Jun 12 10:24:15 2026 from 10.0.0.35\r\n');
                         if (proto.prompt) {
                             socket.write(proto.prompt);
                         }
