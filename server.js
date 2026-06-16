@@ -183,39 +183,22 @@ let cachedDecisions = null;
 let lastDecisionsFetch = 0;
 
 mgmt.get('/sys', async (_, res) => {
-    const { exec } = require('child_process');
     const now = Date.now();
 
     const fetchDecisions = async () => {
-        if (process.env.CROWDSEC_BOUNCER_KEY) {
-            try {
-                const lapi = process.env.CROWDSEC_LAPI_URL || 'http://127.0.0.1:8080';
-                const response = await fetch(`${lapi}/v1/decisions`, {
-                    headers: { 'X-Api-Key': process.env.CROWDSEC_BOUNCER_KEY }
-                });
-                if (!response.ok) {
-                    throw new Error(`CrowdSec LAPI responded with status: ${response.status}`);
-                }
-                return await response.json();
-            } catch (err) {
-                return { error: `LAPI fetch failed: ${err.message}` };
-            }
-        }
-
-        const { execFile } = require('child_process');
-        return new Promise((resolve) => {
-            execFile('cscli', ['decisions', 'list', '-o', 'json'], (err, stdout) => {
-                if (err) {
-                    resolve({ error: err.message });
-                } else {
-                    try {
-                        resolve(JSON.parse(stdout));
-                    } catch (_) {
-                        resolve({ raw: stdout.trim() });
-                    }
-                }
+        if (!process.env.CROWDSEC_BOUNCER_KEY) return null;
+        try {
+            const lapi = process.env.CROWDSEC_LAPI_URL || 'http://127.0.0.1:8080';
+            const response = await fetch(`${lapi}/v1/decisions`, {
+                headers: { 'X-Api-Key': process.env.CROWDSEC_BOUNCER_KEY }
             });
-        });
+            if (!response.ok) {
+                throw new Error(`CrowdSec LAPI responded with status: ${response.status}`);
+            }
+            return await response.json();
+        } catch (err) {
+            return { error: `LAPI fetch failed: ${err.message}` };
+        }
     };
 
     if (!cachedDecisions || (now - lastDecisionsFetch > 30000)) {

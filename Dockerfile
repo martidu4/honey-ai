@@ -5,7 +5,7 @@ RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile --prod
 
 # ─── Runtime stage ────────────────────────────────────────────────────────────
@@ -43,7 +43,7 @@ ENV NODE_ENV=production
 USER honeyai
 
 # Expose all honeypot ports
-EXPOSE 8081 2222 2121 2323 2525 3306 6379 9418 59000 3389 9999
+EXPOSE 8081 8000 2222 2121 2323 2525 3306 6379 9418 59000 3389 14330 16100/udp 8180 9999
 
 # Health check via management API
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

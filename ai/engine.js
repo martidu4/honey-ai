@@ -270,9 +270,9 @@ async function generate({ protocol = 'http', attackerInput, context = {} }) {
             return `<table>\n` +
                    `<tr><th>id</th><th>username</th><th>password</th><th>email</th></tr>\n` +
                    `<tr><td>1</td><td>admin</td><td>pbkdf2_sha256$260000$adminpass123</td><td>admin@internal.company</td></tr>\n` +
-                   `<tr><td>2</td><td>billing_api</td><td>sk_live_CHANGE_ME_STRIPE_KEY</td><td>billing@internal.company</td></tr>\n` +
-                   `<tr><td>3</td><td>aws_deploy</td><td>CHANGE_ME_AWS_KEY</td><td>deploy@internal.company</td></tr>\n` +
-                   `<tr><td>4</td><td>github_sync</td><td>ghp_CHANGE_ME_GITHUB_TOKEN</td><td>git@internal.company</td></tr>\n` +
+                   `<tr><td>2</td><td>billing_api</td><td>sk_live_51NqXkRJ7vHpKz4m9BwD8xYcLgT0e</td><td>billing@internal.company</td></tr>\n` +
+                   `<tr><td>3</td><td>aws_deploy</td><td>AKIAIOSFODNN7EXAMPLE</td><td>deploy@internal.company</td></tr>\n` +
+                   `<tr><td>4</td><td>github_sync</td><td>ghp_x8K2mNpR4vLqW9jY6sT3bZcDfHgA5e</td><td>git@internal.company</td></tr>\n` +
                    `</table>`;
         }
     }

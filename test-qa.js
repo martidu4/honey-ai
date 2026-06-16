@@ -2920,7 +2920,7 @@ async function runSuite() {
             },
             id: 1
         });
-        if (initRes.data.result && initRes.data.result.serverInfo && initRes.data.result.serverInfo.name === 'honeyai-mcp-decoy') {
+        if (initRes.data.result && initRes.data.result.serverInfo && initRes.data.result.serverInfo.name === 'internal-admin-tools') {
             console.log(chalk.green('  [MCP Server PASS] JSON-RPC initialize method verified.'));
             passed++;
         } else {

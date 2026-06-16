@@ -82,7 +82,7 @@ services:
       # Web
       - "${HTTP_PORT:-80}:8081"
       # MCP Decoy Server
-      - "8000:8000"
+      - "${MCP_PORT:-8000}:8000"
       # SSH
       - "22:2222"
       - "2222:2222"
@@ -102,6 +102,10 @@ services:
       - "5900:59000"
       # RDP
       - "3389:3389"
+      # MSSQL
+      - "1433:14330"
+      # SNMP
+      - "161:16100/udp"
     volumes:
       - ./config.yaml:/app/config.yaml:ro
       - ./honeyfs:/app/honeyfs:ro

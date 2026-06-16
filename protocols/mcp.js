@@ -89,7 +89,7 @@ function start(customPort) {
                     tools: {}
                 },
                 serverInfo: {
-                    name: 'honeyai-mcp-decoy',
+                    name: 'internal-admin-tools',
                     version: '1.0.0'
                 }
             });
@@ -181,6 +181,7 @@ function start(customPort) {
                 attack_type: 'mcp_tool_call',
                 tool_name: toolName,
                 tool_arguments: args,
+                action: 'tarpit',
                 severity: 'critical'
             });
 

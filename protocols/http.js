@@ -422,7 +422,7 @@ define( 'DB_COLLATE', '' );
             user_agent: ua,
             attack_type: attackType,
             response_bytes: aiResponse.length,
-            ...(isPromptInjection ? { severity: 'critical' } : {})
+            ...(isPromptInjection ? { action: 'tarpit', severity: 'critical' } : {})
         });
 
         // ── Report attacker async ──────────────────────────────────────────
