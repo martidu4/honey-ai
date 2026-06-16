@@ -1,0 +1,23 @@
+# HoneyAI — External LLM Override
+# Use when you already have Ollama running on another machine (e.g. a more powerful server).
+#
+# Usage:
+#   1. Set OLLAMA_URL in .env to your external Ollama (e.g. http://192.168.1.148:11434)
+#   2. Run: docker compose -f docker-compose.yml -f docker-compose.external-llm.yml up -d
+#
+# This disables the bundled Ollama containers and removes the internal AI network dependency.
+
+services:
+  ollama:
+    profiles: ["disabled"]
+
+  ollama-pull:
+    profiles: ["disabled"]
+
+  honeyai:
+    networks:
+      public_honeypot:
+        ipv4_address: 172.30.50.10
+    # Remove ai_backend dependency — use host network to reach external Ollama
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
