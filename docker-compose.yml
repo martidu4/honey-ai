@@ -74,6 +74,8 @@ services:
       # Notifications (optional)
       - TELEGRAM_TOKEN=${TELEGRAM_TOKEN:-}
       - TELEGRAM_CHAT=${TELEGRAM_CHAT:-}
+      # Management API key
+      - HONEYAI_MGMT_KEY=${HONEYAI_MGMT_KEY:-}
     ports:
       # Web
       - "${HTTP_PORT:-80}:8081"
