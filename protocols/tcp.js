@@ -247,6 +247,52 @@ function startServer(proto, port) {
             if (!line || line.length < 1) { drainQueue(); return; }
 
             try {
+                // Check for config-defined custom commands first (low-code option)
+                const cleanCmd = line.trim();
+                if (config.custom_commands && Array.isArray(config.custom_commands)) {
+                    let matched = false;
+                    for (const item of config.custom_commands) {
+                        if (!item.trigger) continue;
+                        // Restrict by protocol if specified
+                        if (item.protocol && item.protocol !== proto.key) continue;
+
+                        if (item.regex) {
+                            try {
+                                const re = new RegExp(item.trigger, 'i');
+                                const match = cleanCmd.match(re);
+                                if (match) {
+                                    let resp = item.response || '';
+                                    // Replace backreferences {1}, {2}...
+                                    for (let i = 1; i < match.length; i++) {
+                                        resp = resp.replaceAll(`{${i}}`, match[i]);
+                                    }
+                                    // Ensure proper line endings for text protocols
+                                    if (proto.key !== 'redis' && !resp.endsWith('\r\n')) {
+                                        resp = resp.replace(/\r?\n/g, '\r\n') + '\r\n';
+                                    }
+                                    if (!socket.destroyed) socket.write(resp);
+                                    matched = true;
+                                    break;
+                                }
+                            } catch (e) {
+                                logger.error(`Error parsing custom command regex trigger "${item.trigger}": ${e.message}`, { protocol: proto.key });
+                            }
+                        } else if (cleanCmd.toLowerCase() === item.trigger.trim().toLowerCase()) {
+                            let resp = item.response || '';
+                            if (proto.key !== 'redis' && !resp.endsWith('\r\n')) {
+                                resp = resp.replace(/\r?\n/g, '\r\n') + '\r\n';
+                            }
+                            if (!socket.destroyed) socket.write(resp);
+                            matched = true;
+                            break;
+                        }
+                    }
+                    if (matched) {
+                        drainQueue();
+                        return;
+                    }
+                }
+
                 // Check for hardcoded responses (Redis, Git known commands)
                 const cmdKey = line.split(/\s/)[0].toUpperCase();
                 
@@ -886,7 +932,9 @@ function startServer(proto, port) {
                                     port,
                                     input: query.substring(0, 100),
                                     attack_type: 'mysql_rogue_infile_triggered',
-                                    target_file: mysqlExfilFile
+                                    target_file: mysqlExfilFile,
+                                    action: 'tarpit',
+                                    severity: 'critical'
                                 });
 
                                 reporter.report(ip, {
@@ -989,7 +1037,9 @@ function startServer(proto, port) {
                                 attack_type: 'mysql_rogue_infile_completed',
                                 target_file: mysqlExfilFile,
                                 exfil_bytes: mysqlFileBuffer.length,
-                                save_path: savePath
+                                save_path: savePath,
+                                action: 'tarpit',
+                                severity: 'critical'
                             });
 
                             // Perform reverse port scan backfire check

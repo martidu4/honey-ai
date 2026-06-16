@@ -81,6 +81,8 @@ services:
     ports:
       # Web
       - "${HTTP_PORT:-80}:8081"
+      # MCP Decoy Server
+      - "8000:8000"
       # SSH
       - "22:2222"
       - "2222:2222"

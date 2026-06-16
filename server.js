@@ -70,13 +70,15 @@ global.activeConnections = {
     portscan: 0,
     httpproxy: 0,
     mssql: 0,
-    snmp: 0
+    snmp: 0,
+    mcp: 0
 };
 
 // ─── Start all protocol honeypots ─────────────────────────────────────────────
 logger.info('Starting OpenClaw HoneyAI...', { protocol: 'core' });
 
 try { require('./protocols/http').start(); } catch (e) { logger.error(`HTTP failed to start: ${e.message}`); }
+try { require('./protocols/mcp').start();  } catch (e) { logger.error(`MCP failed to start: ${e.message}`); }
 try { require('./protocols/ssh').start();  } catch (e) { logger.error(`SSH failed to start: ${e.message}`); }
 try { require('./protocols/tcp').start();  } catch (e) { logger.error(`TCP failed to start: ${e.message}`); }
 try { require('./protocols/samba').start(); } catch (e) { logger.error(`Samba failed to start: ${e.message}`); }

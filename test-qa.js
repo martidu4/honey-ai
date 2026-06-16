@@ -2847,6 +2847,159 @@ async function runSuite() {
     }
     console.log(chalk.gray('--------------------------------------------------'));
 
+    // ── Phase 6: Custom Commands & Decoy MCP Server (Approved upgrades) ────
+    console.log(chalk.blue('🔍 Testing Phase 6 Approved Upgrades (Custom Commands & Decoy MCP Server)...'));
+    try {
+        // 1. Custom Commands regex/interpolation testing
+        const sshModule = require('./protocols/ssh');
+        
+        // Mock custom commands config
+        config.custom_commands = [
+            {
+                trigger: 'whoami',
+                response: 'administrator',
+                protocol: 'ssh'
+            },
+            {
+                trigger: '^ping\\s+(.+)$',
+                regex: true,
+                response: 'PING {1} ({1}) 56(84) bytes of data.\n',
+                protocol: 'ssh'
+            }
+        ];
+
+        // Test static trigger match
+        const resp1 = sshModule.getStaticSSHResponse('whoami', {});
+        if (resp1 === 'administrator') {
+            console.log(chalk.green('  [Custom Command PASS] Static trigger match verified.'));
+            passed++;
+        } else {
+            console.log(chalk.red(`  [Custom Command FAIL] Static trigger match failed. Expected "administrator", got "${resp1}"`));
+            failed++;
+        }
+
+        // Test regex trigger with capture group replacement
+        const resp2 = sshModule.getStaticSSHResponse('ping 8.8.8.8', {});
+        if (resp2.includes('PING 8.8.8.8 (8.8.8.8)')) {
+            console.log(chalk.green('  [Custom Command PASS] Regex trigger with capture group verified.'));
+            passed++;
+        } else {
+            console.log(chalk.red(`  [Custom Command FAIL] Regex trigger failed. Got "${resp2}"`));
+            failed++;
+        }
+
+        // Restore custom commands config to empty/default
+        config.custom_commands = [];
+
+        // 2. Decoy MCP Server testing
+        const mcpModule = require('./protocols/mcp');
+        const testMcpPort = 8001;
+        
+        // Start decoy MCP on test port
+        mcpModule.start(testMcpPort);
+        
+        const mcpBaseUrl = `http://127.0.0.1:${testMcpPort}`;
+
+        // Test GET /
+        const landingRes = await axios.get(mcpBaseUrl);
+        if (landingRes.data.includes('Model Context Protocol (MCP) Dev Server')) {
+            console.log(chalk.green('  [MCP Server PASS] GET / landing page verified.'));
+            passed++;
+        } else {
+            console.log(chalk.red('  [MCP Server FAIL] GET / landing page incorrect.'));
+            failed++;
+        }
+
+        // Test POST / with initialize
+        const initRes = await axios.post(mcpBaseUrl, {
+            jsonrpc: '2.0',
+            method: 'initialize',
+            params: {
+                protocolVersion: '2024-11-05',
+                clientInfo: { name: 'test-client', version: '1.0' }
+            },
+            id: 1
+        });
+        if (initRes.data.result && initRes.data.result.serverInfo && initRes.data.result.serverInfo.name === 'honeyai-mcp-decoy') {
+            console.log(chalk.green('  [MCP Server PASS] JSON-RPC initialize method verified.'));
+            passed++;
+        } else {
+            console.log(chalk.red(`  [MCP Server FAIL] JSON-RPC initialize response invalid: ${JSON.stringify(initRes.data)}`));
+            failed++;
+        }
+
+        // Test POST / with tools/list
+        const listRes = await axios.post(mcpBaseUrl, {
+            jsonrpc: '2.0',
+            method: 'tools/list',
+            id: 2
+        });
+        const tools = listRes.data.result?.tools || [];
+        const hasGetDbCreds = tools.some(t => t.name === 'get_database_credentials');
+        const hasExecCommand = tools.some(t => t.name === 'execute_system_command');
+        const hasReadSshKey = tools.some(t => t.name === 'read_private_ssh_key');
+        
+        if (hasGetDbCreds && hasExecCommand && hasReadSshKey) {
+            console.log(chalk.green('  [MCP Server PASS] JSON-RPC tools/list method verified.'));
+            passed++;
+        } else {
+            console.log(chalk.red(`  [MCP Server FAIL] JSON-RPC tools/list incomplete or invalid: ${JSON.stringify(listRes.data)}`));
+            failed++;
+        }
+
+        // Test POST / with tools/call
+        const callRes = await axios.post(mcpBaseUrl, {
+            jsonrpc: '2.0',
+            method: 'tools/call',
+            params: {
+                name: 'get_database_credentials',
+                arguments: { env: 'production' }
+            },
+            id: 3
+        });
+        const callResult = callRes.data.result;
+        if (callResult && callResult.isError === true && callResult.content[0].text.includes('Access temporarily denied')) {
+            console.log(chalk.green('  [MCP Server PASS] JSON-RPC tools/call method error response verified.'));
+            passed++;
+        } else {
+            console.log(chalk.red(`  [MCP Server FAIL] JSON-RPC tools/call response invalid: ${JSON.stringify(callRes.data)}`));
+            failed++;
+        }
+
+        // Test GET /sse
+        const sseRes = await axios.get(`${mcpBaseUrl}/sse`, { responseType: 'stream', timeout: 2000 });
+        let sseData = '';
+        await new Promise((resolve, reject) => {
+            sseRes.data.on('data', (chunk) => {
+                sseData += chunk.toString();
+                if (sseData.includes('event: endpoint')) {
+                    resolve();
+                }
+            });
+            setTimeout(() => reject(new Error('SSE connection timeout')), 1500);
+        });
+
+        if (sseData.includes('event: endpoint') && sseData.includes('data: /message?sessionId=')) {
+            console.log(chalk.green('  [MCP Server PASS] GET /sse transport verified.'));
+            passed++;
+        } else {
+            console.log(chalk.red(`  [MCP Server FAIL] GET /sse transport returned unexpected data: ${sseData}`));
+            failed++;
+        }
+
+        // Stop decoy MCP server
+        mcpModule.stop();
+        console.log(chalk.green('  [MCP Server PASS] Decoy server shutdown verified.'));
+        passed++;
+
+    } catch (err) {
+        console.log(chalk.red(`  [Phase 6 ERROR] Approved upgrades tests failed: ${err.message}`));
+        failed++;
+        // Attempt clean up
+        try { require('./protocols/mcp').stop(); } catch (_) {}
+    }
+    console.log(chalk.gray('--------------------------------------------------'));
+
     for (const tc of TEST_CASES) {
         console.log(chalk.yellow(`[Test] ${tc.protocol.toUpperCase()}: ${tc.name}`));
         console.log(chalk.gray(`  Input:  "${tc.input.replace(/\r\n/g, '\\r\\n')}"`));

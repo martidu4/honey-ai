@@ -391,6 +391,35 @@ const STATIC_SSH_COMMANDS = Object.assign(Object.create(null), {
 
 function getStaticSSHResponse(cmd, sessionState) {
     const cleanCmd = cmd.trim();
+
+    // Check config-defined custom commands first (low-code option)
+    if (config.custom_commands && Array.isArray(config.custom_commands)) {
+        for (const item of config.custom_commands) {
+            if (!item.trigger) continue;
+            // Restrict by protocol if specified
+            if (item.protocol && item.protocol !== 'ssh') continue;
+
+            if (item.regex) {
+                try {
+                    const re = new RegExp(item.trigger, 'i');
+                    const match = cleanCmd.match(re);
+                    if (match) {
+                        let resp = item.response || '';
+                        // Replace backreferences {1}, {2}... with captured regex groups
+                        for (let i = 1; i < match.length; i++) {
+                            resp = resp.replaceAll(`{${i}}`, match[i]);
+                        }
+                        return resp;
+                    }
+                } catch (e) {
+                    logger.error(`Error parsing custom command regex trigger "${item.trigger}": ${e.message}`, { protocol: 'ssh' });
+                }
+            } else if (cleanCmd.toLowerCase() === item.trigger.trim().toLowerCase()) {
+                return item.response || '';
+            }
+        }
+    }
+
     if (STATIC_SSH_COMMANDS[cleanCmd] !== undefined) {
         const val = STATIC_SSH_COMMANDS[cleanCmd];
         return typeof val === 'function' ? val(sessionState) : val;
@@ -919,4 +948,4 @@ function resetSSHRateLimits() {
     SSH_CONNECTION_COUNTS.clear();
 }
 
-module.exports = { start, getCanaryResponse, loadHoneyFS, HONEYFS_DIR, getReferencedFiles, runFakeShell, resetSSHRateLimits, handleExecCommand };
+module.exports = { start, getCanaryResponse, loadHoneyFS, HONEYFS_DIR, getReferencedFiles, runFakeShell, resetSSHRateLimits, handleExecCommand, getStaticSSHResponse };

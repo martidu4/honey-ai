@@ -85,6 +85,10 @@ protocols:
     enabled: false
     port: 161
 
+  mcp:
+    enabled: true
+    port: 8000
+
 # ─── Reporting Platforms ──────────────────────────────────────────────────────
 reporting:
   cooldown_minutes: 1440         # Don't report same IP more than once per 24 hours
@@ -126,3 +130,15 @@ logging:
   level: "info"               # "debug" | "info" | "warn" | "error"
   file: "./logs/honeyai.log"
   events_file: "./logs/events.json"  # JSONL format — one event per line
+
+# ─── Custom Commands (Optional) ───────────────────────────────────────────────
+# Define low-code static or regex command overrides.
+# Custom commands are checked before hardcoded defaults and Ollama generation.
+# custom_commands:
+#   - trigger: "whoami"
+#     response: "administrator"
+#     protocol: "ssh"            # Optional: restrict to a specific protocol (e.g. ssh, telnet)
+#   - trigger: "^ping\\s+(.+)$"
+#     regex: true
+#     response: "PING {1} ({1}) 56(84) bytes of data.\n"
+

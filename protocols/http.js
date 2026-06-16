@@ -411,6 +411,8 @@ define( 'DB_COLLATE', '' );
             context: { ip, port: cfg.port, path }
         });
 
+        const isPromptInjection = ai.detectPromptInjection && ai.detectPromptInjection(combinedInput);
+
         // ── Log the event ──────────────────────────────────────────────────
         logEvent({
             protocol: 'http',
@@ -419,7 +421,8 @@ define( 'DB_COLLATE', '' );
             path,
             user_agent: ua,
             attack_type: attackType,
-            response_bytes: aiResponse.length
+            response_bytes: aiResponse.length,
+            ...(isPromptInjection ? { severity: 'critical' } : {})
         });
 
         // ── Report attacker async ──────────────────────────────────────────
