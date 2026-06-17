@@ -13,6 +13,18 @@ const { logger, logEvent, sanitizeForLog } = require('../core/logger');
 const reporter = require('../core/reporter');
 const ai       = require('../ai/engine');
 const downloader = require('../core/downloader');
+// ── Static HTTP Cache (from Galah) — serve known paths without Ollama ────
+const HTTP_CACHE_FILE = nodePath.join(__dirname, "../data/http-cache.json");
+let _httpStaticCache = null;
+function getHttpCache() {
+    if (_httpStaticCache) return _httpStaticCache;
+    try {
+        _httpStaticCache = JSON.parse(fs.readFileSync(HTTP_CACHE_FILE, "utf8"));
+        logger.info("Loaded " + Object.keys(_httpStaticCache).length + " static HTTP cache entries");
+    } catch (e) { _httpStaticCache = {}; }
+    return _httpStaticCache;
+}
+
 
 // ─── Per-IP rate limiter ───────────────────────────────────────────────────────
 const REQUEST_COUNTS = new Map(); // ip → { count, firstSeen }
@@ -404,7 +416,20 @@ define( 'DB_COLLATE', '' );
         const attackType    = classifyHTTP(path, body, ua);
         const attackerInput = `Method: ${method}\nPath: ${path}\nUser-Agent: ${ua}\nBody: ${body}`;
 
-        // ── Generate AI response ───────────────────────────────────────────
+        // ── Check static cache first (0% CPU) ──────────────────────────────
+        const staticCache = getHttpCache();
+        const cachedResponse = staticCache[path] || staticCache[normPath];
+        if (cachedResponse) {
+            logger.info("HTTP cache hit: " + path, { protocol: "http", ip });
+            logEvent({ protocol: "http", ip, method, path, user_agent: ua, attack_type: attackType, response_bytes: cachedResponse.length, cache_hit: true });
+            reporter.report(ip, { protocol: "http", port: cfg.port, comment: "HTTP " + method + " " + path + " (" + attackType + ", cached). UA: " + ua.substring(0, 100), categories: "21,14" }).catch(function(){});
+            res.setHeader("Content-Type", "text/html; charset=UTF-8");
+            res.setHeader("Server", "Apache/2.4.57 (Debian)");
+            res.setHeader("X-Powered-By", "PHP/8.1.27");
+            return res.status(200).send(cachedResponse);
+        }
+
+        // ── Generate AI response (fallback for unknown paths) ───────────
         const aiResponse = await ai.generate({
             protocol: 'http',
             attackerInput: `Attack type detected: ${attackType}\n\n${attackerInput}`,
