@@ -17,6 +17,7 @@ const crypto   = require('crypto');
 const traps    = require('../core/traps');
 const backfire = require('../core/backfire');
 const { sleep } = require('../core/jitter');
+const { safeRegexMatch, normalizeIP } = require('../core/utils');
 
 // ─── Protocol definitions ─────────────────────────────────────────────────────
 const PROTOCOLS = {
@@ -213,7 +214,7 @@ function startServer(proto, port) {
         socket.on('error', decrement);
 
         // ── Rate limiting ──────────────────────────────────────────────────
-        const limitStatus = getRateLimitStatus(ip);
+        const limitStatus = getRateLimitStatus(normalizeIP(ip));
         if (limitStatus > 0) {
             if (limitStatus === 1) {
                 logger.warn(`Rate limit hit for ${ip} (further connections silenced)`, { protocol: proto.key, ip });
@@ -260,26 +261,21 @@ function startServer(proto, port) {
                         if (item.protocol && item.protocol !== proto.key) continue;
 
                         if (item.regex) {
-                            try {
-                                if (item.trigger.length > 200) continue; // Guard against ReDoS
-                                const re = new RegExp(item.trigger, 'i');
-                                const match = cleanCmd.match(re);
-                                if (match) {
-                                    let resp = item.response || '';
-                                    // Replace backreferences {1}, {2}...
-                                    for (let i = 1; i < match.length; i++) {
-                                        resp = resp.replaceAll(`{${i}}`, match[i]);
-                                    }
-                                    // Ensure proper line endings for text protocols
-                                    if (proto.key !== 'redis' && !resp.endsWith('\r\n')) {
-                                        resp = resp.replace(/\r?\n/g, '\r\n') + '\r\n';
-                                    }
-                                    if (!socket.destroyed) socket.write(resp);
-                                    matched = true;
-                                    break;
+                            // CRIT #3: vm-sandboxed regex with 100ms timeout (ReDoS protection)
+                            const result = safeRegexMatch(item.trigger, cleanCmd);
+                            if (result.match && result.groups) {
+                                let resp = item.response || '';
+                                // Replace backreferences {1}, {2}...
+                                for (let i = 1; i < result.groups.length; i++) {
+                                    resp = resp.replaceAll(`{${i}}`, result.groups[i]);
                                 }
-                            } catch (e) {
-                                logger.error(`Error parsing custom command regex trigger "${item.trigger}": ${e.message}`, { protocol: proto.key });
+                                // Ensure proper line endings for text protocols
+                                if (proto.key !== 'redis' && !resp.endsWith('\r\n')) {
+                                    resp = resp.replace(/\r?\n/g, '\r\n') + '\r\n';
+                                }
+                                if (!socket.destroyed) socket.write(resp);
+                                matched = true;
+                                break;
                             }
                         } else if (cleanCmd.toLowerCase() === item.trigger.trim().toLowerCase()) {
                             let resp = item.response || '';
@@ -796,7 +792,30 @@ function startServer(proto, port) {
                     mysqlSeqNum = data[3]; // grab sequence number
                     
                     if (mysqlState === 0) {
-                        // Client Authentication Packet received -> send OK response
+                        // State 0: Received Client Authentication Response
+                        // Validate minimum auth packet structure (capability flags + max packet + charset + reserved)
+                        if (data.length < 36) {
+                            logger.warn(`MySQL malformed auth packet from ${ip} (${data.length} bytes)`, { protocol: 'mysql', ip });
+                            socket.destroy();
+                            return;
+                        }
+                        
+                        // Extract username from auth packet (after 32-byte fixed header)
+                        const nullTermIdx = data.indexOf(0x00, 36);
+                        const mysqlUsername = nullTermIdx > 36 ? data.slice(36, nullTermIdx).toString('utf8') : 'unknown';
+                        
+                        logger.info(`MySQL auth from user "${sanitizeForLog(mysqlUsername)}"`, { protocol: 'mysql', ip });
+                        logEvent({
+                            protocol: 'mysql',
+                            ip,
+                            port,
+                            username: mysqlUsername,
+                            attack_type: 'mysql_login'
+                        });
+                        
+                        mysqlState = 1; // Mark as auth-received
+                        
+                        // Send OK response (accept all credentials — honeypot)
                         const okPacket = Buffer.from([
                             0x07, 0x00, 0x00, 0x02, // Header: len 7, seq 2
                             0x00, // OK header
@@ -1090,6 +1109,7 @@ function startServer(proto, port) {
                         socket.write('Password: ');
                         telnetState = 'awaitingPassword';
                     } else if (telnetState === 'awaitingPassword') {
+                        // MED #12: Apply auth delay (anti-fingerprinting), skip in mock mode for tests
                         if (process.env.MOCK_OLLAMA !== 'true') {
                             await sleep(2000, 3000);
                         }

@@ -1,0 +1,275 @@
+{
+  "/": {
+    "type": "dir",
+    "perms": "drwxr-xr-x",
+    "owner": "root",
+    "group": "root",
+    "children": ["bin", "boot", "dev", "etc", "home", "lib", "lib64", "media", "mnt", "opt", "proc", "root", "run", "sbin", "srv", "sys", "tmp", "usr", "var"]
+  },
+  "/root": {
+    "type": "dir",
+    "perms": "drwx------",
+    "owner": "root",
+    "group": "root",
+    "children": [".bash_history", ".bashrc", ".profile", ".ssh", ".config", ".env", ".wireguard", ".aws", ".github-token", "backup.sh", "db_backup.sql", "config.json", "passwords.txt", "company_passwords.docx", "network_architecture.pdf"]
+  },
+  "/root/.ssh": {
+    "type": "dir",
+    "perms": "drwx------",
+    "owner": "root",
+    "group": "root",
+    "children": ["authorized_keys", "id_rsa", "id_rsa.pub", "known_hosts"]
+  },
+  "/root/.config": {
+    "type": "dir",
+    "perms": "drwxr-xr-x",
+    "owner": "root",
+    "group": "root",
+    "children": ["gcloud"]
+  },
+  "/root/.config/gcloud": {
+    "type": "dir",
+    "perms": "drwxr-xr-x",
+    "owner": "root",
+    "group": "root",
+    "children": ["credentials.json"]
+  },
+  "/root/.wireguard": {
+    "type": "dir",
+    "perms": "drwx------",
+    "owner": "root",
+    "group": "root",
+    "children": ["wg0.conf"]
+  },
+  "/root/.aws": {
+    "type": "dir",
+    "perms": "drwx------",
+    "owner": "root",
+    "group": "root",
+    "children": ["credentials", "config"]
+  },
+  "/etc": {
+    "type": "dir",
+    "perms": "drwxr-xr-x",
+    "owner": "root",
+    "group": "root",
+    "children": ["passwd", "shadow", "group", "hostname", "hosts", "resolv.conf", "os-release", "fstab", "crontab", "ssh", "nginx", "apache2", "mysql", "network", "default", "systemd", "logrotate.d"]
+  },
+  "/etc/ssh": {
+    "type": "dir",
+    "perms": "drwxr-xr-x",
+    "owner": "root",
+    "group": "root",
+    "children": ["sshd_config", "ssh_host_rsa_key", "ssh_host_rsa_key.pub", "ssh_host_ecdsa_key"]
+  },
+  "/etc/nginx": {
+    "type": "dir",
+    "perms": "drwxr-xr-x",
+    "owner": "root",
+    "group": "root",
+    "children": ["nginx.conf", "sites-enabled", "sites-available", "conf.d"]
+  },
+  "/etc/nginx/sites-enabled": {
+    "type": "dir",
+    "perms": "drwxr-xr-x",
+    "owner": "root",
+    "group": "root",
+    "children": ["default", "wordpress.conf"]
+  },
+  "/etc/apache2": {
+    "type": "dir",
+    "perms": "drwxr-xr-x",
+    "owner": "root",
+    "group": "root",
+    "children": ["apache2.conf", "ports.conf", "sites-enabled", "mods-enabled"]
+  },
+  "/etc/mysql": {
+    "type": "dir",
+    "perms": "drwxr-xr-x",
+    "owner": "root",
+    "group": "root",
+    "children": ["my.cnf", "debian.cnf", "conf.d"]
+  },
+  "/home": {
+    "type": "dir",
+    "perms": "drwxr-xr-x",
+    "owner": "root",
+    "group": "root",
+    "children": ["admin", "deploy"]
+  },
+  "/home/admin": {
+    "type": "dir",
+    "perms": "drwxr-xr-x",
+    "owner": "admin",
+    "group": "admin",
+    "children": [".bashrc", ".profile", "wallet.dat", ".crypto-backup", "confidential-credentials.pdf", "passwords-master.docx"]
+  },
+  "/home/deploy": {
+    "type": "dir",
+    "perms": "drwxr-xr-x",
+    "owner": "deploy",
+    "group": "deploy",
+    "children": [".bashrc", ".profile", ".ssh"]
+  },
+  "/var": {
+    "type": "dir",
+    "perms": "drwxr-xr-x",
+    "owner": "root",
+    "group": "root",
+    "children": ["www", "log", "lib", "cache", "backups", "tmp", "run", "spool", "mail"]
+  },
+  "/var/www": {
+    "type": "dir",
+    "perms": "drwxr-xr-x",
+    "owner": "root",
+    "group": "www-data",
+    "children": ["html", ".env"]
+  },
+  "/var/www/html": {
+    "type": "dir",
+    "perms": "drwxr-xr-x",
+    "owner": "www-data",
+    "group": "www-data",
+    "children": ["index.php", "wp-config.php", ".env", ".htaccess", "wp-content", "wp-includes", "wp-admin", "uploads", "xmlrpc.php", "wp-login.php", "readme.html"]
+  },
+  "/var/www/html/wp-content": {
+    "type": "dir",
+    "perms": "drwxr-xr-x",
+    "owner": "www-data",
+    "group": "www-data",
+    "children": ["plugins", "themes", "uploads", "cache"]
+  },
+  "/var/www/html/uploads": {
+    "type": "dir",
+    "perms": "drwxrwxrwx",
+    "owner": "www-data",
+    "group": "www-data",
+    "children": ["2024", "shell.php.bak", "tmp"]
+  },
+  "/var/log": {
+    "type": "dir",
+    "perms": "drwxr-xr-x",
+    "owner": "root",
+    "group": "root",
+    "children": ["syslog", "auth.log", "kern.log", "dpkg.log", "nginx", "apache2", "mysql", "cron.log", "lastlog", "wtmp", "btmp"]
+  },
+  "/var/log/nginx": {
+    "type": "dir",
+    "perms": "drwxr-x---",
+    "owner": "www-data",
+    "group": "adm",
+    "children": ["access.log", "error.log"]
+  },
+  "/var/log/apache2": {
+    "type": "dir",
+    "perms": "drwxr-x---",
+    "owner": "root",
+    "group": "adm",
+    "children": ["access.log", "error.log", "other_vhosts_access.log"]
+  },
+  "/var/backups": {
+    "type": "dir",
+    "perms": "drwxr-xr-x",
+    "owner": "root",
+    "group": "root",
+    "children": ["db_dump.sql", "db_dump_latest.sql", "apt.extended_states.0"]
+  },
+  "/opt": {
+    "type": "dir",
+    "perms": "drwxr-xr-x",
+    "owner": "root",
+    "group": "root",
+    "children": ["app", "infra", "k8s", "backup"]
+  },
+  "/opt/app": {
+    "type": "dir",
+    "perms": "drwxr-xr-x",
+    "owner": "root",
+    "group": "root",
+    "children": [".env", "docker-compose.yml", ".deploy-config.json", "app.js", "package.json"]
+  },
+  "/opt/infra": {
+    "type": "dir",
+    "perms": "drwxr-xr-x",
+    "owner": "root",
+    "group": "root",
+    "children": ["terraform.tfstate", "internal-dns.conf", "ansible"]
+  },
+  "/opt/k8s": {
+    "type": "dir",
+    "perms": "drwxr-xr-x",
+    "owner": "root",
+    "group": "root",
+    "children": ["secrets.yaml", "deployment.yaml", "service.yaml"]
+  },
+  "/opt/backup": {
+    "type": "dir",
+    "perms": "drwxr-xr-x",
+    "owner": "root",
+    "group": "root",
+    "children": ["mysql_replication_backup.sql.gz", "db_dump_latest.sql", "weekly_backup.tar.gz"]
+  },
+  "/tmp": {
+    "type": "dir",
+    "perms": "drwxrwxrwt",
+    "owner": "root",
+    "group": "root",
+    "children": ["systemd-private-abc123", ".ICE-unix", ".X11-unix"]
+  },
+  "/proc": {
+    "type": "dir",
+    "perms": "dr-xr-xr-x",
+    "owner": "root",
+    "group": "root",
+    "children": ["1", "self", "cpuinfo", "meminfo", "version", "uptime", "loadavg", "stat", "net", "mounts", "filesystems"]
+  },
+  "/proc/self": {
+    "type": "dir",
+    "perms": "dr-xr-xr-x",
+    "owner": "root",
+    "group": "root",
+    "children": ["exe", "cgroup", "status", "cmdline", "environ", "fd", "maps", "mounts"]
+  },
+  "/usr": {
+    "type": "dir",
+    "perms": "drwxr-xr-x",
+    "owner": "root",
+    "group": "root",
+    "children": ["bin", "sbin", "lib", "local", "share", "include"]
+  },
+  "/usr/local": {
+    "type": "dir",
+    "perms": "drwxr-xr-x",
+    "owner": "root",
+    "group": "root",
+    "children": ["bin", "sbin", "lib", "share"]
+  },
+  "/usr/local/bin": {
+    "type": "dir",
+    "perms": "drwxr-xr-x",
+    "owner": "root",
+    "group": "root",
+    "children": ["docker-compose", "backup.sh", "logrotate.sh", "node", "npm", "pip3"]
+  },
+  "/srv": {
+    "type": "dir",
+    "perms": "drwxr-xr-x",
+    "owner": "root",
+    "group": "root",
+    "children": []
+  },
+  "/boot": {
+    "type": "dir",
+    "perms": "drwxr-xr-x",
+    "owner": "root",
+    "group": "root",
+    "children": ["grub", "vmlinuz-6.1.0-18-amd64", "initrd.img-6.1.0-18-amd64", "config-6.1.0-18-amd64", "System.map-6.1.0-18-amd64"]
+  },
+  "/dev": {
+    "type": "dir",
+    "perms": "drwxr-xr-x",
+    "owner": "root",
+    "group": "root",
+    "children": ["null", "zero", "random", "urandom", "tty", "sda", "sda1", "sda2", "pts", "shm"]
+  }
+}

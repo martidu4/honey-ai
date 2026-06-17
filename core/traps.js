@@ -357,15 +357,24 @@ function dripSlowResponse(socket, data, intervalMs = 5000) {
  * @param {import('net').Socket} socket
  * @param {string} ip
  */
+// HIGH #7: Global active flood counter — prevents OOM from 1000+ Redis MONITOR connections
+let activeFloods = 0;
+const MAX_ACTIVE_FLOODS = 50;
+
 function floodRedisMonitor(socket, ip) {
     if (!socket || socket.destroyed || !socket.writable) return;
+    if (activeFloods >= MAX_ACTIVE_FLOODS) {
+        logger.warn(`Redis MONITOR flood limit reached (${MAX_ACTIVE_FLOODS}), rejecting`, { protocol: 'redis' });
+        return;
+    }
+    activeFloods++;
 
     let messageCount = 0;
     const MAX_FLOOD_MESSAGES = 6000; // ~5 minutes at 50ms interval
 
     const floodInterval = setInterval(() => {
         if (socket.destroyed || !socket.writable || messageCount >= MAX_FLOOD_MESSAGES) {
-            clearInterval(floodInterval);
+            floodCleanup();
             if (!socket.destroyed) socket.end();
             return;
         }
@@ -386,12 +395,22 @@ function floodRedisMonitor(socket, ip) {
             socket.write(fakeLine);
         } catch (err) {
             logger.error(`Redis MONITOR Flood write error: ${err.message}`, { protocol: 'redis' });
-            clearInterval(floodInterval);
+            floodCleanup();
         }
     }, 50);
 
-    socket.on('error', () => clearInterval(floodInterval));
-    socket.on('close', () => clearInterval(floodInterval));
+    let cleaned = false;
+    const floodCleanup = () => {
+        if (cleaned) return;
+        cleaned = true;
+        clearInterval(floodInterval);
+        activeFloods = Math.max(0, activeFloods - 1);
+    };
+    socket.on('error', floodCleanup);
+    socket.on('close', floodCleanup);
+    socket.on('timeout', floodCleanup);
+    // Safety net: if socket hangs without events, cleanup after flood max time + 30s
+    setTimeout(floodCleanup, (MAX_FLOOD_MESSAGES * 50) + 30000).unref();
 }
 
 // ─── 5. HTTP Redirect Loop Generator ─────────────────────────────────────────
@@ -570,8 +589,17 @@ function makeMySQLInfileRequest(filename, seqNum = 1) {
  *
  * @param {import('net').Socket} socket
  */
+// HIGH #8: Global active git stream counter — prevents connection exhaustion
+let activeGitStreams = 0;
+const MAX_ACTIVE_GIT_STREAMS = 100;
+
 function streamInfiniteGitRefs(socket) {
     if (!socket || socket.destroyed || !socket.writable) return;
+    if (activeGitStreams >= MAX_ACTIVE_GIT_STREAMS) {
+        logger.warn(`Git infinite clone limit reached (${MAX_ACTIVE_GIT_STREAMS}), rejecting`, { protocol: 'git' });
+        return;
+    }
+    activeGitStreams++;
 
     try {
         // Step 1: Send Git smart service advertisement headers
@@ -584,7 +612,7 @@ function streamInfiniteGitRefs(socket) {
         // Step 2: Flood reference updates every 2000ms
         const floodInterval = setInterval(() => {
             if (socket.destroyed || !socket.writable) {
-                clearInterval(floodInterval);
+                gitCleanup();
                 return;
             }
 
@@ -599,12 +627,22 @@ function streamInfiniteGitRefs(socket) {
                 socket.write(lenHex + refLine);
             } catch (err) {
                 logger.error(`Git Infinite Clone flood write error: ${err.message}`, { protocol: 'git' });
-                clearInterval(floodInterval);
+                gitCleanup();
             }
         }, 2000);
 
-        socket.on('error', () => clearInterval(floodInterval));
-        socket.on('close', () => clearInterval(floodInterval));
+        let gitCleaned = false;
+        const gitCleanup = () => {
+            if (gitCleaned) return;
+            gitCleaned = true;
+            clearInterval(floodInterval);
+            activeGitStreams = Math.max(0, activeGitStreams - 1);
+        };
+        socket.on('error', gitCleanup);
+        socket.on('close', gitCleanup);
+        socket.on('timeout', gitCleanup);
+        // Safety net: cleanup after 2h max
+        setTimeout(gitCleanup, 2 * 60 * 60 * 1000).unref();
     } catch (err) {
         logger.error(`Git Infinite Clone initialization failed: ${err.message}`, { protocol: 'git' });
     }

@@ -233,10 +233,9 @@ async function processDownload(urlString, ip, sourceProtocol = 'ssh') {
 
     try {
         while (redirectCount <= maxRedirects) {
-            if (isPrivateTarget(currentUrl.hostname)) {
-                logger.warn(`SSRF Blocked: Attacker ${ip} tried to download from internal target: ${currentUrl.hostname}`, { protocol: sourceProtocol });
-                return null;
-            }
+            // SSRF protection: ssrfSafeLookup in httpAgent/httpsAgent validates
+            // resolved IPs AFTER DNS resolution. No pre-flight hostname check here
+            // to prevent DNS rebinding TOCTOU attacks.
 
             response = await axios({
                 method: 'get',

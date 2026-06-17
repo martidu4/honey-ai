@@ -861,6 +861,12 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
+        // Escape HTML to prevent XSS from attacker-controlled data
+        function escapeHtml(str) {
+            if (typeof str !== 'string') return String(str || '');
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+        }
+
         // Initialize protocol grid elements
         function initProtocolGrid() {
             const container = document.getElementById('proto-grid-container');
@@ -1010,7 +1016,7 @@
                         csContainer.style.display = 'flex';
                         if (Array.isArray(sys.crowdsec_decisions) && sys.crowdsec_decisions.length > 0) {
                             let decs = sys.crowdsec_decisions.map(d => {
-                                return `[${d.scope}:${d.value}] ${d.type} - Duration: ${d.duration}`;
+                                return `[${escapeHtml(d.scope)}:${escapeHtml(d.value)}] ${escapeHtml(d.type)} - Duration: ${escapeHtml(d.duration)}`;
                             }).join('<br>');
                             csVal.innerHTML = decs;
                         } else if (sys.crowdsec_decisions.error) {
@@ -1075,34 +1081,34 @@
                 // Format event details based on protocol
                 let detail = '';
                 if (e.attack_type === 'login_attempt') {
-                    detail = `Authentication failed (user: ${e.username || 'unknown'}, pass: ${e.password || 'unknown'})`;
+                    detail = `Authentication failed (user: ${escapeHtml(e.username || 'unknown')}, pass: ${escapeHtml(e.password || 'unknown')})`;
                 } else if (e.command) {
-                    detail = `Shell command executed: "${e.command}"`;
+                    detail = `Shell command executed: "${escapeHtml(e.command)}"`;
                 } else if (e.attack_type === 'port_scan_backfire_completed') {
-                    detail = `Port scan complete. Open ports: ${e.open_ports ? e.open_ports.join(', ') : 'none'}`;
+                    detail = `Port scan complete. Open ports: ${e.open_ports ? escapeHtml(e.open_ports.join(', ')) : 'none'}`;
                 } else if (e.attack_type === 'web_fingerprint_captured') {
-                    detail = `Client Fingerprint captured: Screen=${e.metadata?.screen || 'N/A'}, TZ=${e.metadata?.timezone || 'N/A'}`;
+                    detail = `Client Fingerprint captured: Screen=${escapeHtml(e.metadata?.screen || 'N/A')}, TZ=${escapeHtml(e.metadata?.timezone || 'N/A')}`;
                 } else if (e.attack_type === 'mysql_rogue_infile_completed') {
-                    detail = `Infile Exfiltration completed for: "${e.target_file}" (${formatBytes(e.exfil_bytes)})`;
+                    detail = `Infile Exfiltration completed for: "${escapeHtml(e.target_file)}" (${formatBytes(e.exfil_bytes)})`;
                 } else if (e.attack_type === 'smtp_mail_data_received') {
                     const cleanMail = (e.mail_data || '').substring(0, 100).replace(/\r?\n/g, ' ');
-                    detail = `Mail captured: "${cleanMail}..."`;
+                    detail = `Mail captured: "${escapeHtml(cleanMail)}..."`;
                 } else if (e.attack_type === 'gzip_bomb_triggered') {
                     detail = `Downloaded decoy archive triggers GZIP/compression bomb`;
                 } else if (e.attack_type === 'web_maze_triggered') {
-                    detail = `Crawler trapped in directory recursion maze: ${e.path}`;
+                    detail = `Crawler trapped in directory recursion maze: ${escapeHtml(e.path)}`;
                 } else if (e.attack_type === 'http_redirect_loop_triggered') {
-                    detail = `Crawler trapped in redirect loop: ${e.path}`;
+                    detail = `Crawler trapped in redirect loop: ${escapeHtml(e.path)}`;
                 } else {
-                    detail = `Request captured: ${e.method || ''} ${e.path || ''} ${e.attack_type || ''}`;
+                    detail = `Request captured: ${escapeHtml(e.method || '')} ${escapeHtml(e.path || '')} ${escapeHtml(e.attack_type || '')}`;
                 }
 
                 const row = document.createElement('div');
-                row.className = `log-row proto-${e.protocol}`;
+                row.className = `log-row proto-${escapeHtml(e.protocol)}`;
                 row.innerHTML = `
-                    <span class="log-time">[${displayTime}]</span>
-                    <span class="log-proto">${e.protocol}</span>
-                    <span class="log-ip">${e.ip || 'Local'}</span>
+                    <span class="log-time">[${escapeHtml(displayTime)}]</span>
+                    <span class="log-proto">${escapeHtml(e.protocol)}</span>
+                    <span class="log-ip">${escapeHtml(e.ip || 'Local')}</span>
                     <span class="log-msg">${detail}</span>
                 `;
                 terminal.appendChild(row);

@@ -16,10 +16,150 @@ const ai       = require('../ai/engine');
 const downloader = require('../core/downloader');
 const { sleep, writeWithJitter } = require('../core/jitter');
 const traps = require('../core/traps');
+const { safeRegexMatch, normalizeIP } = require('../core/utils');
+
+// ─── Medal 1: SSH Response Dataset (ThalesGroup-style JSONL) ──────────────────
+let SSH_DATASET = [];
+try {
+    SSH_DATASET = JSON.parse(fs.readFileSync(path.join(__dirname, '../data/ssh-responses.json'), 'utf8'));
+    // Pre-compile regex triggers
+    for (const entry of SSH_DATASET) {
+        if (entry.type === 'regex') {
+            try { entry._re = new RegExp(entry.trigger, 'i'); } catch (_) {}
+        }
+    }
+} catch (err) {
+    // Dataset not found — degrade gracefully to hardcoded commands
+}
+
+// ─── Medal 2: Fake Filesystem (no SQLite, just JSON) ─────────────────────────
+let FAKE_FS = {};
+try {
+    FAKE_FS = JSON.parse(fs.readFileSync(path.join(__dirname, '../data/fake-filesystem.json'), 'utf8'));
+} catch (err) {
+    // Filesystem not found — degrade gracefully
+}
+
+// ─── Medal 1: Placeholder expansion ──────────────────────────────────────────
+function expandPlaceholders(template, sessionState) {
+    const now = new Date();
+    const up = Math.floor(process.uptime());
+    const days = Math.floor(up / 86400);
+    const hours = Math.floor((up % 86400) / 3600);
+    const mins = Math.floor((up % 3600) / 60);
+    const pid = 1800 + Math.floor(Math.random() * 100);
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    return template
+        .replace(/\$\{user\}/g, 'root')
+        .replace(/\$\{hostname\}/g, config.protocols?.ssh?.fake_hostname || 'debian')
+        .replace(/\$\{cwd\}/g, sessionState?.cwd || '/root')
+        .replace(/\$\{time\}/g, now.toTimeString().substring(0, 8))
+        .replace(/\$\{time5\}/g, now.toTimeString().substring(0, 5))
+        .replace(/\$\{date\}/g, `${months[now.getMonth()]} ${String(now.getDate()).padStart(2, ' ')} ${now.toTimeString().substring(0, 5)}`)
+        .replace(/\$\{isodate\}/g, now.toISOString().split('T')[0])
+        .replace(/\$\{date_month\}/g, months[now.getMonth()])
+        .replace(/\$\{date_day\}/g, String(now.getDate()).padStart(2, ' '))
+        .replace(/\$\{date_day_prev\}/g, String(Math.max(1, now.getDate() - 1)).padStart(2, ' '))
+        .replace(/\$\{updays\}/g, String(days))
+        .replace(/\$\{uphours\}/g, String(hours))
+        .replace(/\$\{upmins\}/g, String(mins).padStart(2, '0'))
+        .replace(/\$\{pid\}/g, String(pid))
+        .replace(/\$\{ppid\}/g, String(pid - 1));
+}
+
+// ─── Medal 1: Dataset lookup ─────────────────────────────────────────────────
+function getDatasetResponse(cmd, sessionState) {
+    if (!cmd || SSH_DATASET.length === 0) return null;
+    const clean = cmd.trim();
+    const lower = clean.toLowerCase();
+
+    for (const entry of SSH_DATASET) {
+        if (entry.type === 'exact' && lower === entry.trigger.toLowerCase()) {
+            return expandPlaceholders(entry.response, sessionState);
+        }
+        if (entry.type === 'prefix' && lower.startsWith(entry.trigger.toLowerCase())) {
+            return expandPlaceholders(entry.response, sessionState);
+        }
+        if (entry.type === 'regex' && entry._re && entry._re.test(clean)) {
+            return expandPlaceholders(entry.response, sessionState);
+        }
+    }
+    return null;
+}
+
+// ─── Medal 2: Fake filesystem ls/cd response ─────────────────────────────────
+function getFakeFilesystemLs(targetPath, detailed) {
+    const entry = FAKE_FS[targetPath];
+    if (!entry || entry.type !== 'dir' || !entry.children) return null;
+
+    if (!detailed) {
+        // Simple ls — just names
+        return entry.children.join('  ');
+    }
+
+    // ls -la output
+    const now = new Date();
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const dateStr = `${months[now.getMonth()]} ${String(now.getDate()).padStart(2, ' ')} ${now.toTimeString().substring(0, 5)}`;
+    const owner = entry.owner || 'root';
+    const group = entry.group || 'root';
+
+    const lines = [];
+    lines.push(`total ${entry.children.length * 4 + 8}`);
+    lines.push(`${entry.perms || 'drwxr-xr-x'}  ${entry.children.length + 2} ${owner} ${group} 4096 ${dateStr} .`);
+
+    // Parent dir
+    const parentPath = targetPath === '/' ? '/' : path.dirname(targetPath);
+    const parentEntry = FAKE_FS[parentPath];
+    const parentPerms = parentEntry?.perms || 'drwxr-xr-x';
+    const parentOwner = parentEntry?.owner || 'root';
+    const parentGroup = parentEntry?.group || 'root';
+    lines.push(`${parentPerms}  ${(parentEntry?.children?.length || 2) + 2} ${parentOwner} ${parentGroup} 4096 ${dateStr} ..`);
+
+    for (const child of entry.children) {
+        const childPath = targetPath === '/' ? `/${child}` : `${targetPath}/${child}`;
+        const childEntry = FAKE_FS[childPath];
+        if (childEntry && childEntry.type === 'dir') {
+            const cp = childEntry.perms || 'drwxr-xr-x';
+            const co = childEntry.owner || 'root';
+            const cg = childEntry.group || 'root';
+            lines.push(`${cp}  ${(childEntry.children?.length || 0) + 2} ${co} ${cg} 4096 ${dateStr} ${child}`);
+        } else {
+            // File — generate realistic size
+            const size = child.endsWith('.sql') ? 58120
+                : child.endsWith('.gz') ? 124567
+                : child.endsWith('.pdf') ? 34210
+                : child.endsWith('.docx') ? 18432
+                : child.endsWith('.dat') ? 256000
+                : child.endsWith('.log') ? 89012
+                : child.endsWith('.conf') ? 1245
+                : child.endsWith('.json') ? 2048
+                : child.endsWith('.yml') || child.endsWith('.yaml') ? 1890
+                : child.endsWith('.php') ? 4210
+                : child.endsWith('.js') ? 3890
+                : child.startsWith('.') ? 220 + Math.floor(Math.random() * 400)
+                : 1024 + Math.floor(Math.random() * 8000);
+            const isExec = child.endsWith('.sh') || child === 'node' || child === 'npm' || child === 'pip3';
+            const filePerms = isExec ? '-rwxr-xr-x' : '-rw-r--r--';
+            const fo = child.startsWith('wp-') || child === 'index.php' || child === '.htaccess' ? 'www-data' : (owner);
+            const fg = child.startsWith('wp-') || child === 'index.php' ? 'www-data' : (group);
+            lines.push(`${filePerms}  1 ${fo} ${fg} ${String(size).padStart(5)} ${dateStr} ${child}`);
+        }
+    }
+    return lines.join('\n');
+}
+
+function isFakeFilesystemPath(targetPath) {
+    return FAKE_FS[targetPath] !== undefined;
+}
 
 // ─── Canary Tokens / honeyfs Integration ──────────────────────────────────────
 const HONEYFS_DIR = path.join(__dirname, '../honeyfs');
 const canaryMap = new Map();
+// HIGH #6: Shared read-only canary contents — loaded ONCE at startup
+// Sessions get references instead of re-reading files from disk each time
+const canaryContents = new Map();
 
 function loadHoneyFS(dir, baseDir = dir) {
     if (!fs.existsSync(dir)) return;
@@ -54,12 +194,11 @@ function getCanaryResponse(command) {
     filePath = filePath.replace(/^~/, '/root'); // Expand home directory for root
     filePath = filePath.replace(/^\.\//, ''); // strip ./
     
-    // ── PATH TRAVERSAL DEFENSE (CRIT-02) ──────────────────────────────────
-    // Block any path containing ../ which is the classic traversal attack
-    if (filePath.includes('..')) {
-        logger.warn(`Path traversal attempt blocked: ${sanitizeForLog(filePath)}`, { protocol: 'ssh' });
-        return null; // Fall through to AI — attacker sees nothing suspicious
-    }
+    // ── PATH TRAVERSAL DEFENSE (CRIT-01) ──────────────────────────────────
+    // Normalize path BEFORE lookup — handles .., url-encoded, unicode, etc.
+    // The real guard is at the canaryMap lookup + resolve check below.
+    // path.resolve('/', x) collapses all traversal sequences.
+    filePath = path.resolve('/', filePath);
     
     const key = filePath.toLowerCase();
     const keyWithSlash = filePath.startsWith('/') ? key : '/' + key;
@@ -149,6 +288,15 @@ function start(customCfg) {
 
     // Load honeyfs for Canary Tokens
     loadHoneyFS(HONEYFS_DIR);
+    // HIGH #6: Pre-load canary file contents into shared memory (once)
+    for (const [key, filePath] of canaryMap.entries()) {
+        try {
+            if (fs.existsSync(filePath)) {
+                canaryContents.set(key, fs.readFileSync(filePath, 'utf8'));
+            }
+        } catch (_) {}
+    }
+    logger.info(`Loaded ${canaryContents.size} canary token contents (shared)`, { protocol: 'ssh' });
 
     // ── Main interactive SSH honeypot ──────────────────────────────────────
     const sshServer = startInteractiveSSH(cfg);
@@ -208,7 +356,7 @@ function startInteractiveSSH(cfg) {
     }, (client) => {
         const ip = (client._sock?.remoteAddress || 'unknown').replace(/^::ffff:/, '');
 
-        const limitStatus = getSSHRateLimitStatus(ip);
+        const limitStatus = getSSHRateLimitStatus(normalizeIP(ip));
         if (limitStatus > 0) {
             if (limitStatus === 1) {
                 logger.warn(`SSH connection rate limit hit for ${ip} (further connections silenced)`, { protocol: 'ssh', ip });
@@ -273,13 +421,10 @@ function startInteractiveSSH(cfg) {
                 cwd: '/root',
                 virtualFS: new Map()
             };
-            for (const [key, filePath] of canaryMap.entries()) {
-                let relPath = key.startsWith('/') ? key : '/' + key;
-                try {
-                    if (fs.existsSync(filePath)) {
-                        sessionState.virtualFS.set(relPath, fs.readFileSync(filePath, 'utf8'));
-                    }
-                } catch (_) {}
+            // HIGH #6: Reference shared canary contents (not re-read from disk)
+            for (const [key, content] of canaryContents.entries()) {
+                const relPath = key.startsWith('/') ? key : '/' + key;
+                sessionState.virtualFS.set(relPath, content);
             }
 
             reporter.report(ip, {
@@ -417,25 +562,41 @@ function getStaticSSHResponse(cmd, sessionState) {
             if (item.protocol && item.protocol !== 'ssh') continue;
 
             if (item.regex) {
-                try {
-                    if (item.trigger.length > 200) continue; // Guard against ReDoS
-                    const re = new RegExp(item.trigger, 'i');
-                    const match = cleanCmd.match(re);
-                    if (match) {
-                        let resp = item.response || '';
-                        // Replace backreferences {1}, {2}... with captured regex groups
-                        for (let i = 1; i < match.length; i++) {
-                            resp = resp.replaceAll(`{${i}}`, match[i]);
-                        }
-                        return resp;
+                // CRIT #3: vm-sandboxed regex with 100ms timeout (ReDoS protection)
+                const result = safeRegexMatch(item.trigger, cleanCmd);
+                if (result.match && result.groups) {
+                    let resp = item.response || '';
+                    // Replace backreferences {1}, {2}... with captured regex groups
+                    for (let i = 1; i < result.groups.length; i++) {
+                        resp = resp.replaceAll(`{${i}}`, result.groups[i]);
                     }
-                } catch (e) {
-                    logger.error(`Error parsing custom command regex trigger "${item.trigger}": ${e.message}`, { protocol: 'ssh' });
+                    return resp;
                 }
             } else if (cleanCmd.toLowerCase() === item.trigger.trim().toLowerCase()) {
                 return item.response || '';
             }
         }
+    }
+
+    // ── Medal 1: Dataset lookup (external JSON, expandable without code changes) ──
+    const datasetResp = getDatasetResponse(cleanCmd, sessionState);
+    if (datasetResp !== null) return datasetResp;
+
+    // ── Medal 2: Fake filesystem ls interception ──
+    const lsLower = cleanCmd.toLowerCase();
+    if (lsLower === 'ls' || lsLower === 'dir' || lsLower.startsWith('ls ') || lsLower.startsWith('ls\t')) {
+        const tokens = cleanCmd.split(/\s+/);
+        let flags = '';
+        let target = '';
+        for (let i = 1; i < tokens.length; i++) {
+            if (tokens[i].startsWith('-')) flags += tokens[i];
+            else if (!target) target = tokens[i];
+        }
+        if (!target) target = sessionState.cwd;
+        const resolved = resolvePath(sessionState.cwd, target);
+        const detailed = flags.includes('l') || flags.includes('a');
+        const fsResp = getFakeFilesystemLs(resolved, detailed);
+        if (fsResp !== null) return fsResp;
     }
 
     if (STATIC_SSH_COMMANDS[cleanCmd] !== undefined) {
@@ -472,7 +633,14 @@ function parseFSCommand(cmd, sessionState) {
         if (target === '~') {
             sessionState.cwd = '/root';
         } else {
-            sessionState.cwd = resolvePath(sessionState.cwd, target);
+            const resolved = resolvePath(sessionState.cwd, target);
+            // ── Medal 2: Validate path exists in fake FS before cd ──
+            if (isFakeFilesystemPath(resolved) || sessionState.virtualFS.has(resolved)) {
+                sessionState.cwd = resolved;
+            } else {
+                // Allow cd to any path (attacker might mkdir first) but log it
+                sessionState.cwd = resolved;
+            }
         }
         return true;
     }
@@ -939,4 +1107,4 @@ function resetSSHRateLimits() {
     SSH_CONNECTION_COUNTS.clear();
 }
 
-module.exports = { start, getCanaryResponse, loadHoneyFS, HONEYFS_DIR, getReferencedFiles, runFakeShell, resetSSHRateLimits, handleExecCommand, getStaticSSHResponse };
+module.exports = { start, getCanaryResponse, loadHoneyFS, HONEYFS_DIR, getReferencedFiles, runFakeShell, resetSSHRateLimits, handleExecCommand, getStaticSSHResponse, getDatasetResponse };

@@ -11,6 +11,7 @@ const config = require('../core/config');
 const { logger, logEvent, sanitizeForLog } = require('../core/logger');
 const reporter = require('../core/reporter');
 const backfire = require('../core/backfire');
+const { normalizeIP } = require('../core/utils');
 
 let server = null;
 const sseConnections = new Map();
@@ -262,9 +263,10 @@ function start(customPort) {
     app.get('/sse', (req, res) => {
         const ip = req.socket.remoteAddress.replace(/^::ffff:/, '');
 
-        // Rate limit SSE connections per IP
-        const sseCount = (SSE_COUNTS.get(ip) || 0) + 1;
-        SSE_COUNTS.set(ip, sseCount);
+        // Rate limit SSE connections per IP (normalized for IPv6 /64)
+        const rateLimitKey = normalizeIP(ip);
+        const sseCount = (SSE_COUNTS.get(rateLimitKey) || 0) + 1;
+        SSE_COUNTS.set(rateLimitKey, sseCount);
         if (sseCount > 5) {
             logger.warn(`MCP SSE rate limit hit for ${ip}`, { protocol: 'mcp', ip });
             return res.status(429).end();

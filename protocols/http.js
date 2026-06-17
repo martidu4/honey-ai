@@ -16,6 +16,7 @@ const downloader = require('../core/downloader');
 const { sleep } = require('../core/jitter');
 const backfire = require('../core/backfire');
 const traps = require('../core/traps');
+const { normalizeIP } = require('../core/utils');
 // ── Static HTTP Cache (from Galah) — serve known paths without Ollama ────
 const HTTP_CACHE_FILE = nodePath.join(__dirname, "../data/http-cache.json");
 let _httpStaticCache = null;
@@ -141,7 +142,7 @@ function start(customPort) {
             }
         }
 
-        const limitStatus = getRateLimitStatus(ip);
+        const limitStatus = getRateLimitStatus(normalizeIP(ip));
         if (limitStatus > 0) {
             if (limitStatus === 1) {
                 logger.warn(`Rate limited ${ip} on fingerprint endpoint (further requests silenced)`, { protocol: 'http', ip });
@@ -207,7 +208,7 @@ function start(customPort) {
         }
 
         // ── Rate limiting ──────────────────────────────────────────────────
-        const limitStatus = getRateLimitStatus(ip);
+        const limitStatus = getRateLimitStatus(normalizeIP(ip));
         if (limitStatus > 0) {
             if (limitStatus === 1) {
                 logger.warn(`Rate limited ${ip} (further requests silenced)`, { protocol: 'http', ip });

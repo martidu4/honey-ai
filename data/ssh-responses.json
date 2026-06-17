@@ -1,0 +1,322 @@
+[
+  {
+    "trigger": "whoami",
+    "type": "exact",
+    "response": "${user}"
+  },
+  {
+    "trigger": "id",
+    "type": "exact",
+    "response": "uid=0(${user}) gid=0(${user}) groups=0(${user})"
+  },
+  {
+    "trigger": "id;",
+    "type": "exact",
+    "response": "uid=0(${user}) gid=0(${user}) groups=0(${user})"
+  },
+  {
+    "trigger": "uname",
+    "type": "exact",
+    "response": "Linux"
+  },
+  {
+    "trigger": "uname -s",
+    "type": "exact",
+    "response": "Linux"
+  },
+  {
+    "trigger": "uname -a",
+    "type": "exact",
+    "response": "Linux ${hostname} 6.1.0-18-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.1.76-1 (2024-02-01) x86_64 GNU/Linux"
+  },
+  {
+    "trigger": "uname -r",
+    "type": "exact",
+    "response": "6.1.0-18-amd64"
+  },
+  {
+    "trigger": "uname -n",
+    "type": "exact",
+    "response": "${hostname}"
+  },
+  {
+    "trigger": "uname -m",
+    "type": "exact",
+    "response": "x86_64"
+  },
+  {
+    "trigger": "uname",
+    "type": "prefix",
+    "response": "Linux ${hostname} 6.1.0-18-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.1.76-1 (2024-02-01) x86_64 GNU/Linux"
+  },
+  {
+    "trigger": "hostname",
+    "type": "exact",
+    "response": "${hostname}"
+  },
+  {
+    "trigger": "hostname -f",
+    "type": "exact",
+    "response": "${hostname}.internal.company.net"
+  },
+  {
+    "trigger": "hostname -I",
+    "type": "exact",
+    "response": "10.0.2.15 "
+  },
+  {
+    "trigger": "pwd",
+    "type": "exact",
+    "response": "${cwd}"
+  },
+  {
+    "trigger": "w",
+    "type": "exact",
+    "response": " ${time} up ${updays} days,  ${uphours}:${upmins},  1 user,  load average: 0.08, 0.03, 0.01\nUSER     TTY      FROM             LOGIN@   IDLE   JCPU   PCPU WHAT\n${user}     pts/0    10.0.0.2         ${time5}    1.00s  0.02s  0.00s w"
+  },
+  {
+    "trigger": "uptime",
+    "type": "exact",
+    "response": " ${time} up ${updays} days,  ${uphours}:${upmins},  1 user,  load average: 0.08, 0.03, 0.01"
+  },
+  {
+    "trigger": "who",
+    "type": "exact",
+    "response": "${user}     pts/0        ${isodate} ${time5} (10.0.0.2)"
+  },
+  {
+    "trigger": "free",
+    "type": "exact",
+    "response": "               total        used        free      shared  buff/cache   available\nMem:         8152304     1245612     4523180       82456     2383512     6587324\nSwap:        2097148           0     2097148"
+  },
+  {
+    "trigger": "free -m",
+    "type": "exact",
+    "response": "               total        used        free      shared  buff/cache   available\nMem:            7961        1216        4418          80        2326        6433\nSwap:           2047           0        2047"
+  },
+  {
+    "trigger": "free -h",
+    "type": "exact",
+    "response": "               total        used        free      shared  buff/cache   available\nMem:           7.7Gi       1.2Gi       4.3Gi        80Mi       2.3Gi       6.3Gi\nSwap:          2.0Gi          0B       2.0Gi"
+  },
+  {
+    "trigger": "df",
+    "type": "exact",
+    "response": "Filesystem     1K-blocks    Used Available Use% Mounted on\n/dev/sda1       41284928 8234512  31003284  22% /\ntmpfs            4076152       0   4076152   0% /dev/shm\n/dev/sda2       10240000 3456789   6783211  34% /var"
+  },
+  {
+    "trigger": "df -h",
+    "type": "exact",
+    "response": "Filesystem      Size  Used Avail Use% Mounted on\n/dev/sda1        40G  7.9G   30G  22% /\ntmpfs           3.9G     0  3.9G   0% /dev/shm\n/dev/sda2       9.8G  3.3G  6.5G  34% /var"
+  },
+  {
+    "trigger": "lscpu",
+    "type": "exact",
+    "response": "Architecture:                    x86_64\nCPU(s):                          4\nModel name:                      Intel(R) Xeon(R) CPU E5-2686 v4 @ 2.30GHz\nThread(s) per core:              1\nCore(s) per socket:              4\nSocket(s):                       1\nVendor ID:                       GenuineIntel\nCPU MHz:                         2300.000\nBogoMIPS:                        4600.00"
+  },
+  {
+    "trigger": "top",
+    "type": "exact",
+    "response": "top - ${time} up ${updays} days, ${uphours}:${upmins},  1 user,  load average: 0.08, 0.03, 0.01\nTasks: 112 total,   1 running, 111 sleeping,   0 stopped,   0 zombie\n%Cpu(s):  2.1 us,  0.8 sy,  0.0 ni, 96.9 id,  0.1 wa,  0.0 hi,  0.1 si\nMiB Mem :   7961.2 total,   4418.3 free,   1216.4 used,   2326.5 buff/cache\n  PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND\n  512 root      20   0  457832  12456   8234 S   1.3   0.2   2:14.56 apache2\n  890 mysql     20   0 1254632  89012  12345 S   0.7   1.1   8:42.13 mysqld"
+  },
+  {
+    "trigger": "crontab -l",
+    "type": "exact",
+    "response": "# m h  dom mon dow   command\n*/5 * * * * /usr/bin/php /var/www/html/cron.php\n0 2 * * * /usr/local/bin/backup.sh\n0 4 * * 0 /usr/local/bin/logrotate.sh"
+  },
+  {
+    "trigger": "mount",
+    "type": "exact",
+    "response": "/dev/sda1 on / type ext4 (rw,relatime)\ntmpfs on /dev/shm type tmpfs (rw,nosuid,nodev)\nproc on /proc type proc (rw,nosuid,nodev,noexec,relatime)\nsysfs on /sys type sysfs (rw,nosuid,nodev,noexec,relatime)\ndevpts on /dev/pts type devpts (rw,nosuid,noexec,relatime,gid=5,mode=620)"
+  },
+  {
+    "trigger": "cat /etc/passwd",
+    "type": "exact",
+    "response": "root:x:0:0:root:/root:/bin/bash\ndaemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin\nbin:x:2:2:bin:/bin:/usr/sbin/nologin\nsys:x:3:3:sys:/dev:/usr/sbin/nologin\nwww-data:x:33:33:www-data:/var/www:/usr/sbin/nologin\nmysql:x:27:27:MySQL Server:/var/lib/mysql:/bin/false\nsshd:x:74:74:Privilege-separated SSH:/var/empty/sshd:/sbin/nologin\nnobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin"
+  },
+  {
+    "trigger": "cat /etc/shadow",
+    "type": "exact",
+    "response": "root:$6$rounds=656000$salt$hash:19000:0:99999:7:::\ndaemon:*:18000:0:99999:7:::\nbin:*:18000:0:99999:7:::\nsys:*:18000:0:99999:7:::\nwww-data:*:18000:0:99999:7:::\nmysql:!:18000:0:99999:7:::\nsshd:*:18000:0:99999:7:::"
+  },
+  {
+    "trigger": "cat /etc/os-release",
+    "type": "exact",
+    "response": "PRETTY_NAME=\"Debian GNU/Linux 12 (bookworm)\"\nNAME=\"Debian GNU/Linux\"\nVERSION_ID=\"12\"\nVERSION=\"12 (bookworm)\"\nVERSION_CODENAME=bookworm\nID=debian\nHOME_URL=\"https://www.debian.org/\"\nSUPPORT_URL=\"https://www.debian.org/support\"\nBUG_REPORT_URL=\"https://bugs.debian.org/\""
+  },
+  {
+    "trigger": "cat /etc/hostname",
+    "type": "exact",
+    "response": "${hostname}"
+  },
+  {
+    "trigger": "cat /etc/hosts",
+    "type": "exact",
+    "response": "127.0.0.1\tlocalhost\n127.0.1.1\t${hostname}\n::1\t\tlocalhost ip6-localhost ip6-loopback\nff02::1\t\tip6-allnodes\nff02::2\t\tip6-allrouters"
+  },
+  {
+    "trigger": "cat /etc/resolv.conf",
+    "type": "exact",
+    "response": "nameserver 8.8.8.8\nnameserver 8.8.4.4\nsearch internal.company.net"
+  },
+  {
+    "trigger": "cat .env",
+    "type": "exact",
+    "response": "PORT=8000\nDB_HOST=127.0.0.1\nDB_PORT=3306\nDB_USER=root\nDB_PASSWORD=secret_master_password\nDB_DATABASE=production\nJWT_SECRET=super_secret_jwt_sign_key_12345\nAPI_KEY=api_key_live_x83hdks82j"
+  },
+  {
+    "trigger": "cat /var/www/.env",
+    "type": "exact",
+    "response": "PORT=8000\nDB_HOST=127.0.0.1\nDB_PORT=3306\nDB_USER=root\nDB_PASSWORD=secret_master_password\nDB_DATABASE=production\nJWT_SECRET=super_secret_jwt_sign_key_12345\nAPI_KEY=api_key_live_x83hdks82j"
+  },
+  {
+    "trigger": "cat /var/www/html/.env",
+    "type": "exact",
+    "response": "PORT=8000\nDB_HOST=127.0.0.1\nDB_PORT=3306\nDB_USER=root\nDB_PASSWORD=secret_master_password\nDB_DATABASE=production\nJWT_SECRET=super_secret_jwt_sign_key_12345\nAPI_KEY=api_key_live_x83hdks82j"
+  },
+  {
+    "trigger": "cat /proc/version",
+    "type": "exact",
+    "response": "Linux version 6.1.0-18-amd64 (debian-kernel@lists.debian.org) (gcc-12 (Debian 12.2.0-14) 12.2.0, GNU ld (GNU Binutils for Debian) 2.40) #1 SMP PREEMPT_DYNAMIC Debian 6.1.76-1 (2024-02-01)"
+  },
+  {
+    "trigger": "cat /proc/1/cmdline",
+    "type": "exact",
+    "response": "/sbin/init"
+  },
+  {
+    "trigger": "readlink /proc/self/exe",
+    "type": "exact",
+    "response": "/usr/bin/bash"
+  },
+  {
+    "trigger": "ls /proc/self/exe",
+    "type": "exact",
+    "response": "/proc/self/exe"
+  },
+  {
+    "trigger": "ls -la /proc/self/exe",
+    "type": "exact",
+    "response": "lrwxrwxrwx 1 root root 0 ${date_month} ${date_day} ${time5} /proc/self/exe -> /usr/bin/bash"
+  },
+  {
+    "trigger": "printenv",
+    "type": "exact",
+    "response": "HOME=/root\nUSER=${user}\nLOGNAME=${user}\nPATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\nSHELL=/bin/bash\nTERM=xterm-256color\nLANG=en_US.UTF-8\nHOSTNAME=${hostname}"
+  },
+  {
+    "trigger": "env",
+    "type": "exact",
+    "response": "HOME=/root\nUSER=${user}\nLOGNAME=${user}\nPATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\nSHELL=/bin/bash\nTERM=xterm-256color\nLANG=en_US.UTF-8\nHOSTNAME=${hostname}"
+  },
+  {
+    "trigger": "ifconfig",
+    "type": "exact",
+    "response": "eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500\n        inet 10.0.2.15  netmask 255.255.255.0  broadcast 10.0.2.255\n        inet6 fe80::a00:27ff:fe8d:c04d  prefixlen 64  scopeid 0x20<link>\n        ether 08:00:27:8d:c0:4d  txqueuelen 1000  (Ethernet)\n        RX packets 142851  bytes 213847362 (203.8 MiB)\n        TX packets 52914  bytes 3926776 (3.7 MiB)\n\nlo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536\n        inet 127.0.0.1  netmask 255.0.0.0\n        loop  txqueuelen 1000  (Local Loopback)"
+  },
+  {
+    "trigger": "ip addr",
+    "type": "exact",
+    "response": "1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000\n    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00\n    inet 127.0.0.1/8 scope host lo\n       valid_lft forever preferred_lft forever\n2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000\n    link/ether 08:00:27:8d:c0:4d brd ff:ff:ff:ff:ff:ff\n    inet 10.0.2.15/24 brd 10.0.2.255 scope global dynamic eth0\n       valid_lft 86399sec preferred_lft 86399sec"
+  },
+  {
+    "trigger": "ip a",
+    "type": "exact",
+    "response": "1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000\n    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00\n    inet 127.0.0.1/8 scope host lo\n       valid_lft forever preferred_lft forever\n2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000\n    link/ether 08:00:27:8d:c0:4d brd ff:ff:ff:ff:ff:ff\n    inet 10.0.2.15/24 brd 10.0.2.255 scope global dynamic eth0\n       valid_lft 86399sec preferred_lft 86399sec"
+  },
+  {
+    "trigger": "ip addr show",
+    "type": "exact",
+    "response": "1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000\n    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00\n    inet 127.0.0.1/8 scope host lo\n       valid_lft forever preferred_lft forever\n2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000\n    link/ether 08:00:27:8d:c0:4d brd ff:ff:ff:ff:ff:ff\n    inet 10.0.2.15/24 brd 10.0.2.255 scope global dynamic eth0\n       valid_lft 86399sec preferred_lft 86399sec"
+  },
+  {
+    "trigger": "ls -la /.dockerenv",
+    "type": "exact",
+    "response": "ls: cannot access '/.dockerenv': No such file or directory"
+  },
+  {
+    "trigger": "cat /proc/self/cgroup",
+    "type": "exact",
+    "response": "0::/"
+  },
+  {
+    "trigger": "cat /proc/self/status",
+    "type": "exact",
+    "response": "Name:\tbash\nUmask:\t0022\nState:\tS (sleeping)\nTgid:\t${pid}\nNgid:\t0\nPid:\t${pid}\nPPid:\t${ppid}\nTracerPid:\t0\nUid:\t0\t0\t0\t0\nGid:\t0\t0\t0\t0\nFDSize:\t256\nGroups:\t0\nVmPeak:\t   12864 kB\nVmSize:\t   12864 kB\nVmRSS:\t    5120 kB\nThreads:\t1"
+  },
+  {
+    "trigger": "cat /proc/1/environ",
+    "type": "exact",
+    "response": "HOME=/root\u0000TERM=linux\u0000BOOT_IMAGE=/vmlinuz-6.1.0-18-amd64\u0000PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\u0000"
+  },
+  {
+    "trigger": "cat /proc/meminfo",
+    "type": "exact",
+    "response": "MemTotal:        8152304 kB\nMemFree:         4523180 kB\nMemAvailable:    6587324 kB\nBuffers:          312456 kB\nCached:          2071056 kB\nSwapCached:            0 kB\nActive:          2834560 kB\nInactive:        1024512 kB\nSwapTotal:       2097148 kB\nSwapFree:        2097148 kB"
+  },
+  {
+    "trigger": "cat /proc/cpuinfo",
+    "type": "exact",
+    "response": "processor\t: 0\nvendor_id\t: GenuineIntel\ncpu family\t: 6\nmodel\t\t: 79\nmodel name\t: Intel(R) Xeon(R) CPU E5-2686 v4 @ 2.30GHz\nstepping\t: 1\ncpu MHz\t\t: 2300.000\ncache size\t: 46080 KB\nphysical id\t: 0\nsiblings\t: 4\ncore id\t\t: 0\ncpu cores\t: 4\nflags\t\t: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx rdtscp lm constant_tsc rep_good nopl xtopology cpuid pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm abm invpcid_single pti fsgsbase bmi1 avx2 smep bmi2 erms invpcid xsaveopt\nbogomips\t: 4600.00"
+  },
+  {
+    "trigger": "locate",
+    "type": "prefix",
+    "response": "/var/www/html/wp-config.php\n/var/www/html/.env\n/root/.ssh/authorized_keys\n/etc/shadow\n/var/backups/db_dump.sql\n/opt/app/.deploy-config.json"
+  },
+  {
+    "trigger": "lsb_release -a",
+    "type": "exact",
+    "response": "Distributor ID:\tDebian\nDescription:\tDebian GNU/Linux 12 (bookworm)\nRelease:\t12\nCodename:\tbookworm"
+  },
+  {
+    "trigger": "docker ps",
+    "type": "exact",
+    "response": "CONTAINER ID   IMAGE          COMMAND                  CREATED         STATUS         PORTS                               NAMES\nc1e3a5f78b90   nginx:alpine   \"/docker-entrypoint.…\"   2 hours ago     Up 2 hours     0.0.0.0:80->80/tcp, :::80->80/tcp   web-nginx\n3a9f82d104be   redis:latest   \"docker-entrypoint.s…\"   2 hours ago     Up 2 hours     0.0.0.0:6379->6379/tcp              redis-cache\n9f82b71a39d8   mysql:8.0      \"docker-entrypoint.s…\"   24 hours ago    Up 24 hours    3306/tcp                            mysql-db"
+  },
+  {
+    "trigger": "docker images",
+    "type": "exact",
+    "response": "REPOSITORY   TAG       IMAGE ID       CREATED        SIZE\nnginx        alpine    51a23b9d10e8   2 days ago     23.5MB\nredis        latest    8f3b92d04ca1   5 days ago     113MB\nmysql        8.0       3a12b9d82cb4   2 weeks ago    445MB"
+  },
+  {
+    "trigger": "systemctl list-units --type=service",
+    "type": "exact",
+    "response": "  UNIT                        LOAD   ACTIVE SUB     DESCRIPTION\n  cron.service                loaded active running Regular background program processing daemon\n  dbus.service                loaded active running D-Bus System Message Bus\n  docker.service              loaded active running Docker Application Container Engine\n  nginx.service               loaded active running A high performance web server\n  ssh.service                 loaded active running OpenBSD Secure Shell server\n  systemd-journald.service    loaded active running Journal Service\n  systemd-timesyncd.service   loaded active running Network Time Synchronization\n\n7 loaded units listed."
+  },
+  {
+    "trigger": "dpkg -l",
+    "type": "exact",
+    "response": "Desired=Unknown/Install/Remove/Purge/Hold\n| Status=Not/Inst/Conf-files/Unpacked/halF-conf/Half-inst/trig-aWait/Trig-pend\n|/ Err?=(none)/Reinst-required (Status,Err: uppercase=bad)\n||/ Name                     Version          Architecture Description\n+++-========================-================-============-===========\nii  adduser                  3.134            all          add and remove users and groups\nii  apt                      2.6.1            amd64        commandline package manager\nii  base-files               12.4+deb12u5     amd64        Debian base system miscellaneous files\nii  bash                     5.2.15-2+b2      amd64        GNU Bourne Again SHell\nii  coreutils                9.1-1            amd64        GNU core utilities\nii  curl                     7.88.1-10+deb12u5 amd64       command line tool for transferring data\nii  openssh-server           1:9.2p1-2+deb12u2 amd64       secure shell (SSH) server"
+  },
+  {
+    "trigger": "netstat -tlnp",
+    "type": "exact",
+    "response": "Active Internet connections (only servers)\nProto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name\ntcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      442/sshd\ntcp        0      0 0.0.0.0:80              0.0.0.0:*               LISTEN      512/nginx\ntcp        0      0 127.0.0.1:3306          0.0.0.0:*               LISTEN      890/mysqld\ntcp        0      0 0.0.0.0:6379            0.0.0.0:*               LISTEN      721/redis-server\ntcp6       0      0 :::22                   :::*                    LISTEN      442/sshd\ntcp6       0      0 :::80                   :::*                    LISTEN      512/nginx"
+  },
+  {
+    "trigger": "ss -tlnp",
+    "type": "exact",
+    "response": "State    Recv-Q   Send-Q   Local Address:Port    Peer Address:Port  Process\nLISTEN   0        128      0.0.0.0:22             0.0.0.0:*          users:((\"sshd\",pid=442,fd=3))\nLISTEN   0        511      0.0.0.0:80             0.0.0.0:*          users:((\"nginx\",pid=512,fd=6))\nLISTEN   0        80       127.0.0.1:3306         0.0.0.0:*          users:((\"mysqld\",pid=890,fd=22))\nLISTEN   0        511      0.0.0.0:6379           0.0.0.0:*          users:((\"redis-server\",pid=721,fd=6))"
+  },
+  {
+    "trigger": "iptables -L",
+    "type": "exact",
+    "response": "Chain INPUT (policy ACCEPT)\ntarget     prot opt source               destination\n\nChain FORWARD (policy DROP)\ntarget     prot opt source               destination\n\nChain OUTPUT (policy ACCEPT)\ntarget     prot opt source               destination"
+  },
+  {
+    "trigger": "last",
+    "type": "exact",
+    "response": "root     pts/0        10.0.0.2         ${date_month} ${date_day} ${time5}   still logged in\nroot     pts/0        10.0.0.2         ${date_month} ${date_day_prev} 14:23 - 16:45  (02:22)\nroot     pts/0        10.0.0.2         ${date_month} ${date_day_prev} 09:10 - 12:30  (03:20)\nreboot   system boot  6.1.0-18-amd64   ${date_month} 01 00:00   still running\n\nwtmp begins ${date_month} 01 00:00:01 2024"
+  },
+  {
+    "trigger": "history",
+    "type": "exact",
+    "response": "    1  apt update && apt upgrade -y\n    2  systemctl restart nginx\n    3  mysql -u root -p production < /var/backups/db_dump.sql\n    4  cd /var/www/html\n    5  vim wp-config.php\n    6  docker ps\n    7  tail -f /var/log/nginx/access.log\n    8  certbot renew\n    9  systemctl status mysql\n   10  history"
+  },
+  {
+    "trigger": "service --status-all",
+    "type": "exact",
+    "response": " [ + ]  cron\n [ + ]  dbus\n [ + ]  docker\n [ - ]  hwclock.sh\n [ + ]  nginx\n [ - ]  ntp\n [ + ]  ssh\n [ + ]  rsyslog\n [ + ]  udev"
+  }
+]

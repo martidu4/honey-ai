@@ -189,9 +189,14 @@ mgmt.get('/sys', async (_, res) => {
         if (!process.env.CROWDSEC_BOUNCER_KEY) return null;
         try {
             const lapi = process.env.CROWDSEC_LAPI_URL || 'http://127.0.0.1:8080';
+            // LOW #19: 5s timeout prevents /sys endpoint hanging if LAPI is unresponsive
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 5000);
             const response = await fetch(`${lapi}/v1/decisions`, {
-                headers: { 'X-Api-Key': process.env.CROWDSEC_BOUNCER_KEY }
+                headers: { 'X-Api-Key': process.env.CROWDSEC_BOUNCER_KEY },
+                signal: controller.signal
             });
+            clearTimeout(timeout);
             if (!response.ok) {
                 throw new Error(`CrowdSec LAPI responded with status: ${response.status}`);
             }

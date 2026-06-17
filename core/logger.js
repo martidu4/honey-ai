@@ -56,9 +56,12 @@ eventsStream.on('error', (err) => {
 });
 
 function logEvent(event) {
+    // MED #10: Validate event keys against allowlist to prevent log injection
+    const { sanitizeEventKeys } = require('./utils');
+    const clean = sanitizeEventKeys(event);
     const line = JSON.stringify({
         timestamp: new Date().toISOString(),
-        ...event
+        ...clean
     }) + '\n';
 
     currentEventsSize += Buffer.byteLength(line);
