@@ -394,6 +394,17 @@ function start(customPort) {
             return res.status(200).send(cachedResponse);
         }
 
+        // ── WordPress catch-all — skip Ollama for any wp-* path ─────────
+        if (normPath.startsWith('/wp-') || normPath.startsWith('/wp/') || normPath.includes('/wp-content/') || normPath.includes('/wp-includes/') || normPath.includes('/wp-json/')) {
+            logger.info("WP static fallback: " + path, { protocol: "http", ip });
+            logEvent({ protocol: "http", ip, method, path, user_agent: ua, attack_type: attackType, response_bytes: 0, cache_hit: true });
+            reporter.report(ip, { protocol: "http", port: cfg.port, comment: "HTTP " + method + " " + path + " (wordpress, static). UA: " + ua.substring(0, 100), categories: "21,14" }).catch(function(){});
+            res.setHeader("Content-Type", "text/html; charset=UTF-8");
+            res.setHeader("Server", "Apache/2.4.57 (Debian)");
+            res.setHeader("X-Powered-By", "PHP/8.1.27");
+            return res.status(404).send('<!DOCTYPE html>\n<html><head><title>Page not found &#8211; Site</title></head><body><div class="wp-die-message"><h1>Not Found</h1><p>The requested URL was not found on this server.</p></div></body></html>');
+        }
+
         // ── Generate AI response (fallback for unknown paths) ───────────
         const aiResponse = await ai.generate({
             protocol: 'http',
