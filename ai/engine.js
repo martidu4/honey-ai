@@ -523,7 +523,7 @@ async function queryOllama(system, prompt, numPredict = 256) {
             ],
             stream:  false,
             keep_alive: ai.keep_alive !== undefined ? ai.keep_alive : "10s",
-            options: { temperature: ai.temperature || 0.9, num_predict: numPredict }
+            options: { temperature: ai.temperature || 0.9, num_predict: numPredict, num_ctx: 2048 }
         }, { 
             signal: controller.signal
         });
