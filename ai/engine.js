@@ -16,6 +16,58 @@ const ai = config.ai;
 const MAX_INPUT_BYTES  = 512;   // Max attacker input sent to LLM
 const MAX_OUTPUT_BYTES = 4096;  // Truncate LLM output if too long
 
+// ─── Ollama concurrency & rate limiting ───────────────────────────────────────
+const MAX_CONCURRENT_OLLAMA = 2;   // Max parallel Ollama requests
+const RATE_LIMIT_PER_IP     = 5;   // Max LLM requests per IP per window
+const RATE_LIMIT_WINDOW_MS  = 60000; // 1 minute window
+
+let _ollamaInFlight = 0;
+const _ollamaQueue  = [];
+const _ipRateMap    = new Map(); // ip -> { count, resetAt }
+
+function _acquireOllamaSlot() {
+    return new Promise((resolve) => {
+        if (_ollamaInFlight < MAX_CONCURRENT_OLLAMA) {
+            _ollamaInFlight++;
+            resolve();
+        } else {
+            _ollamaQueue.push(resolve);
+        }
+    });
+}
+
+function _releaseOllamaSlot() {
+    if (_ollamaQueue.length > 0) {
+        const next = _ollamaQueue.shift();
+        next(); // slot transferred, count stays the same
+    } else {
+        _ollamaInFlight--;
+    }
+}
+
+function _checkIpRateLimit(ip) {
+    if (!ip) return true; // no IP = allow
+    const now = Date.now();
+    let entry = _ipRateMap.get(ip);
+    if (!entry || now > entry.resetAt) {
+        entry = { count: 0, resetAt: now + RATE_LIMIT_WINDOW_MS };
+        _ipRateMap.set(ip, entry);
+    }
+    entry.count++;
+    if (entry.count > RATE_LIMIT_PER_IP) {
+        return false; // rate limited
+    }
+    return true;
+}
+
+// Periodic cleanup of stale rate limit entries (every 5 min)
+setInterval(() => {
+    const now = Date.now();
+    for (const [ip, entry] of _ipRateMap) {
+        if (now > entry.resetAt) _ipRateMap.delete(ip);
+    }
+}, 300000);
+
 // ─── Prompt injection defense patterns ────────────────────────────────────────
 // If attacker tries to override the system prompt, we wrap and neutralize
 const INJECTION_PATTERNS = [
@@ -406,6 +458,19 @@ Generate the protocol response (raw output only):`;
         userPrompt += `\n\n[FILE_SYSTEM]\n<file_system_content>\n${sanitizedFS}\n</file_system_content>`;
     }
 
+    // ── Rate limit check: drop to fallback if IP is over quota ──
+    if (!_checkIpRateLimit(context.ip)) {
+        logger.warn(`Rate limited ${context.ip} — too many LLM requests (${protocol})`, { protocol });
+        logEvent({
+            protocol,
+            ip: context.ip,
+            event_type: 'llm_rate_limited',
+        });
+        return getFallback(protocol, context);
+    }
+
+    // ── Concurrency gate: max 2 parallel Ollama requests ──
+    await _acquireOllamaSlot();
     try {
         let response;
         if (ai.provider === 'ollama') {
@@ -425,6 +490,8 @@ Generate the protocol response (raw output only):`;
     } catch (err) {
         logger.warn(`AI generation failed (${protocol}): ${err.message}`, { protocol });
         return getFallback(protocol);
+    } finally {
+        _releaseOllamaSlot();
     }
 }
 
