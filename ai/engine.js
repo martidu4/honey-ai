@@ -474,7 +474,7 @@ Generate the protocol response (raw output only):`;
     try {
         let response;
         if (ai.provider === 'ollama') {
-            const numPredict = ['http', 'ssh', 'telnet'].includes(protocol) ? 512 : 128;
+            const numPredict = ['http', 'ssh', 'telnet'].includes(protocol) ? 256 : 96;
             response = await queryOllama(systemPrompt, userPrompt, numPredict);
         } else {
             response = await queryOpenAI(systemPrompt, userPrompt);
@@ -510,7 +510,7 @@ function cleanAIOutput(text) {
     return clean;
 }
 
-async function queryOllama(system, prompt, numPredict = 512) {
+async function queryOllama(system, prompt, numPredict = 256) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), ai.timeout || 60000);
 
