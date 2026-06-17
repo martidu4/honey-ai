@@ -181,3 +181,49 @@ When the AI's generated response accidentally contains honeypot-revealing keywor
 | `mcp_requests` / `mcp_ips` | MCP decoy server activity |
 | `mssql_events` / `snmp_events` | Protocol-specific counts |
 | `portscan_events` / `portscan_ips` | Incoming port scan detection |
+
+## Shodan InternetDB Intelligence (NEW)
+
+HoneyAI now includes a built-in Shodan intelligence module (`core/shodan.js`) that enriches attack data and performs self-scanning — using the **free** Shodan InternetDB API (no API key required).
+
+### Two Functions
+
+#### 1. Attacker Enrichment (`enrichAttacker`)
+
+Every time an attack is reported via Telegram, the attacker's IP is automatically queried against Shodan InternetDB:
+
+```
+🍯 HoneyAI Attack
+`45.33.32.156` → SSH port 2222
+Ports: 22, 80, 123, 31337
+⚠️ CVEs: CVE-2025-58098, CVE-2021-44224, CVE-2024-40898
+Host: scanme.nmap.org
+🔍 Known scanner
+```
+
+Data returned per IP:
+- **Open ports** — what services the attacker exposes
+- **CVEs** — known vulnerabilities on the attacker's infrastructure
+- **Hostnames** — reverse DNS
+- **CPEs** — software fingerprints (e.g., `cpe:/a:apache:http_server:2.4.7`)
+- **Tags** — `scanner`, `crawler`, `cloud`, etc.
+
+#### 2. Self-Scan (`selfScan`)
+
+Weekly cron checks what Shodan sees about your own public IP:
+- Detects unexpected exposed ports
+- Alerts on CVEs associated with your services
+- Sends Telegram alert only if problems found
+
+### Performance Controls
+
+| Control | Value |
+|---------|-------|
+| Rate limit | 1 request/second to InternetDB |
+| Cache TTL | 24 hours per IP |
+| Max cache | 5,000 IPs (evicts oldest) |
+| Cache persistence | `logs/.shodan-cache.json` (saved every 10 min) |
+
+### Configuration
+
+No API key needed. The module auto-activates when loaded. To customize expected ports for self-scan, edit the `EXPECTED_PORTS` set in `core/shodan.js`.

@@ -381,6 +381,7 @@ Sign up for free tiers:
 | SANS DShield | https://isc.sans.edu | Internet Storm Center |
 | Blocklist.de | https://www.blocklist.de | Spam/attack IP blocklists |
 | VirusTotal | https://www.virustotal.com | Malware sample analysis |
+| Shodan InternetDB | https://internetdb.shodan.io | Attacker recon & self-scan (free, no key) |
 
 ---
 
