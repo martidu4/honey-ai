@@ -288,6 +288,107 @@ Respond with ONLY raw stdout/stderr — no explanation.
 - Outputs must be typical Kubernetes table-style layouts.`
 };
 
+
+// ── ponytail: Static SSH responses — covers 90%+ of attacker commands, 0% CPU ──
+function getStaticSSHResponse(input) {
+    if (!input) return null;
+    const cmd = input.trim();
+    const lower = cmd.toLowerCase();
+    const base = lower.split(/\s+/)[0].replace(/^\/bin\/.?\//, '').replace(/^\/usr\/bin\//, '').replace(/^\/bin\//, '');
+
+    // cd — silent, no output
+    if (base === 'cd') return '';
+
+    // export / unset — silent  
+    if (base === 'export' || base === 'unset') return '';
+
+    // echo — just echo back the content
+    if (base === 'echo') {
+        const args = cmd.substring(cmd.indexOf(' ') + 1).replace(/["']/g, '');
+        return args || '';
+    }
+
+    // whoami / id
+    if (base === 'whoami') return 'root';
+    if (base === 'id' || lower === 'id;') return 'uid=0(root) gid=0(root) groups=0(root)';
+
+    // uname variants
+    if (lower === 'uname' || lower === 'uname -s') return 'Linux';
+    if (lower.startsWith('uname')) return 'Linux debian 6.1.0-18-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.1.76-1 (2024-02-01) x86_64 GNU/Linux';
+
+    // pwd
+    if (base === 'pwd') return '/root';
+
+    // w / uptime
+    if (base === 'w' && cmd.trim() === 'w') return ' 10:23:45 up 43 days,  2:15,  1 user,  load average: 0.08, 0.03, 0.01\nUSER     TTY      FROM             LOGIN@   IDLE   JCPU   PCPU WHAT\nroot     pts/0    -                10:23    0.00s  0.01s  0.00s w';
+    if (base === 'uptime') return ' 10:23:45 up 43 days,  2:15,  1 user,  load average: 0.08, 0.03, 0.01';
+
+    // ps
+    if (lower.startsWith('ps')) return 'PID TTY          TIME CMD\n    1 ?        00:00:03 systemd\n  421 ?        00:00:01 sshd\n  512 ?        00:00:00 apache2\n  513 ?        00:00:00 apache2\n  890 ?        00:00:02 mysqld\n 1024 pts/0    00:00:00 bash\n 1337 pts/0    00:00:00 ps';
+
+    // ifconfig / ip addr
+    if (base === 'ifconfig' || lower === 'ip addr' || lower === 'ip a') return 'eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500\n        inet 10.0.2.15  netmask 255.255.255.0  broadcast 10.0.2.255\n        inet6 fe80::a00:27ff:fe8d:c04d  prefixlen 64  scopeid 0x20<link>\n        ether 08:00:27:8d:c0:4d  txqueuelen 1000  (Ethernet)\n        RX packets 142851  bytes 213847362 (203.8 MiB)\n        TX packets 52914  bytes 3926776 (3.7 MiB)';
+    if (lower.startsWith('/ip')) return 'eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500\n        inet 10.0.2.15  netmask 255.255.255.0  broadcast 10.0.2.255';
+
+    // hostname
+    if (base === 'hostname') return 'debian';
+
+    // free
+    if (base === 'free') return '               total        used        free      shared  buff/cache   available\nMem:         8152304     1245612     4523180       82456     2383512     6587324\nSwap:        2097148           0     2097148';
+
+    // df
+    if (base === 'df') return 'Filesystem     1K-blocks    Used Available Use% Mounted on\n/dev/sda1       41284928 8234512  31003284  22% /\ntmpfs            4076152       0   4076152   0% /dev/shm\n/dev/sda2       10240000 3456789   6783211  34% /var';
+
+    // lscpu
+    if (base === 'lscpu') return 'Architecture:                    x86_64\nCPU(s):                          4\nModel name:                      Intel(R) Xeon(R) CPU E5-2686 v4 @ 2.30GHz\nThread(s) per core:              1\nCore(s) per socket:              4';
+
+    // top (static snapshot)
+    if (base === 'top') return 'top - 10:23:45 up 43 days, 2:15,  1 user,  load average: 0.08, 0.03, 0.01\nTasks: 112 total,   1 running, 111 sleeping,   0 stopped,   0 zombie\n%Cpu(s):  2.1 us,  0.8 sy,  0.0 ni, 96.9 id,  0.1 wa,  0.0 hi,  0.1 si\nMiB Mem :   7961.2 total,   4418.3 free,   1216.4 used,   2326.5 buff/cache\n  PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND\n  512 root      20   0  457832  12456   8234 S   1.3   0.2   2:14.56 apache2\n  890 mysql     20   0 1254632  89012  12345 S   0.7   1.1   8:42.13 mysqld';
+
+    // crontab
+    if (lower === 'crontab -l') return '# m h  dom mon dow   command\n*/5 * * * * /usr/bin/php /var/www/html/cron.php\n0 2 * * * /usr/local/bin/backup.sh';
+
+    // wget / curl — simulate download
+    if (base === 'wget' || base === 'curl') {
+        const url = cmd.match(/https?:\/\/[^\s]+/);
+        if (url) return `--2024-01-15 10:23:45--  ${url[0]}\nResolving ${url[0].split('/')[2]}... 93.184.216.34\nConnecting to ${url[0].split('/')[2]}|93.184.216.34|:443... connected.\nHTTP request sent, awaiting response... 200 OK\nLength: 45321 (44K)\nSaving to: '${url[0].split('/').pop() || 'index.html'}'\n\n     0K .......... .......... .......... ..........            100%  125M=0s\n\n2024-01-15 10:23:45 (125 MB/s) - saved [45321/45321]`;
+        return base === 'wget' ? 'wget: missing URL' : '';
+    }
+
+    // ls variants
+    if (lower === 'ls' || lower === 'ls -la' || lower === 'ls -al' || lower === 'ls -l' || lower === 'dir') {
+        return 'total 32\ndrwxr-xr-x  4 root root 4096 Jan 15 10:00 .\ndrwxr-xr-x 22 root root 4096 Jan 15 09:30 ..\n-rw-------  1 root root  412 Jan 15 10:00 .bash_history\n-rw-r--r--  1 root root  570 Jan 15 09:30 .bashrc\ndrwxr-xr-x  2 root root 4096 Jan 15 10:01 .ssh\n-rw-r--r--  1 root root  220 Jan 15 10:00 .env\n-rwx------  1 root root  843 Jan 15 10:02 backup.sh\n-rw-r--r--  1 root root 5812 Jan 15 10:03 db_backup.sql';
+    }
+    if (lower.startsWith('ls')) return '.  ..  .env  config.php  index.php  db_backup.sql  uploads  backup.sh';
+
+    // cat common files
+    if (lower === 'cat /etc/passwd') return 'root:x:0:0:root:/root:/bin/bash\ndaemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin\nbin:x:2:2:bin:/bin:/usr/sbin/nologin\nsys:x:3:3:sys:/dev:/usr/sbin/nologin\nwww-data:x:33:33:www-data:/var/www:/usr/sbin/nologin\nmysql:x:27:27:MySQL Server:/var/lib/mysql:/bin/false\nsshd:x:74:74:Privilege-separated SSH:/var/empty/sshd:/sbin/nologin';
+    if (lower === 'cat /etc/shadow') return 'root:$6$rounds=656000$salt$hash:19000:0:99999:7:::\ndaemon:*:18000:0:99999:7:::\nbin:*:18000:0:99999:7:::';
+    if (lower === 'cat /etc/os-release') return 'PRETTY_NAME="Debian GNU/Linux 12 (bookworm)"\nNAME="Debian GNU/Linux"\nVERSION_ID="12"\nVERSION="12 (bookworm)"\nID=debian';
+    if (lower === 'cat .env' || lower === 'cat /var/www/.env' || lower === 'cat /var/www/html/.env') return 'PORT=8000\nDB_HOST=127.0.0.1\nDB_PORT=3306\nDB_USER=root\nDB_PASSWORD=secret_master_password\nDB_DATABASE=production\nJWT_SECRET=super_secret_jwt_sign_key_12345\nAPI_KEY=api_key_live_x83hdks82j';
+
+    // mount
+    if (base === 'mount') return '/dev/sda1 on / type ext4 (rw,relatime)\ntmpfs on /dev/shm type tmpfs (rw,nosuid,nodev)\nproc on /proc type proc (rw,nosuid,nodev,noexec,relatime)\nsysfs on /sys type sysfs (rw,nosuid,nodev,noexec,relatime)';
+
+    // rm — silent
+    if (base === 'rm') return '';
+
+    // locate
+    if (base === 'locate') return '/var/www/html/wp-config.php\n/var/www/html/.env\n/root/.ssh/authorized_keys\n/etc/shadow\n/var/backups/db_dump.sql';
+
+    // scp — looks like success
+    if (base === 'scp') return '';
+
+    // if / for / while — shell constructs, silent
+    if (base === 'if' || base === 'for' || base === 'while' || base === 'then' || base === 'fi' || base === 'do' || base === 'done') return '';
+
+    // Buffer overflow attempts (aaaa...) — just crash
+    if (/^a{50,}$/.test(cmd) || /^\x00{10,}/.test(cmd)) return 'Segmentation fault (core dumped)';
+
+    // Unknown — return null to fall through to Ollama
+    return null;
+}
+
 // ─── Main generation function ─────────────────────────────────────────────────
 async function generate({ protocol = 'http', attackerInput, context = {} }) {
     // 1. Truncate input
@@ -333,6 +434,14 @@ async function generate({ protocol = 'http', attackerInput, context = {} }) {
     // 1.5. Static Telnet/Cisco command interception
     if (protocol === 'telnet') {
         const staticResp = getStaticTelnetResponse(safeInput);
+        if (staticResp !== null) {
+            return staticResp;
+        }
+    }
+
+    // 1.5.1. Static SSH command interception — ponytail: 90% of commands answered with 0% CPU
+    if (protocol === 'ssh') {
+        const staticResp = getStaticSSHResponse(safeInput);
         if (staticResp !== null) {
             return staticResp;
         }
