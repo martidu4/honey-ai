@@ -23,8 +23,6 @@ function load() {
     }
 
     // Env var overrides (set by `pnpm run setup` → .env)
-    const r = raw.reporting || {};
-    const n = raw.notifications || {};
 
     const abuseipdbKey = process.env.ABUSEIPDB_KEY || process.env.ABUSEIPDB_API_KEY;
     const otxKey = process.env.OTX_KEY || process.env.OTX_API_KEY;

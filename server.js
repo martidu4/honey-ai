@@ -74,6 +74,30 @@ global.activeConnections = {
     mcp: 0
 };
 
+// ─── Ollama health check (non-blocking) ───────────────────────────────────────
+(async () => {
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+        const res = await fetch(`${config.ai.url}/api/tags`, { signal: controller.signal });
+        clearTimeout(timeout);
+        if (res.ok) {
+            const data = await res.json();
+            const models = (data.models || []).map(m => m.name);
+            const hasModel = models.some(m => m.startsWith(config.ai.model));
+            if (hasModel) {
+                logger.info(`Ollama OK — model "${config.ai.model}" available`, { protocol: 'core' });
+            } else {
+                logger.warn(`Ollama reachable but model "${config.ai.model}" NOT found. Available: ${models.join(', ') || 'none'}`, { protocol: 'core' });
+            }
+        } else {
+            logger.warn(`Ollama responded ${res.status} — AI responses will fall back to static`, { protocol: 'core' });
+        }
+    } catch (err) {
+        logger.warn(`Ollama unreachable at ${config.ai.url} — AI responses will fall back to static. Error: ${err.message}`, { protocol: 'core' });
+    }
+})();
+
 // ─── Start all protocol honeypots ─────────────────────────────────────────────
 logger.info('Starting HoneyAI...', { protocol: 'core' });
 
@@ -231,14 +255,16 @@ mgmt.listen(MGMT_PORT, '127.0.0.1', () => {
 process.on('SIGTERM', () => { logger.info('Shutting down gracefully...'); process.exit(0); });
 process.on('SIGINT',  () => { logger.info('Interrupted. Bye!'); process.exit(0); });
 
+let crashCount = 0;
+
 // Log but NEVER crash on uncaught exceptions — attackers must not be able to kill the honeypot
 process.on('uncaughtException', (err) => {
-    logger.error(`Uncaught exception (recovering): ${err.message}`);
-    // Don't exit — honeypot stays alive
+    crashCount++;
+    logger.error(`Uncaught exception #${crashCount} (recovering): ${err.message}\n${err.stack || '(no stack)'}`);
 });
 
 process.on('unhandledRejection', (reason) => {
-    const msg = reason instanceof Error ? reason.message : String(reason);
-    logger.warn(`Unhandled promise rejection (recovering): ${msg}`);
-    // Don't exit
+    crashCount++;
+    const msg = reason instanceof Error ? `${reason.message}\n${reason.stack || '(no stack)'}` : String(reason);
+    logger.warn(`Unhandled rejection #${crashCount} (recovering): ${msg}`);
 });

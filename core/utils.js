@@ -54,6 +54,9 @@ function normalizeIP(rawIp) {
     if (!rawIp) return 'unknown';
     let ip = rawIp.replace(/^::ffff:/, '');
     
+    // Strip IPv6 zone ID (fe80::1%eth0, fe80::1%25eth0)
+    ip = ip.replace(/%.*$/, '');
+    
     // IPv4 after stripping mapped prefix
     if (/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(ip)) return ip;
     
