@@ -1,0 +1,50 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const allReports = (await getCollection('reports'))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+function formatDate(d: Date) {
+  return d.toLocaleDateString('en-GB', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+}
+function slugFromDate(d: Date) { return d.toISOString().slice(0, 10); }
+
+const severityEmoji: Record<string, string> = {
+  quiet: '😴', low: '🟡', medium: '🟠', high: '🔴', critical: '💀',
+};
+---
+
+<BaseLayout
+  title="All Reports — Honeypot Daily"
+  description="Archive of all daily honeypot threat intelligence reports."
+>
+  <div class="container">
+    <div class="post-header">
+      <div class="meta">
+        <span class="post-date">Archive</span>
+      </div>
+      <h1>All Reports</h1>
+      <p style="color:var(--text-dim); margin-top:0.5rem;">
+        {allReports.length} daily reports — honeypot running since {allReports[allReports.length - 1]?.data.date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}.
+      </p>
+    </div>
+
+    <div class="reports-list" style="padding-bottom: 4rem;">
+      {allReports.map(report => (
+        <a class="report-card" href={`/reports/${slugFromDate(report.data.date)}`}>
+          <span class="rc-date">{formatDate(report.data.date)}</span>
+          <h3>Daily Report</h3>
+          <span class={`severity ${report.data.severity}`}>{severityEmoji[report.data.severity]} {report.data.severity}</span>
+          <div class="rc-stats">
+            <span>🔗 {report.data.cowrie_connections.toLocaleString()} SSH</span>
+            <span>🔑 {report.data.cowrie_logins.toLocaleString()} logins</span>
+            <span>🕸️ {report.data.opencanary_events.toLocaleString()} events</span>
+            <span>🌍 {(report.data.cowrie_ips + report.data.opencanary_ips).toLocaleString()} IPs</span>
+            <span>📣 {report.data.abuseipdb_reported} reported</span>
+          </div>
+        </a>
+      ))}
+    </div>
+  </div>
+</BaseLayout>

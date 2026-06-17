@@ -11,6 +11,7 @@ config.*.yaml           # deployment-specific configs (config.pi5.yaml, etc.)
 
 # 📁 Runtime data
 logs/
+logs-demo/
 *.log
 
 # 🧪 Scratch / debug scripts
@@ -30,5 +31,10 @@ package-lock.json
 .idea/
 *.swp
 
-# 📊 Local dashboard / deployment artifacts
-honey-ai/
+# 📊 Blog (Astro) — build artifacts
+blog/dist/
+blog/.astro/
+blog/.vercel/
+blog/.env.local
+blog/.env.production.local
+blog/node_modules/

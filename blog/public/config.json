@@ -1,0 +1,46 @@
+{
+  "app": {
+    "name": "HoneyAI Threat Intelligence",
+    "version": "2.4.1",
+    "environment": "production",
+    "debug": false
+  },
+  "database": {
+    "host": "db.honeypot.internal",
+    "port": 3306,
+    "user": "root",
+    "password": "S3cur3P@ss2024!",
+    "name": "production_db",
+    "pool_size": 10
+  },
+  "redis": {
+    "url": "redis://default:r3d1sP@ss@cache.honeypot.internal:6379/0"
+  },
+  "api": {
+    "secret": "xK9#mN2$pL7@qR4&vT8!wZ0",
+    "jwt_secret": "hs256-eyJhbGciOiJIUzI1NiJ9-do-not-share",
+    "rate_limit": 100,
+    "cors_origins": ["https://honey-ai.dev", "https://admin.honeypot.internal"]
+  },
+  "aws": {
+    "access_key_id": "AKIA3J3UHE32MVZOUVYX",
+    "secret_access_key": "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",
+    "region": "eu-west-1",
+    "s3_bucket": "honeypot-backups"
+  },
+  "admin": {
+    "panel_url": "/admin",
+    "default_user": "admin",
+    "default_pass": "Adm1n@2026!"
+  },
+  "backup": {
+    "schedule": "0 4 * * *",
+    "destination": "/mnt/backup/superbackup/",
+    "retention_days": 14
+  },
+  "monitoring": {
+    "grafana_url": "http://localhost:3200",
+    "prometheus_url": "http://127.0.0.1:9090",
+    "alert_email": "operator@honeypot.internal"
+  }
+}

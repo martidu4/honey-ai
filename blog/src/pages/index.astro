@@ -1,0 +1,236 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const allReports = (await getCollection('reports'))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+const latest = allReports[0];
+
+const severityEmoji: Record<string, string> = {
+  quiet: '😴',
+  low: '🟡',
+  medium: '🟠',
+  high: '🔴',
+  critical: '💀',
+};
+
+function formatDate(d: Date) {
+  return d.toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+function slugFromDate(d: Date) {
+  return d.toISOString().slice(0, 10);
+}
+
+const totalAttacks = allReports.reduce((s, r) => s + r.data.cowrie_connections + (r.data.opencanary_events ?? 0) + (r.data.galah_requests ?? 0), 0);
+// abuseipdb_reported es 0 en backfill — usamos cowrie_ips como proxy real (son las IPs únicas reportadas)
+const totalReported = allReports.reduce((s, r) => {
+  const reported = r.data.abuseipdb_reported ?? 0;
+  return s + (reported > 0 ? reported : (r.data.cowrie_ips ?? 0));
+}, 0);
+const totalUniqueIPs = allReports.reduce((s, r) => s + (r.data.cowrie_ips ?? 0) + (r.data.opencanary_ips ?? 0) + (r.data.galah_ips ?? 0), 0);
+---
+
+<BaseLayout title="Honeypot Daily — Live Threat Intelligence from a Raspberry Pi Homelab">
+  <!-- HERO -->
+  <section class="hero">
+    <div class="container">
+      <span class="hero-badge">🍯 Live since {allReports[allReports.length - 1]?.data.date.getFullYear() ?? 2026}</span>
+      <h1>Daily Honeypot<br/>Threat Reports</h1>
+      <p>
+        Real attack data captured by HoneyAI and legacy honeypot decoys.
+        Every night at 22:00, a new report drops.
+      </p>
+      <div class="hero-stats">
+        <div class="stat-card">
+          <span class="val">{allReports.length}</span>
+          <span class="lbl">Days Active</span>
+        </div>
+        <div class="stat-card">
+          <span class="val red">{totalAttacks.toLocaleString()}</span>
+          <span class="lbl">Total Attacks</span>
+        </div>
+        <div class="stat-card">
+          <span class="val yellow">{totalReported}</span>
+          <span class="lbl">IPs Reported</span>
+        </div>
+        <div class="stat-card">
+          <span class="val cyan">7</span>
+          <span class="lbl">Protocols</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LATEST REPORT -->
+  {latest && (
+    <section class="section" style="padding-top: 1rem;">
+      <div class="container">
+        <div class="section-title">📡 Latest Report</div>
+        <div class="section-sub">{formatDate(latest.data.date)}</div>
+
+        <div style="background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 2rem; display: grid; gap: 1.5rem;">
+          <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+            <span class={`severity ${latest.data.severity}`}>
+              {severityEmoji[latest.data.severity]} {latest.data.severity}
+            </span>
+            <a href={`/reports/${slugFromDate(latest.data.date)}`} style="font-family:var(--mono); font-size:0.82rem; color:var(--green);">
+              view full report →
+            </a>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card" data-tooltip="Total TCP connections to the SSH service in the last 24h">
+              <span class="val">{latest.data.cowrie_connections.toLocaleString()}</span>
+              <span class="lbl">SSH Connections</span>
+            </div>
+            <div class="stat-card" data-tooltip="Brute-force login attempts (user + password) logged by the SSH service">
+              <span class="val red">{latest.data.cowrie_logins.toLocaleString()}</span>
+              <span class="lbl">Login Attempts</span>
+            </div>
+            <div class="stat-card" data-tooltip="Unique IPs attacking the SSH service. All automatically reported to AbuseIPDB">
+              <span class="val">{latest.data.cowrie_ips}</span>
+              <span class="lbl">Unique IPs (SSH)</span>
+            </div>
+            <div class="stat-card" data-tooltip="Probes to decoy protocols: fake FTP, HTTP, Telnet, SMTP, Redis, MySQL, VNC, RDP (HoneyAI & legacy decoys)">
+              <span class="val yellow">{latest.data.opencanary_events.toLocaleString()}</span>
+              <span class="lbl">Protocol Events</span>
+            </div>
+             <div class="stat-card" data-tooltip="Unique IPs probing non-SSH services — automated multi-protocol network decoys">
+              <span class="val cyan">{latest.data.opencanary_ips}</span>
+              <span class="lbl">Unique IPs (Multi)</span>
+            </div>
+            {latest.data.galah_requests > 0 && (
+              <div class="stat-card" data-tooltip="HTTP requests intercepted by the HTTP Web service — each attacker receives a fake AI-generated response">
+                <span class="val" style="color:var(--purple, #a78bfa)">{latest.data.galah_requests.toLocaleString()}</span>
+                <span class="lbl">Web Hits</span>
+              </div>
+            )}
+            {latest.data.galah_requests > 0 && (
+              <div class="stat-card" data-tooltip="Unique attacker IPs that hit the HTTP Web service">
+                <span class="val" style="color:var(--purple, #a78bfa)">{latest.data.galah_ips}</span>
+                <span class="lbl">Web Service IPs</span>
+              </div>
+            )}
+            <div class="stat-card" data-tooltip="IPs reported today to AbuseIPDB, AlienVault OTX, Blocklist.de and DShield/SANS to protect the global community">
+              <span class="val">{latest.data.abuseipdb_reported}</span>
+              <span class="lbl">Reported (Multi-DB)</span>
+            </div>
+          </div>
+
+          {latest.data.top_ips.length > 0 && (
+            <div class="two-col" style="margin:0;">
+              <div class="top-list">
+                <h3>Top Attacker IPs</h3>
+                <ol id="top-ips-list">
+                  {latest.data.top_ips.slice(0, 5).map(ip => (
+                    <li>
+                      <span class="ip-flag" data-ip={ip} style="margin-right:0.4rem; font-size:1.1rem;">🌐</span><a href={`https://www.abuseipdb.com/check/${ip}`} target="_blank" rel="noopener" data-ip={ip}>
+                        {ip}
+                      </a>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+              {latest.data.top_passwords && latest.data.top_passwords.length > 0 ? (
+                <div class="top-list">
+                  <h3>Top Passwords Tried</h3>
+                  <ol>
+                    {latest.data.top_passwords.slice(0, 5).map(pw => (
+                      <li style="font-family:var(--mono); color:var(--red-dim);">{pw}</li>
+                    ))}
+                  </ol>
+                </div>
+              ) : latest.data.galah_top_paths && latest.data.galah_top_paths.length > 0 ? (
+                <div class="top-list">
+                  <h3>Top Web Paths Probed</h3>
+                  <ol>
+                    {latest.data.galah_top_paths.slice(0, 5).map(path => (
+                      <li style="font-family:var(--mono); color:var(--cyan); opacity: 0.8; font-size: 0.8rem; overflow-wrap: anywhere; word-break: break-all;">{path}</li>
+                    ))}
+                  </ol>
+                </div>
+              ) : (
+                <div class="top-list">
+                  <h3>Top Passwords Tried</h3>
+                  <p style="color: var(--text-dim); font-size: 0.82rem; font-style: italic; margin-top: 0.5rem; font-family: var(--mono);">No credentials tried (0 SSH connections).</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- RECENT REPORTS LIST -->
+  <section class="section" style="padding-top: 1rem;">
+    <div class="container">
+      <div class="section-title">📋 Recent Reports</div>
+      <div class="reports-list">
+        {allReports.slice(0, 7).map(report => (
+          <a class="report-card" href={`/reports/${slugFromDate(report.data.date)}`}>
+            <span class="rc-date">{formatDate(report.data.date)}</span>
+            <h3>Daily Report — {report.data.date.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })}</h3>
+            <span class={`severity ${report.data.severity}`}>{severityEmoji[report.data.severity]} {report.data.severity}</span>
+            <div class="rc-stats">
+              <span>🔗 {report.data.cowrie_connections.toLocaleString()} connections</span>
+              <span>🔑 {report.data.cowrie_logins.toLocaleString()} logins</span>
+              <span>🌍 {report.data.cowrie_ips + report.data.opencanary_ips + (report.data.galah_ips ?? 0)} unique IPs</span>
+              <span>📣 {report.data.abuseipdb_reported} reported</span>
+            </div>
+          </a>
+        ))}
+      </div>
+      {allReports.length > 7 && (
+        <div style="margin-top:1.5rem; text-align:center;">
+          <a class="btn btn-outline" href="/reports">View all {allReports.length} reports →</a>
+        </div>
+      )}
+    </div>
+  </section>
+
+  <!-- SUBSCRIBE CTA -->
+  <section class="section" style="padding-top: 1rem; padding-bottom: 4rem;">
+    <div class="container">
+      <div style="background: linear-gradient(135deg, rgba(0,255,136,0.06), rgba(0,212,255,0.04)); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 2.5rem; text-align:center;">
+        <div style="font-size:2rem; margin-bottom:0.75rem;">🛡️</div>
+        <h2 style="font-family:var(--mono); font-size:1.3rem; margin-bottom:0.75rem; color: var(--text-bright);">
+          Protect your infrastructure
+        </h2>
+        <p style="color:var(--text-dim); max-width:480px; margin:0 auto 1.5rem;">
+          Subscribe to IP blocklists from AbuseIPDB, AlienVault OTX, Spamhaus, CrowdSec and more.
+          Block the same IPs attacking this honeypot before they reach you.
+        </p>
+        <a class="btn" href="/subscribe">View IP Blocklists →</a>
+      </div>
+    </div>
+  </section>
+<script is:inline>
+// Resolve country flags for top attacker IPs via ip-api.com (free, no key)
+(async () => {
+  const flags = document.querySelectorAll('.ip-flag[data-ip]');
+  if (!flags.length) return;
+  const ips = [...new Set([...flags].map(el => el.dataset.ip))];
+  const ccToFlag = cc => cc
+    ? String.fromCodePoint(...[...cc.toUpperCase()].map(c => 0x1F1E6 + c.charCodeAt(0) - 65))
+    : '🌐';
+  try {
+    const res = await fetch('/api/geoip', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(ips)
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    const map = Object.fromEntries(data.map(d => [d.query, d.countryCode]));
+    flags.forEach(el => {
+      const cc = map[el.dataset.ip];
+      el.textContent = ccToFlag(cc);
+      el.title = cc || '';
+    });
+  } catch {}
+})();
+</script>
+</BaseLayout>

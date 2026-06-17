@@ -1,0 +1,237 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const weReport = [
+  {
+    icon: '🚨',
+    name: 'AbuseIPDB',
+    description: 'Community IP abuse database. Every attacker captured by HoneyAI is automatically reported here within the hour.',
+    tags: ['API', 'Real-time', 'Free tier'],
+    url: 'https://www.abuseipdb.com/account/api',
+    docsUrl: 'https://docs.abuseipdb.com/',
+    format: 'JSON API / Blocklist download',
+    pihole: 'Needs API key. 100k checks/day free.',
+    crowdsec: 'Natively integrated via CAPI.',
+  },
+  {
+    icon: '🛡️',
+    name: 'Blocklist.de',
+    description: 'Fail2ban-based community blocklist. We submit SSH, FTP and multi-protocol attackers caught by HoneyAI and legacy decoys.',
+    tags: ['Per-service', 'Real-time', 'No key needed'],
+    url: 'https://lists.blocklist.de/lists/all.txt',
+    docsUrl: 'https://www.blocklist.de/en/export.html',
+    format: 'Plaintext IP · Per-service URLs',
+    pihole: 'Add https://lists.blocklist.de/lists/ssh.txt to blocklists.',
+    crowdsec: 'Use as custom decision feed.',
+  },
+  {
+    icon: '📡',
+    name: 'SANS DShield',
+    description: 'Internet Storm Center distributed sensor network. Our logs contribute to the global attack trend analysis published daily.',
+    tags: ['Global sensor', 'ISC', 'Daily trends'],
+    url: 'https://isc.sans.edu/api/',
+    docsUrl: 'https://isc.sans.edu/howto.html',
+    format: 'JSON API / Top attacker feeds',
+    pihole: 'Subscribe to ISC top attacker IP list.',
+    crowdsec: 'crowdsec-isc collection available.',
+  },
+  {
+    icon: '👽',
+    name: 'AlienVault OTX',
+    description: 'Open Threat Exchange. We publish IoC pulses with attacker IPs, credentials and malware hashes captured by HoneyAI and legacy decoys.',
+    tags: ['Pulses', 'IoC feeds', 'Free'],
+    url: 'https://otx.alienvault.com/',
+    docsUrl: 'https://otx.alienvault.com/api',
+    format: 'JSON API / STIX / OpenIoC',
+    pihole: 'Subscribe to our OTX pulse for auto-updated IPs.',
+    crowdsec: 'Use OTX collection for auto-ban.',
+  },
+];
+
+const recommended = [
+  {
+    icon: '🏘️',
+    name: 'CrowdSec CTI',
+    description: 'The same engine protecting our honeypot infrastructure. 16k+ malicious IPs pre-blocked via community intelligence. Free for self-hosted.',
+    tags: ['Community', 'Self-hosted', 'iptables bouncer'],
+    url: 'https://app.crowdsec.net/',
+    docsUrl: 'https://docs.crowdsec.net/',
+    format: 'API + firewall bouncer (iptables/nftables)',
+    pihole: 'Blocks at firewall level — more effective than DNS.',
+    crowdsec: 'This IS CrowdSec. Install and enroll.',
+  },
+  {
+    icon: '🦦',
+    name: 'Spamhaus DROP / EDROP',
+    description: "Don't Route Or Peer. Hijacked IP blocks controlled by spam/malware gangs. One of the most reliable CIDR blocklists.",
+    tags: ['CIDR blocks', 'No registration', 'Daily updated'],
+    url: 'https://www.spamhaus.org/drop/',
+    docsUrl: 'https://www.spamhaus.org/drop/drop.txt',
+    format: 'Plaintext CIDR · Updated daily',
+    pihole: 'Import CIDRs via custom list + ipset.',
+    crowdsec: 'crowdsec-firewall-bouncer supports CIDRs.',
+  },
+  {
+    icon: '🌐',
+    name: 'Firehol Level 1–3',
+    description: 'Aggregation of the best public IP blacklists, sorted by severity. Level 1 = most aggressive bots and scanners.',
+    tags: ['Aggregated', 'Multi-source', 'CIDR'],
+    url: 'https://iplists.firehol.org/',
+    docsUrl: 'https://github.com/firehol/blocklist-ipsets',
+    format: 'Plaintext IP/CIDR sets · GitHub auto-updated',
+    pihole: 'Import level1.netset directly as a Pi-hole blocklist.',
+    crowdsec: 'Import via custom scenario + decision.',
+  },
+  {
+    icon: '🏴‍☠️',
+    name: 'Binary Defense Banlist',
+    description: 'Artillery project threat intelligence. Updated every 30 minutes with actively attacking IPs. No registration needed.',
+    tags: ['Free', 'Plaintext', 'Updated 30min'],
+    url: 'https://www.binarydefense.com/banlist.txt',
+    docsUrl: 'https://www.binarydefense.com/',
+    format: 'Plaintext IP list · No auth required',
+    pihole: 'Add URL directly to Pi-hole remote blocklists.',
+    crowdsec: 'cURL + custom ban script.',
+  },
+];
+---
+
+<BaseLayout
+  title="IP Blocklist Subscriptions — Honeypot Daily"
+  description="Subscribe to the best IP blocklists: AbuseIPDB, Blocklist.de, SANS DShield, AlienVault OTX, Spamhaus, CrowdSec, Firehol and more."
+>
+  <div class="container">
+    <div class="post-header">
+      <div class="meta">
+        <span class="post-date">Threat Intelligence</span>
+      </div>
+      <h1>IP Blocklist Subscriptions</h1>
+      <p style="color:var(--text-dim); margin-top:0.75rem; max-width:640px;">
+        Our honeypot infrastructure automatically reports malicious IPs to
+        <strong style="color:var(--text)">AbuseIPDB</strong>,
+        <strong style="color:var(--text)">Blocklist.de</strong>,
+        <strong style="color:var(--text)">SANS DShield</strong> and
+        <strong style="color:var(--text)">AlienVault OTX</strong> — every hour, 24/7.
+        If you run your own server, you can use these same feeds to block the same attackers before they reach you.
+      </p>
+    </div>
+
+    <!-- QUICK SETUP -->
+    <div style="margin-bottom: 3rem;">
+      <h2 style="font-family:var(--mono); font-size:1rem; color:var(--green-dim); margin-bottom:0.5rem;">
+        ⚡ Protect your server with the same stack
+      </h2>
+      <p style="font-size:0.85rem; color:var(--text-dim); margin-bottom:1rem;">Copy-paste to install CrowdSec (blocks 60k+ IPs at firewall level) and add Blocklist.de to Pi-hole.</p>
+      <pre class="terminal" set:html={`<span class="t-comment"># 1. Install CrowdSec — community firewall that blocks 60k+ known attackers</span>
+<span class="t-prompt">$</span> <span class="t-cmd">curl -s https://packagecloud.io/crowdsec/crowdsec/script.deb.sh | sudo bash</span>
+<span class="t-prompt">$</span> <span class="t-cmd">sudo apt install crowdsec crowdsec-firewall-bouncer-iptables</span>
+<span class="t-prompt">$</span> <span class="t-cmd">sudo cscli hub update && sudo cscli collections install crowdsecurity/linux</span>
+
+<span class="t-comment"># 2. Pi-hole — Admin → Adlists → paste all these URLs then run pihole -g</span>
+<span class="t-out">https://lists.blocklist.de/lists/all.txt</span>
+<span class="t-out">https://lists.blocklist.de/lists/ssh.txt</span>
+<span class="t-out">https://lists.blocklist.de/lists/ftp.txt</span>
+<span class="t-out">https://lists.blocklist.de/lists/smtp.txt</span>
+<span class="t-out">https://raw.githubusercontent.com/nicehash/blocklist/main/README.md</span>
+<span class="t-out">https://raw.githubusercontent.com/nicehash/blocklist/main/blocklist.txt</span>
+<span class="t-out">https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/tif.mini.txt</span>
+<span class="t-out">https://raw.githubusercontent.com/nicehash/blocklist/main/README.md</span>
+<span class="t-out">https://raw.githubusercontent.com/DandelionSprout/adfilt/master/Alternate%20versions%20Anti-Malware%20List/AntiMalwareAdGuard.txt</span>
+<span class="t-out">https://iplists.firehol.org/files/firehol_level1.netset</span>
+<span class="t-out">https://www.spamhaus.org/drop/drop.txt</span>
+<span class="t-out">https://www.spamhaus.org/drop/edrop.txt</span>
+<span class="t-prompt">$</span> <span class="t-cmd">pihole -g</span>
+
+<span class="t-comment"># We use even more — see the full Recommended section below ↓</span>`}></pre>
+    </div>
+
+    <!-- SECTION: WE REPORT HERE -->
+    <div style="margin-bottom: 0.75rem; display:flex; align-items:center; gap:1rem;">
+      <h2 class="section-title" style="margin:0;">📤 Where we report</h2>
+      <span style="font-family:var(--mono); font-size:0.68rem; color:var(--green); background:rgba(0,255,136,0.1); border:1px solid var(--border); padding:0.2rem 0.6rem; border-radius:99px; letter-spacing:0.08em;">
+        CONTRIBUTING LIVE
+      </span>
+    </div>
+    <p class="section-sub">HoneyAI and legacy decoys actively feed attack data to these 4 platforms every hour.</p>
+
+    <div class="subscribe-grid" style="margin-bottom: 3.5rem;">
+      {weReport.map(list => (
+        <div class="sub-card" style="border-color: rgba(0,255,136,0.2);">
+          <div class="sc-header">
+            <span class="sc-icon">{list.icon}</span>
+            <div>
+              <h3>{list.name}</h3>
+              <span style="font-family:var(--mono); font-size:0.62rem; color:var(--green); letter-spacing:0.1em; text-transform:uppercase;">● We report here</span>
+            </div>
+          </div>
+          <p>{list.description}</p>
+          <div class="sc-tags">
+            {list.tags.map(tag => <span class="sc-tag">{tag}</span>)}
+          </div>
+          <div style="font-family:var(--mono); font-size:0.75rem; color:var(--text-dim); display:grid; gap:0.25rem; background:var(--bg3); border-radius:6px; padding:0.75rem 1rem; border: 1px solid var(--border);">
+            <span><span style="color:var(--cyan);">format:</span> {list.format}</span>
+            <span><span style="color:var(--green-dim);">add to Pi-hole:</span> {list.pihole}</span>
+            <span><span style="color:var(--yellow);">add to CrowdSec:</span> {list.crowdsec}</span>
+          </div>
+          <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+            <a class="btn" href={list.url} target="_blank" rel="noopener">View list ↗</a>
+            {list.docsUrl !== list.url && (
+              <a class="btn btn-outline" href={list.docsUrl} target="_blank" rel="noopener">Docs</a>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <!-- SECTION: RECOMMENDED -->
+    <div style="margin-bottom: 0.75rem; display:flex; align-items:center; gap:1rem;">
+      <h2 class="section-title" style="margin:0;">📥 Recommended subscriptions</h2>
+      <span style="font-family:var(--mono); font-size:0.68rem; color:var(--cyan); background:rgba(0,212,255,0.08); border:1px solid rgba(0,212,255,0.2); padding:0.2rem 0.6rem; border-radius:99px; letter-spacing:0.08em;">
+        CURATED
+      </span>
+    </div>
+    <p class="section-sub">We don't contribute here, but these are the best feeds to protect your infrastructure.</p>
+
+    <div class="subscribe-grid" style="margin-bottom: 3rem;">
+      {recommended.map(list => (
+        <div class="sub-card">
+          <div class="sc-header">
+            <span class="sc-icon">{list.icon}</span>
+            <h3>{list.name}</h3>
+          </div>
+          <p>{list.description}</p>
+          <div class="sc-tags">
+            {list.tags.map(tag => <span class="sc-tag">{tag}</span>)}
+          </div>
+          <div style="font-family:var(--mono); font-size:0.75rem; color:var(--text-dim); display:grid; gap:0.25rem; background:var(--bg3); border-radius:6px; padding:0.75rem 1rem; border: 1px solid var(--border);">
+            <span><span style="color:var(--cyan);">format:</span> {list.format}</span>
+            <span><span style="color:var(--green-dim);">add to Pi-hole:</span> {list.pihole}</span>
+            <span><span style="color:var(--yellow);">add to CrowdSec:</span> {list.crowdsec}</span>
+          </div>
+          <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+            <a class="btn btn-outline" href={list.url} target="_blank" rel="noopener">Subscribe ↗</a>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <!-- RSS SECTION -->
+    <div style="margin: 2rem 0 4rem; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 2rem;">
+      <h2 style="font-family:var(--mono); font-size:1.1rem; margin-bottom:0.75rem; color:var(--text-bright);">
+        📡 Subscribe to this blog
+      </h2>
+      <p style="color:var(--text-dim); margin-bottom:1.25rem; font-size:0.9rem;">
+        Get notified whenever a new daily report drops via RSS.
+      </p>
+      <div style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:center;">
+        <a class="btn" href="/rss.xml">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="6.18" cy="17.82" r="2.18"/><path d="M4 4.44v2.83c7.03 0 12.73 5.7 12.73 12.73h2.83c0-8.59-6.97-15.56-15.56-15.56zm0 5.66v2.83c3.9 0 7.07 3.17 7.07 7.07h2.83c0-5.47-4.43-9.9-9.9-9.9z"/></svg>
+          RSS Feed
+        </a>
+        <code style="font-family:var(--mono); font-size:0.8rem; color:var(--text-dim); background:var(--bg3); padding:0.4rem 0.8rem; border-radius:6px; border:1px solid var(--border);">
+          https://honey-ai.dev/rss.xml
+        </code>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

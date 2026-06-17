@@ -7,7 +7,7 @@
 # Requirements:
 #   - jq (recommended) or grep/sed (fallback)
 #   - iptables with sudo/root privileges (NOPASSWD recommended for cron)
-#   - Example sudoers entry: whatdapi ALL=(root) NOPASSWD: /usr/sbin/iptables
+#   - Example sudoers entry: honeyai ALL=(root) NOPASSWD: /usr/sbin/iptables
 
 set -euo pipefail
 

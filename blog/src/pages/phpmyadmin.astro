@@ -1,0 +1,12 @@
+---
+export const prerender = true;
+---
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<title>phpMyAdmin</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#f1f1f1;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif}.box{background:#fff;border:1px solid #ccd0d4;border-radius:4px;padding:2rem;width:320px;text-align:center}h2{color:#135e96;margin-bottom:1rem;font-size:1rem}input{width:100%;padding:0.5rem;margin-bottom:0.75rem;border:1px solid #8c8f94;border-radius:3px;font-size:0.9rem}button{background:#2271b1;color:#fff;border:none;padding:0.5rem 1rem;border-radius:3px;cursor:pointer;width:100%}</style>
+</head><body>
+<div class="box"><h2>phpMyAdmin</h2>
+<input type="text" placeholder="Username"><input type="password" placeholder="Password">
+<button>Log In</button></div>
+<script>fetch('/api/trap',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:location.pathname})}).catch(()=>{});</script>
+</body></html>

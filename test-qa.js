@@ -880,7 +880,7 @@ async function runSuite() {
             originalLogEvent(evt);
         };
 
-        const mockPortscanLine = 'Jun 12 13:56:02 host kernel: [ 1234.56] PORTSCAN: IN=eth0 OUT= MAC=00:11 SRC=192.168.1.100 DST=192.168.1.167 LEN=60 PROTO=TCP SPT=54321 DPT=8080 SYN';
+        const mockPortscanLine = 'Jun 12 13:56:02 host kernel: [ 1234.56] PORTSCAN: IN=eth0 OUT= MAC=00:11 SRC=192.168.1.100 DST=10.0.0.1 LEN=60 PROTO=TCP SPT=54321 DPT=8080 SYN';
         portscan.parsePortscanLine(mockPortscanLine);
 
         if (portscanEventLogged && 

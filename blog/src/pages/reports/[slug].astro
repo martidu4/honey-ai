@@ -1,0 +1,339 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+  const reports = await getCollection('reports');
+  return reports.map(report => ({
+    params: { slug: report.data.date.toISOString().slice(0, 10) },
+    props: { report },
+  }));
+}
+
+const { report } = Astro.props;
+const { Content } = await report.render();
+
+const d = report.data;
+
+function formatDate(dt: Date) {
+  return dt.toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+const severityEmoji: Record<string, string> = {
+  quiet: '😴', low: '🟡', medium: '🟠', high: '🔴', critical: '💀',
+};
+
+const totalIPs = d.cowrie_ips + d.opencanary_ips;
+const hasGalah = d.galah_requests > 0;
+
+const fileEmoji: Record<string, string> = {
+  'wallet.dat': '💰', 'id_rsa': '🔐', 'credentials': '☁️',
+  'passwords.txt': '🔑', '.env': '⚙️', 'password.txt': '🔑',
+  'db_dump': '💾', 'backup.sql': '💾', 'config.json': '📋',
+};
+const fileDesc: Record<string, string> = {
+  'wallet.dat': 'Bitcoin wallet (fake 2.847 BTC)',
+  'id_rsa': 'SSH private key (fake, no passphrase)',
+  'credentials': 'AWS credentials (canarytoken tracked!)',
+  'passwords.txt': 'Production password list (all fake)',
+  '.env': 'Environment secrets (fake DB/Stripe/AWS keys)',
+  'password.txt': 'Password file (fake)',
+  'db_dump': 'Database dump with user records (fake)',
+  'backup.sql': 'SQL backup (fake, includes canarytoken AWS keys)',
+  'config.json': 'App config with credentials (fake)',
+};
+
+function getFileInfo(f: string) {
+  const key = Object.keys(fileEmoji).find(k => f.includes(k)) || '';
+  return { emoji: fileEmoji[key] || '📄', desc: fileDesc[key] || 'Fake honeypot file' };
+}
+
+const serviceNames: Record<number, string> = {
+  22: 'SSH', 23: 'Telnet', 80: 'HTTP', 443: 'HTTPS', 8080: 'HTTP-Alt', 8443: 'HTTPS-Alt'
+};
+---
+
+<BaseLayout
+  title={`${formatDate(d.date)} — Honeypot Daily`}
+  description={`Honeypot report for ${formatDate(d.date)}: ${d.cowrie_connections} SSH connections, ${totalIPs} unique IPs, ${d.abuseipdb_reported} reported to AbuseIPDB.`}
+>
+  <div class="container">
+    <div class="post-header">
+      <div class="meta">
+        <span class="post-date">{formatDate(d.date)}</span>
+        <span class={`severity ${d.severity}`}>{severityEmoji[d.severity]} {d.severity}</span>
+      </div>
+      <h1>Daily Threat Report</h1>
+    </div>
+
+    <!-- STATS GRID -->
+    <div class="stats-grid">
+      <div class="stat-card" data-tooltip="Total TCP connections received on the SSH service in the last 24h">
+        <span class="val">{d.cowrie_connections.toLocaleString()}</span>
+        <span class="lbl">SSH Connections</span>
+      </div>
+      <div class="stat-card" data-tooltip="Credential brute-force attempts — automated user/password combinations tried by attackers">
+        <span class="val red">{d.cowrie_logins.toLocaleString()}</span>
+        <span class="lbl">Login Attempts</span>
+      </div>
+      <div class="stat-card" data-tooltip="Shell commands run by attackers inside the fake SSH environment — fully captured, zero real risk">
+        <span class="val">{d.cowrie_commands}</span>
+        <span class="lbl">Commands Run</span>
+      </div>
+      <div class="stat-card" data-tooltip="Distinct source IPs hitting the SSH service. One IP can generate many connections and attempts">
+        <span class="val">{d.cowrie_ips}</span>
+        <span class="lbl">SSH Unique IPs</span>
+      </div>
+      <div class="stat-card" data-tooltip="Events logged by decoy protocols: probes to fake FTP, HTTP, Telnet, SMTP, Redis and MySQL ports">
+        <span class="val yellow">{d.opencanary_events.toLocaleString()}</span>
+        <span class="lbl">Protocol Events</span>
+      </div>
+      <div class="stat-card" data-tooltip="Unique IPs probing non-SSH services — indicates automated multi-protocol network decoys">
+        <span class="val cyan">{d.opencanary_ips}</span>
+        <span class="lbl">Protocol IPs</span>
+      </div>
+      {hasGalah && (
+        <div class="stat-card" data-tooltip="HTTP requests intercepted by the HTTP Web service — each attacker receives a fake AI-generated response">
+          <span class="val" style="color:var(--purple, #a78bfa)">{d.galah_requests.toLocaleString()}</span>
+          <span class="lbl">Web Hits</span>
+        </div>
+      )}
+      {hasGalah && (
+        <div class="stat-card" data-tooltip="Unique attacker IPs that hit the HTTP Web service">
+          <span class="val" style="color:var(--purple, #a78bfa)">{d.galah_ips}</span>
+          <span class="lbl">Web Service IPs</span>
+        </div>
+      )}
+      {d.backfire_scans > 0 && (
+        <div class="stat-card" data-tooltip="Reverse port scans performed on public attacker IPs (Operation Spine)">
+          <span class="val" style="color:#f43f5e">{d.backfire_scans.toLocaleString()}</span>
+          <span class="lbl">Reverse Scans</span>
+        </div>
+      )}
+      {d.backfire_ips > 0 && (
+        <div class="stat-card" data-tooltip="Unique attacker IPs found with common open ports">
+          <span class="val" style="color:#f43f5e">{d.backfire_ips}</span>
+          <span class="lbl">Scan Hits</span>
+        </div>
+      )}
+    </div>
+
+    <!-- TOP LISTS -->
+    {(d.top_ips.length > 0 || d.top_passwords.length > 0) && (
+    <div class="two-col">
+        {d.top_ips.length > 0 && (
+          <div class="top-list">
+            <h3>Top Attacker IPs</h3>
+            <ol>
+              {d.top_ips.map(ip => (
+                <li>
+                  <span class="ip-flag" data-ip={ip} style="margin-right:0.4rem; font-size:1.1rem;">🌐</span><a href={`https://www.abuseipdb.com/check/${ip}`} target="_blank" rel="noopener noreferrer" data-ip={ip}>
+                    {ip}
+                  </a>
+                  <span style="font-size:0.7rem; color:var(--text-dim); margin-left:auto;">
+                    <a href={`https://bgp.he.net/ip/${ip}`} target="_blank" rel="noopener" style="color:var(--text-dim);">BGP↗</a>
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+        {d.top_passwords.length > 0 ? (
+          <div class="top-list">
+            <h3>Top Passwords Tried</h3>
+            <ol>
+              {d.top_passwords.map(pw => (
+                <li style="font-family:var(--mono); color:var(--red-dim);">{pw}</li>
+              ))}
+            </ol>
+          </div>
+        ) : (
+          <div class="top-list">
+            <h3>Top Passwords Tried</h3>
+            <p style="color: var(--text-dim); font-size: 0.82rem; font-style: italic; margin-top: 0.5rem; font-family: var(--mono);">No credentials tried (0 SSH connections).</p>
+          </div>
+        )}
+      </div>
+    )}
+
+    <!-- GALAH LLM HONEYPOT SECTION -->
+    {hasGalah && (
+      <div style="margin: 2rem 0; border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; background: rgba(167,139,250,0.05);">
+        <h2 style="margin:0 0 1rem; font-size:1rem; color:var(--purple, #a78bfa); font-family:var(--mono); letter-spacing:0.05em;">🌐 WEB HONEYPOT — HoneyAI HTTP</h2>
+        <p style="margin:0 0 1rem; font-size:0.85rem; color:var(--text-dim);">AI-generated fake HTTP responses served to {d.galah_requests} scanner requests from {d.galah_ips} unique IPs (local, offline).</p>
+        <div class="two-col">
+          {d.galah_top_paths.length > 0 && (
+            <div class="top-list">
+              <h3>Top Paths Probed</h3>
+              <ol>
+                {d.galah_top_paths.map(p => (
+                  <li style="font-family:var(--mono); font-size:0.82rem; color:var(--red-dim);">{p}</li>
+                ))}
+              </ol>
+            </div>
+          )}
+          {d.galah_top_agents.length > 0 && (
+            <div class="top-list">
+              <h3>Top User-Agents</h3>
+              <ol>
+                {d.galah_top_agents.map(ua => (
+                  <li style="font-family:var(--mono); font-size:0.75rem; color:var(--text-dim); word-break:break-all;">{ua}</li>
+                ))}
+              </ol>
+            </div>
+          )}
+        </div>
+      </div>
+    )}
+
+    <!-- OPERATION SPINE (REVERSE PORT SCANNING) SECTION -->
+    {d.backfire_scans > 0 && (
+      <div style="margin: 2rem 0; border: 1px solid rgba(244,63,94,0.4); border-radius: 8px; padding: 1.5rem; background: rgba(244,63,94,0.03);">
+        <h2 style="margin:0 0 1rem; font-size:1rem; color:#f43f5e; font-family:var(--mono); letter-spacing:0.05em;">💥 OPERATION SPINE — Reverse Port Scanning</h2>
+        <p style="margin:0 0 1.2rem; font-size:0.85rem; color:var(--text-dim);">
+          Active defense back-profiling: HoneyAI executed **{d.backfire_scans}** reverse port-scans against active attacker IPs. 
+          Out of these, **{d.backfire_ips}** hosts were found with open services.
+        </p>
+        
+        {d.backfire_targets && d.backfire_targets.length > 0 && (
+          <div style="display:flex; flex-direction:column; gap:0.5rem;">
+            <h3 style="font-family:var(--mono); font-size:0.78rem; color:#f43f5e; margin:0 0 0.5rem; text-transform:uppercase; letter-spacing:0.08em;">Discovered Open Ports on Attackers</h3>
+            <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:0.75rem;">
+              {d.backfire_targets.map((target) => (
+                <div style="display:flex; align-items:center; justify-content:between; padding:0.6rem 0.8rem; background:rgba(244,63,94,0.06); border-radius:4px; border:1px solid rgba(244,63,94,0.15); gap: 0.5rem;">
+                  <div style="display:flex; flex-direction:column; gap:0.15rem; min-width: 0; flex: 1;">
+                    <span style="font-family:var(--mono); font-size:0.82rem; color:#fda4af; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                      <span class="ip-flag" data-ip={target.ip} style="margin-right:0.4rem; font-size:1rem;">🌐</span><a href={`https://www.abuseipdb.com/check/${target.ip}`} target="_blank" rel="noopener noreferrer" style="color:#fda4af;">{target.ip}</a>
+                    </span>
+                    {target.rdns && (
+                      <span style="font-size:0.7rem; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title={target.rdns}>
+                        {target.rdns}
+                      </span>
+                    )}
+                    {target.time && (
+                      <span style="font-size:0.64rem; color:var(--text-dim); opacity:0.8;">Scanned at {target.time}</span>
+                    )}
+                  </div>
+                  <div style="display:flex; gap:0.3rem; margin-left:auto;">
+                    {target.ports.map((port: number) => (
+                      <span style="font-size:0.7rem; font-family:var(--mono); background:rgba(244,63,94,0.2); color:#fda4af; padding:0.15rem 0.4rem; border-radius:3px; border:1px solid rgba(244,63,94,0.3);" title={serviceNames[port] || 'Unknown'}>
+                        {port}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    )}
+
+    <!-- THREAT INTEL REPORTING BANNER -->
+    {d.abuseipdb_reported > 0 && (
+      <pre class="terminal" set:html={`<span class="t-comment"># Automatic multi-platform threat intel reporting</span>
+<span class="t-prompt">$</span> <span class="t-cmd">honeypot-report.sh --since 24h</span>
+<span class="t-out">→ ${d.abuseipdb_reported} IPs → AbuseIPDB  (community confidence scores updated)</span>
+<span class="t-out">→ ${d.abuseipdb_reported} IPs → AlienVault OTX  (pulse indicators added)</span>
+<span class="t-out">→ ${d.abuseipdb_reported} IPs → Blocklist.de  (auto-ban list updated)</span>
+<span class="t-out">→ ${d.abuseipdb_reported} IPs → DShield/SANS  (global threat feed updated)</span>`}></pre>
+    )}
+
+    <!-- 🍯 HONEYPOT FILES ACCESSED — what bait files attackers tried to read -->
+    {d.honeypot_files_accessed?.length > 0 && (
+      <div style="margin: 2rem 0; border: 1px solid #ef444466; border-radius: 8px; padding: 1.5rem; background: rgba(239,68,68,0.04);">
+        <h2 style="margin:0 0 0.3rem; font-size:1rem; color:#ef4444; font-family:var(--mono); letter-spacing:0.05em;">🍯 HONEYPOT FILES ACCESSED</h2>
+        <p style="margin:0 0 1.2rem; font-size:0.78rem; color:var(--text-dim);">Bait files attackers tried to read after SSH login. All data is fake — but their intent is very real.</p>
+        <div style="display:flex; flex-direction:column; gap:0.5rem;">
+          {d.honeypot_files_accessed.map((f: string) => {
+            const info = getFileInfo(f);
+            return (
+              <div style="display:flex; align-items:center; gap:0.6rem; padding:0.5rem 0.8rem; background:rgba(239,68,68,0.06); border-radius:4px; border:1px solid #ef444422;">
+                <span style="font-size:1.2rem;">{info.emoji}</span>
+                <div style="flex:1;">
+                  <code style="font-size:0.82rem; color:#fca5a5;">{f}</code>
+                  <div style="font-size:0.7rem; color:var(--text-dim); margin-top:0.15rem;">{info.desc}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <p style="margin:1rem 0 0; font-size:0.72rem; color:var(--text-dim); font-style:italic;">
+          🎣 AWS credentials include a Canarytoken — if anyone uses these keys, we receive an alert with their real IP.
+        </p>
+      </div>
+    )}
+    {(d.funny_passwords?.length > 0 || d.funny_commands?.length > 0) && (
+      <div style="margin: 2rem 0; border: 1px solid #f59e0b44; border-radius: 8px; padding: 1.5rem; background: rgba(245,158,11,0.04);">
+        <h2 style="margin:0 0 0.3rem; font-size:1rem; color:#f59e0b; font-family:var(--mono); letter-spacing:0.05em;">🤣 ATTACKER COMEDY CORNER</h2>
+        <p style="margin:0 0 1.2rem; font-size:0.78rem; color:var(--text-dim);">Real attempts. No actors were harmed in the making of this honeypot.</p>
+        <div class="two-col" style="gap:1.5rem; margin:0;">
+          {d.funny_passwords?.length > 0 && (
+            <div>
+              <h3 style="font-family:var(--mono); font-size:0.78rem; color:#f59e0b; margin:0 0 0.75rem; text-transform:uppercase; letter-spacing:0.08em;">🔑 Hall of Shame — Passwords</h3>
+              <div style="display:flex; flex-direction:column; gap:0.4rem;">
+                {d.funny_passwords.map((pw: string) => (
+                  <div style="display:flex; align-items:center; gap:0.5rem; padding:0.35rem 0.6rem; background:rgba(245,158,11,0.06); border-radius:4px; border:1px solid #f59e0b22;">
+                    <code style="font-size:0.82rem; color:#fcd34d; flex:1;">{pw}</code>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {d.funny_commands?.length > 0 && (
+            <div>
+              <h3 style="font-family:var(--mono); font-size:0.78rem; color:#f59e0b; margin:0 0 0.75rem; text-transform:uppercase; letter-spacing:0.08em;">💻 Commands They Tried</h3>
+              <div style="display:flex; flex-direction:column; gap:0.4rem;">
+                {d.funny_commands.map((cmd: string) => (
+                  <div style="padding:0.35rem 0.6rem; background:rgba(245,158,11,0.06); border-radius:4px; border:1px solid #f59e0b22;">
+                    <code style="font-size:0.78rem; color:#fcd34d; word-break:break-all;">{cmd}</code>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        <p style="margin:1rem 0 0; font-size:0.72rem; color:var(--text-dim); font-style:italic;">
+          These are real credentials and commands attempted by automated scanners and script kiddies. Logged, reported, and immortalized.
+        </p>
+      </div>
+    )}
+
+    <!-- PROSE CONTENT -->
+    <div class="prose" style="margin: 2rem 0 4rem;">
+      <Content />
+    </div>
+
+    <!-- NAV BETWEEN POSTS -->
+    <div style="display:flex; justify-content:space-between; padding: 1.5rem 0; border-top: 1px solid var(--border); margin-bottom: 3rem;">
+      <a href="/reports" style="font-family:var(--mono); font-size:0.82rem; color:var(--text-dim);">← All Reports</a>
+      <a href="/subscribe" style="font-family:var(--mono); font-size:0.82rem; color:var(--green);">🛡️ Subscribe to blocklists →</a>
+    </div>
+  </div>
+</BaseLayout>
+
+<script is:inline>
+(async () => {
+  const flags = document.querySelectorAll('.ip-flag[data-ip]');
+  if (!flags.length) return;
+  const ips = [...new Set([...flags].map(el => el.dataset.ip))];
+  const ccToFlag = cc => cc
+    ? String.fromCodePoint(...[...cc.toUpperCase()].map(c => 0x1F1E6 + c.charCodeAt(0) - 65))
+    : '🌐';
+  try {
+    const res = await fetch('/api/geoip', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(ips)
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    const map = Object.fromEntries(data.map(d => [d.query, d.countryCode]));
+    flags.forEach(el => {
+      const cc = map[el.dataset.ip];
+      el.textContent = ccToFlag(cc);
+      el.title = cc || '';
+    });
+  } catch {}
+})();
+</script>

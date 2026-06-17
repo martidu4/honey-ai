@@ -1,0 +1,81 @@
+---
+export const prerender = true;
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Admin Panel — Login</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#1a1a2e;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:'Segoe UI',Arial,sans-serif}
+  .box{background:#16213e;border:1px solid #0f3460;border-radius:8px;padding:2rem;width:360px}
+  h2{color:#e94560;margin-bottom:1.5rem;font-size:1.1rem;text-align:center}
+  label{color:#8892b0;font-size:0.8rem;display:block;margin-bottom:0.3rem}
+  input{width:100%;padding:0.6rem 0.8rem;margin-bottom:1rem;background:#0f3460;border:1px solid #e94560;border-radius:4px;color:#fff;font-size:0.9rem;outline:none}
+  input:focus{border-color:#4ecca3}
+  button{width:100%;padding:0.7rem;background:#e94560;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:0.9rem;transition:background 0.2s}
+  button:hover{background:#c73e54}
+  .err{color:#e94560;font-size:0.8rem;margin-top:0.5rem;text-align:center;display:none}
+  .success{color:#4ecca3;font-size:0.8rem;margin-top:0.5rem;text-align:center;display:none}
+  .loading{display:none;text-align:center;color:#8892b0;margin-top:0.5rem;font-size:0.8rem}
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid #4ecca3;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;vertical-align:middle;margin-right:6px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .powered{text-align:center;color:#4a4a6a;font-size:0.65rem;margin-top:1.2rem}
+</style>
+</head>
+<body>
+<div class="box">
+  <h2>🔐 Administrator Login</h2>
+  <label for="u">Username</label>
+  <input type="text" id="u" placeholder="admin" autocomplete="off">
+  <label for="p">Password</label>
+  <input type="password" id="p" placeholder="••••••••" onkeydown="if(event.key==='Enter')attempt()">
+  <button id="btn" onclick="attempt()">Sign In</button>
+  <p class="err" id="err">Invalid credentials. Access denied.</p>
+  <p class="success" id="suc">✓ Authentication successful. Redirecting...</p>
+  <p class="loading" id="load"><span class="spinner"></span>Verifying credentials...</p>
+  <p class="powered">Powered by HoneyAI Admin v2.4.1</p>
+</div>
+<script>
+// Beacon on page load — attacker found admin page
+fetch('/api/trap',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:'/admin'})}).catch(()=>{});
+
+let attempts = parseInt(sessionStorage.getItem('adm_att') || '0');
+
+function attempt(){
+  const u = document.getElementById('u').value;
+  const p = document.getElementById('p').value;
+  attempts++;
+  sessionStorage.setItem('adm_att', attempts);
+
+  // Report every attempt with captured credentials
+  fetch('/api/trap',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    path:'/admin:login_attempt',
+    extra: `attempt=${attempts} user=${u} pass=${p}`
+  })}).catch(()=>{});
+
+  document.getElementById('err').style.display='none';
+  document.getElementById('suc').style.display='none';
+  document.getElementById('load').style.display='block';
+  document.getElementById('btn').disabled=true;
+
+  // After 3 attempts: "accept" the login → redirect to fake dashboard
+  setTimeout(()=>{
+    document.getElementById('load').style.display='none';
+    if(attempts >= 3){
+      document.getElementById('suc').style.display='block';
+      fetch('/api/trap',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+        path:'/admin:login_success_fake',
+        extra: `user=${u} pass=${p} (TRAPPED — redirecting to fake dashboard)`
+      })}).catch(()=>{});
+      setTimeout(()=>{ window.location.href='/admin/dashboard'; },1800);
+    } else {
+      document.getElementById('err').style.display='block';
+      document.getElementById('btn').disabled=false;
+    }
+  }, 1500 + Math.random()*1000);
+}
+</script>
+</body>
+</html>

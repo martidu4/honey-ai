@@ -200,6 +200,7 @@ honey-ai/
 │   ├── backfire.js         # Reverse scanning of attacker IPs
 │   ├── downloader.js       # Malware sample collector (SSRF-protected)
 │   ├── fileReader.js       # HoneyFS virtual filesystem reader
+│   ├── utils.js            # Security primitives (normalizeIP, safeRegexMatch)
 │   └── jitter.js           # Timing randomizer for realistic delays
 ├── protocols/
 │   ├── http.js             # HTTP honeypot (replaces Galah)
@@ -208,14 +209,31 @@ honey-ai/
 │   ├── httpproxy.js        # HTTP/HTTPS proxy honeypot (fake Squid)
 │   ├── mssql.js            # MSSQL TDS protocol honeypot
 │   ├── snmp.js             # SNMP v1/v2c UDP agent honeypot
+│   ├── mcp.js              # MCP decoy server (traps AI assistants)
 │   ├── samba.js            # Samba log-tail based detection
 │   └── portscan.js         # Portscan detection via syslog
+├── data/
+│   ├── ssh-responses.json  # Static SSH command→response dataset
+│   └── fake-filesystem.json # Virtual filesystem structure
 ├── honeyfs/                # 🎣 Canary filesystem — attackers see these files
 │   ├── etc/                # Fake /etc/passwd, shadow, group, hostname
 │   ├── home/               # Fake crypto wallets, credential files
 │   ├── opt/                # Fake docker-compose, .env, terraform, k8s secrets
 │   └── root/               # Fake .aws/credentials, .ssh/id_rsa, passwords.txt
-└── test-qa.js              # Full test suite (119 tests)
+├── blog/                   # 📰 Threat Intelligence Blog (Astro SSG)
+│   ├── src/                # Astro pages, layouts, content
+│   ├── public/             # Static assets + canary traps (.env, backup.sql)
+│   ├── api/                # Serverless endpoints (Vercel)
+│   └── scripts/            # Auto-publishing pipeline
+│       ├── honeypot-publish.sh   # Collects daily stats → Markdown report
+│       ├── honeypot-blog-ai.sh   # AI analysis via local LLM (Ollama)
+│       ├── honeypot-report.sh    # Summary → Telegram notification
+│       └── honeypot-graduate.sh  # IP graduation to permanent blocklist
+├── scripts/
+│   └── self-test.js        # Regression test suite (160 tests)
+├── dashboard/
+│   └── index.html          # Built-in management dashboard
+└── test-qa.js              # QA test suite
 ```
 
 ---
@@ -388,8 +406,11 @@ Sign up for free tiers:
 ## Running Tests
 
 ```bash
-# Run full test suite (119 tests — all offline, no Ollama needed)
+# Run full test suite (160 tests — all offline, no Ollama needed)
 node test-qa.js
+
+# Run security regression suite
+node scripts/self-test.js
 
 # Run stress test against a running instance
 HONEYAI_HOST=127.0.0.1 node test-stress.js
@@ -436,19 +457,33 @@ The `honey-ai.service` file includes aggressive sandboxing:
 
 ---
 
-## 📡 Live Threat Feed
+## 📡 Live Threat Feed & Blog
 
 HoneyAI powers a **public threat intelligence blog** with daily auto-generated reports:
 
 ### 🔗 [honey-ai.dev](https://honey-ai.dev)
 
-Every night, a pipeline automatically:
-1. **Collects** the day's attack data from all 17 protocols + passive detectors
-2. **Analyzes** attacker behavior, TTY sessions, and malware captures
-3. **Generates** a threat report using a local LLM (Ollama)
-4. **Publishes** to the blog — zero manual intervention
+The blog source code is **included in this repo** under `blog/` — fork it, deploy it to Vercel/Netlify, and have your own auto-publishing threat feed.
 
-Each report includes:
+#### How the Pipeline Works
+
+Every night, 4 scripts run in sequence via cron:
+
+```bash
+# 1. Collect the day's attack data from all protocols
+blog/scripts/honeypot-publish.sh
+
+# 2. Analyze with local LLM and generate blog post
+blog/scripts/honeypot-blog-ai.sh
+
+# 3. Send summary to Telegram
+blog/scripts/honeypot-report.sh
+
+# 4. Graduate repeat offenders to permanent blocklist
+blog/scripts/honeypot-graduate.sh
+```
+
+Each daily report includes:
 - 🌍 Geographic origin analysis (GeoIP)
 - 🔑 SSH brute-force password trends
 - 🕵️ Post-exploitation behavior (real attacker TTY sessions)
@@ -458,6 +493,17 @@ Each report includes:
 - 🤖 MCP agent trap activity (compromised AI assistants probing decoy tools)
 - 🔍 Port scan intelligence and protocol-level traffic breakdown
 - 🛡️ AI defense stats (prompt injection blocks, identity leak prevention)
+
+#### Deploy Your Own Blog
+
+```bash
+cd blog
+pnpm install
+pnpm dev          # Local preview at localhost:4321
+vercel deploy     # Or deploy to your own domain
+```
+
+> **Note:** The `blog/public/` directory contains **canary trap files** (`.env`, `backup.sql`, `config.json`) with fake credentials — these are intentional honeypot files, not real secrets.
 
 > **Want to see HoneyAI in action before deploying?** Browse the daily reports to see what a Raspberry Pi 5 catches from real-world attackers.
 

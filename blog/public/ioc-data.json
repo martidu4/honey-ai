@@ -1,0 +1,13 @@
+{
+  "feed": "OpenClaw Threat Intelligence",
+  "version": "1.0",
+  "generated": "2026-05-12T16:00",
+  "source": "honey-ai.dev",
+  "license": "CC-BY-SA-4.0",
+  "note": "This file is auto-updated from the Pi5 collector via the ioc-sync script",
+  "indicators": [],
+  "stats": {},
+  "geo_summary": [],
+  "cve_detections": [],
+  "mitre_tactics": []
+}

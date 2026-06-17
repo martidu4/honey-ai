@@ -1,0 +1,8 @@
+{
+  "total_reported": 4000,
+  "total_banned": 60409,
+  "otx_pulses": 68,
+  "otx_indicators": 4000,
+  "generated": "2026-04-24T22:00:00Z",
+  "note": "Auto-updated daily by honeypot-publish.sh on Pi 5"
+}

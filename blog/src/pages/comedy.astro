@@ -1,0 +1,162 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const reports = (await getCollection('reports'))
+  .sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime());
+
+// Aggregate all-time funny passwords with frequency count
+const passCount: Record<string, number> = {};
+for (const r of reports) {
+  for (const pw of (r.data.funny_passwords || [])) {
+    passCount[pw] = (passCount[pw] || 0) + 1;
+  }
+}
+const allPasswords = Object.entries(passCount).sort((a, b) => b[1] - a[1]);
+
+// Aggregate all-time funny commands with frequency count
+const cmdCount: Record<string, number> = {};
+for (const r of reports) {
+  for (const cmd of (r.data.funny_commands || [])) {
+    cmdCount[cmd] = (cmdCount[cmd] || 0) + 1;
+  }
+}
+const allCommands = Object.entries(cmdCount).sort((a, b) => b[1] - a[1]);
+
+// Total stats
+const totalFunnyPasswords = Object.values(passCount).reduce((s, n) => s + n, 0);
+const totalFunnyCommands = Object.values(cmdCount).reduce((s, n) => s + n, 0);
+const reportsWithComedy = reports.filter(r => (r.data.funny_passwords?.length || 0) > 0).length;
+
+// Password categories for fun tagging
+function tagPassword(pw: string): string {
+  const pl = pw.toLowerCase();
+  if (/fuck|shit|ass|damn|bitch|cunt|dick|pussy|cock/.test(pl)) return '🤬 Angry';
+  if (/iloveyou|ilovemywife|ilovegod/.test(pl)) return '💕 Romantic';
+  if (/letmein|opensesame|openup|pleaselete/.test(pl)) return '🙏 Polite';
+  if (/verysecure|supersecure|unhackable|unbreakable/.test(pl)) return '😅 Overconfident';
+  if (/qwerty|azerty|1q2w3e|zxcvbn/.test(pl)) return '⌨️ Keyboard Walk';
+  if (/admin|root|ubnt|huawei|dlink|tplink/.test(pl)) return '📦 Default Creds';
+  if (/^\d+$/.test(pl)) return '🔢 Numbers Only';
+  if (/^(.)\1{4,}$/.test(pl)) return '🔁 Repeated Chars';
+  return '😶 Generic';
+}
+---
+
+<BaseLayout
+  title="Attacker Comedy Corner — Honeypot Daily"
+  description="Hall of shame: the funniest, most desperate, and most delusional passwords and commands tried by real attackers on our honeypot."
+>
+  <div class="container">
+
+    <div class="post-header">
+      <div class="meta">
+        <span class="post-date">All time</span>
+        <span class="severity high">🤣 hall of shame</span>
+      </div>
+      <h1>Attacker Comedy Corner</h1>
+      <p style="color:var(--text-dim); font-size:0.9rem; max-width:600px; margin-top:0.5rem;">
+        Real passwords and commands attempted by automated scanners and script kiddies.
+        Every entry below is a genuine attempt captured by the honeypot. No fiction.
+      </p>
+    </div>
+
+    <!-- SUMMARY STATS -->
+    <div class="stats-grid" style="margin-bottom:2rem;">
+      <div class="stat-card">
+        <span class="val" style="color:#f59e0b;">{allPasswords.length}</span>
+        <span class="lbl">Unique Funny Passwords</span>
+      </div>
+      <div class="stat-card">
+        <span class="val" style="color:#f59e0b;">{totalFunnyPasswords}</span>
+        <span class="lbl">Total Attempts</span>
+      </div>
+      <div class="stat-card">
+        <span class="val" style="color:#f59e0b;">{allCommands.length}</span>
+        <span class="lbl">Noteworthy Commands</span>
+      </div>
+      <div class="stat-card">
+        <span class="val" style="color:#f59e0b;">{reportsWithComedy}</span>
+        <span class="lbl">Days with Comedy Data</span>
+      </div>
+    </div>
+
+    <!-- PASSWORD HALL OF SHAME -->
+    {allPasswords.length > 0 ? (
+      <div style="margin-bottom:3rem;">
+        <h2 style="font-family:var(--mono); font-size:1rem; color:#f59e0b; letter-spacing:0.05em; margin-bottom:1.2rem;">
+          🔑 PASSWORD HALL OF SHAME
+        </h2>
+        <div style="display:flex; flex-direction:column; gap:0.5rem;">
+          {allPasswords.map(([pw, count], i) => (
+            <div style="display:flex; align-items:center; gap:1rem; padding:0.6rem 1rem; background:rgba(245,158,11,0.04); border:1px solid #f59e0b22; border-radius:6px; transition:background 0.15s;">
+              <span style="font-family:var(--mono); font-size:0.75rem; color:var(--text-dim); width:1.5rem; text-align:right; flex-shrink:0;">#{i+1}</span>
+              <code style="color:#fcd34d; font-size:0.9rem; flex:1;">{pw}</code>
+              <span style="font-size:0.72rem; padding:0.2rem 0.5rem; border-radius:12px; background:rgba(245,158,11,0.1); color:#f59e0b; white-space:nowrap;">{tagPassword(pw)}</span>
+              {count > 1 && (
+                <span style="font-size:0.72rem; color:var(--text-dim); white-space:nowrap;">×{count} days</span>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    ) : (
+      <div style="margin-bottom:3rem; padding:2rem; border:1px dashed #f59e0b44; border-radius:8px; text-align:center;">
+        <p style="color:var(--text-dim); font-size:0.9rem; margin:0;">No comedy data yet — check back after the first few nights of honeypot activity.</p>
+      </div>
+    )}
+
+    <!-- COMMAND HALL OF SHAME -->
+    {allCommands.length > 0 && (
+      <div style="margin-bottom:3rem;">
+        <h2 style="font-family:var(--mono); font-size:1rem; color:#f59e0b; letter-spacing:0.05em; margin-bottom:1.2rem;">
+          💻 COMMANDS THEY ACTUALLY RAN
+        </h2>
+        <p style="font-size:0.8rem; color:var(--text-dim); margin-bottom:1rem;">
+          Run against a fake shell. The attacker thought they were in. They were not.
+        </p>
+        <div style="display:flex; flex-direction:column; gap:0.5rem;">
+          {allCommands.map(([cmd, count], i) => (
+            <div style="padding:0.7rem 1rem; background:rgba(245,158,11,0.04); border:1px solid #f59e0b22; border-radius:6px;">
+              <div style="display:flex; align-items:flex-start; gap:1rem;">
+                <span style="font-family:var(--mono); font-size:0.75rem; color:var(--text-dim); width:1.5rem; flex-shrink:0; padding-top:0.1rem;">#{i+1}</span>
+                <code style="color:#fcd34d; font-size:0.82rem; word-break:break-all; flex:1;">{cmd}</code>
+                {count > 1 && (
+                  <span style="font-size:0.72rem; color:var(--text-dim); white-space:nowrap; flex-shrink:0;">×{count} days</span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    <!-- BY DAY -->
+    {reportsWithComedy > 0 && (
+      <div style="margin-bottom:3rem;">
+        <h2 style="font-family:var(--mono); font-size:1rem; color:#f59e0b; letter-spacing:0.05em; margin-bottom:1.2rem;">
+          📅 COMEDY BY DAY
+        </h2>
+        <div style="display:flex; flex-direction:column; gap:0.75rem;">
+          {reports.filter(r => (r.data.funny_passwords?.length || 0) > 0 || (r.data.funny_commands?.length || 0) > 0).map(r => (
+            <a href={`/reports/${r.data.date.toISOString().slice(0,10)}`}
+               style="display:flex; align-items:center; justify-content:space-between; padding:0.75rem 1rem; background:rgba(245,158,11,0.04); border:1px solid #f59e0b22; border-radius:6px; text-decoration:none; color:inherit;">
+              <span style="font-family:var(--mono); font-size:0.85rem; color:var(--text-dim);">
+                {r.data.date.toISOString().slice(0,10)}
+              </span>
+              <span style="font-size:0.78rem; color:#f59e0b;">
+                {r.data.funny_passwords?.length || 0} passwords · {r.data.funny_commands?.length || 0} commands →
+              </span>
+            </a>
+          ))}
+        </div>
+      </div>
+    )}
+
+    <div style="padding:1.5rem 0; border-top:1px solid var(--border); font-size:0.78rem; color:var(--text-dim); font-style:italic;">
+      All data is real. IPs have been reported to AbuseIPDB, Blocklist.de, SANS DShield, and AlienVault OTX.
+      The attackers remain unaware they were in a fake shell powered by a Raspberry Pi 5.
+    </div>
+
+  </div>
+</BaseLayout>

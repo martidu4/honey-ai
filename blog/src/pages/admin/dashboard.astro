@@ -1,0 +1,132 @@
+---
+export const prerender = true;
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Admin Dashboard — HoneyAI</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#0f0f23;color:#c9d1d9;font-family:'Segoe UI',Arial,sans-serif;min-height:100vh}
+  .topbar{background:#161b22;border-bottom:1px solid #30363d;padding:0.8rem 1.5rem;display:flex;justify-content:space-between;align-items:center}
+  .topbar h1{color:#58a6ff;font-size:1rem;display:flex;align-items:center;gap:0.5rem}
+  .topbar .user{color:#8b949e;font-size:0.85rem}
+  .topbar .logout{color:#f85149;font-size:0.8rem;cursor:pointer;text-decoration:underline}
+  .sidebar{position:fixed;left:0;top:48px;bottom:0;width:220px;background:#161b22;border-right:1px solid #30363d;padding-top:1rem}
+  .sidebar a{display:block;padding:0.6rem 1.2rem;color:#8b949e;text-decoration:none;font-size:0.85rem;border-left:3px solid transparent;transition:all 0.2s}
+  .sidebar a:hover,.sidebar a.active{color:#c9d1d9;background:#1c2128;border-left-color:#58a6ff}
+  .sidebar a span{margin-right:0.6rem}
+  .main{margin-left:220px;padding:1.5rem 2rem;margin-top:48px}
+  .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:2rem}
+  .card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:1.2rem}
+  .card .label{color:#8b949e;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.5px}
+  .card .value{font-size:1.8rem;font-weight:700;margin-top:0.3rem}
+  .card.green .value{color:#3fb950}
+  .card.blue .value{color:#58a6ff}
+  .card.red .value{color:#f85149}
+  .card.yellow .value{color:#d29922}
+  table{width:100%;border-collapse:collapse;background:#161b22;border:1px solid #30363d;border-radius:8px;overflow:hidden}
+  th{background:#1c2128;color:#8b949e;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.5px;padding:0.8rem 1rem;text-align:left}
+  td{padding:0.7rem 1rem;border-top:1px solid #21262d;font-size:0.85rem}
+  .badge{display:inline-block;padding:0.15rem 0.5rem;border-radius:99px;font-size:0.7rem;font-weight:600}
+  .badge.admin{background:#3fb95033;color:#3fb950}
+  .badge.user{background:#58a6ff33;color:#58a6ff}
+  .badge.active{background:#3fb95033;color:#3fb950}
+  .badge.suspended{background:#f8514933;color:#f85149}
+  h2{font-size:1rem;color:#c9d1d9;margin-bottom:1rem;display:flex;align-items:center;gap:0.5rem}
+  .section{margin-bottom:2rem}
+  .api-key{font-family:monospace;font-size:0.8rem;color:#d29922;background:#d2992215;padding:0.2rem 0.4rem;border-radius:3px}
+  @media(max-width:900px){
+    .cards{grid-template-columns:repeat(2,1fr)}
+    .sidebar{display:none}
+    .main{margin-left:0}
+  }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>🖥️ HoneyAI Admin</h1>
+  <div style="display:flex;align-items:center;gap:1rem">
+    <span class="user">👤 admin</span>
+    <span class="logout" onclick="beacon('logout_click')">Logout</span>
+  </div>
+</div>
+
+<div class="sidebar">
+  <a class="active" href="#" onclick="beacon('nav_dashboard')"><span>📊</span> Dashboard</a>
+  <a href="#" onclick="beacon('nav_users')"><span>👥</span> Users</a>
+  <a href="#" onclick="beacon('nav_api_keys')"><span>🔑</span> API Keys</a>
+  <a href="#" onclick="beacon('nav_database')"><span>💾</span> Database</a>
+  <a href="#" onclick="beacon('nav_honeypots')"><span>🍯</span> Honeypots</a>
+  <a href="#" onclick="beacon('nav_logs')"><span>📋</span> System Logs</a>
+  <a href="#" onclick="beacon('nav_settings')"><span>⚙️</span> Settings</a>
+  <a href="#" onclick="beacon('nav_backups')"><span>💿</span> Backups</a>
+  <a href="#" onclick="beacon('nav_ssh')"><span>🔒</span> SSH Sessions</a>
+</div>
+
+<div class="main">
+  <div class="cards">
+    <div class="card green"><div class="label">Active Users</div><div class="value">4</div></div>
+    <div class="card blue"><div class="label">API Requests (24h)</div><div class="value">12,847</div></div>
+    <div class="card red"><div class="label">Blocked Attacks</div><div class="value">16,523</div></div>
+    <div class="card yellow"><div class="label">Disk Usage</div><div class="value">73%</div></div>
+  </div>
+
+  <div class="section">
+    <h2>👥 User Management</h2>
+    <table>
+      <tr><th>ID</th><th>Username</th><th>Email</th><th>Role</th><th>Status</th><th>Last Login</th></tr>
+      <tr onclick="beacon('click_user_admin')"><td>1</td><td>admin</td><td>admin@honeypot.internal</td><td><span class="badge admin">superadmin</span></td><td><span class="badge active">active</span></td><td>2026-05-06 15:10</td></tr>
+      <tr onclick="beacon('click_user_devops')"><td>2</td><td>j.chen</td><td>jchen@honeypot.internal</td><td><span class="badge admin">admin</span></td><td><span class="badge active">active</span></td><td>2026-05-06 14:30</td></tr>
+      <tr onclick="beacon('click_user_analyst')"><td>3</td><td>analyst1</td><td>analyst@securenet.io</td><td><span class="badge user">analyst</span></td><td><span class="badge active">active</span></td><td>2026-05-04 09:15</td></tr>
+      <tr onclick="beacon('click_user_bot')"><td>4</td><td>viewer_bot</td><td>bot@honeypot.internal</td><td><span class="badge user">viewer</span></td><td><span class="badge suspended">suspended</span></td><td>Never</td></tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>🔑 API Keys</h2>
+    <table>
+      <tr><th>Service</th><th>Key</th><th>Owner</th><th>Created</th></tr>
+      <tr onclick="beacon('click_key_aws')"><td>AWS Production</td><td><span class="api-key">AKIA3J3UHE32MVZOUVYX</span></td><td>admin</td><td>2026-01-20</td></tr>
+      <tr onclick="beacon('click_key_stripe')"><td>Stripe Live</td><td><span class="api-key">sk_live_51abc123def456ghi789</span></td><td>admin</td><td>2026-01-20</td></tr>
+      <tr onclick="beacon('click_key_sendgrid')"><td>SendGrid</td><td><span class="api-key">SG.fake1234567890.abcdef</span></td><td>admin</td><td>2026-02-10</td></tr>
+      <tr onclick="beacon('click_key_abuse')"><td>AbuseIPDB</td><td><span class="api-key">c971960fakefake...</span></td><td>j.chen</td><td>2026-03-01</td></tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>🍯 Honeypot Status</h2>
+    <table>
+      <tr><th>Service</th><th>Port</th><th>Status</th><th>Hits (24h)</th></tr>
+      <tr onclick="beacon('click_hp_cowrie')"><td>HoneyAI SSH</td><td>2222</td><td><span class="badge active">running</span></td><td>342</td></tr>
+      <tr onclick="beacon('click_hp_galah')"><td>HoneyAI HTTP</td><td>888</td><td><span class="badge active">running</span></td><td>127</td></tr>
+      <tr onclick="beacon('click_hp_endlessh')"><td>HoneyAI Tarpit</td><td>2224</td><td><span class="badge active">running</span></td><td>89</td></tr>
+      <tr onclick="beacon('click_hp_opencanary')"><td>HoneyAI Multi-Protocol</td><td>21,23,3306,5900,6379</td><td><span class="badge active">running</span></td><td>456</td></tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>💾 Recent Backups</h2>
+    <table>
+      <tr><th>Date</th><th>Type</th><th>Size</th><th>Status</th></tr>
+      <tr><td>2026-05-06 04:00</td><td>Daily</td><td>970 MB</td><td><span class="badge active">OK</span></td></tr>
+      <tr><td>2026-05-05 04:00</td><td>Daily</td><td>965 MB</td><td><span class="badge active">OK</span></td></tr>
+      <tr><td>2026-05-04 04:00</td><td>Weekly</td><td>968 MB</td><td><span class="badge active">OK</span></td></tr>
+    </table>
+  </div>
+</div>
+
+<script is:inline>
+// Beacon on page load — attacker reached fake dashboard
+fetch('/api/trap',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:'/admin/dashboard'})}).catch(()=>{});
+
+function beacon(action) {
+  fetch('/api/trap',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    path: `/admin/dashboard:${action}`,
+    extra: `Attacker clicked: ${action} in fake admin panel`
+  })}).catch(()=>{});
+}
+</script>
+</body>
+</html>

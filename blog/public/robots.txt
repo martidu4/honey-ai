@@ -1,0 +1,20 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/dashboard
+Disallow: /wp-admin
+Disallow: /phpmyadmin
+Disallow: /cpanel
+Disallow: /login
+Disallow: /.env
+Disallow: /config.json
+Disallow: /backup.sql
+Disallow: /api/
+Disallow: /api/v1/users
+Disallow: /api/v1/config
+Disallow: /api/v1/export
+Disallow: /.git/
+Disallow: /internal-report.pdf
+Disallow: /sitemap-private.xml
+
+Sitemap: https://honey-ai.dev/sitemap-index.xml

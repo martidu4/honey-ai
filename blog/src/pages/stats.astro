@@ -1,0 +1,496 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const reports = (await getCollection('reports'))
+  .sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime())
+  .slice(0, 14); // últimos 14 días
+
+// Preparar datos para los charts
+const chartDates   = reports.map(r => r.data.date).reverse();
+const chartSSH     = reports.map(r => r.data.cowrie_connections).reverse();
+const chartIPs     = reports.map(r => r.data.cowrie_ips).reverse();
+const chartLogins  = reports.map(r => r.data.cowrie_logins).reverse();
+
+// Top passwords acumuladas
+const passCount: Record<string, number> = {};
+for (const r of reports) {
+  for (const pw of (r.data.top_passwords || [])) {
+    passCount[pw] = (passCount[pw] || 0) + 1;
+  }
+}
+const topPasswords = Object.entries(passCount).sort((a,b) => b[1]-a[1]).slice(0,10);
+
+// Totales
+const totalConns   = reports.reduce((s, r) => s + (r.data.cowrie_connections || 0), 0);
+const totalLogins  = reports.reduce((s, r) => s + (r.data.cowrie_logins || 0), 0);
+const totalCmds    = reports.reduce((s, r) => s + (r.data.cowrie_commands || 0), 0);
+const uniqueIPs    = new Set(reports.flatMap(r => r.data.top_ips || [])).size;
+
+// Severidad por día
+const severityColors: Record<string, string> = {
+  quiet:    '#334155',
+  low:      '#22d3ee',
+  medium:   '#f59e0b',
+  high:     '#f97316',
+  critical: '#ef4444',
+};
+const barColors = reports.map(r => severityColors[r.data.severity] || '#334155').reverse();
+
+const jsonDates    = JSON.stringify(chartDates);
+const jsonSSH      = JSON.stringify(chartSSH);
+const jsonLogins   = JSON.stringify(chartLogins);
+const jsonIPs      = JSON.stringify(chartIPs);
+const jsonColors   = JSON.stringify(barColors);
+const jsonPassLabels = JSON.stringify(topPasswords.map(([pw]) => pw || '(empty)'));
+const jsonPassData   = JSON.stringify(topPasswords.map(([,n]) => n));
+
+// Galah data
+const totalGalahReqs = reports.reduce((s, r) => s + (r.data.galah_requests || 0), 0);
+const totalGalahIPs  = new Set(reports.flatMap(r => r.data.galah_top_paths || [])).size; // proxy count
+const chartGalah     = reports.map(r => r.data.galah_requests || 0).reverse();
+const jsonGalah      = JSON.stringify(chartGalah);
+
+// Top paths acumulados de Galah
+const pathCount: Record<string, number> = {};
+for (const r of reports) {
+  for (const p of (r.data.galah_top_paths || [])) {
+    pathCount[p] = (pathCount[p] || 0) + 1;
+  }
+}
+const topPaths = Object.entries(pathCount).sort((a,b) => b[1]-a[1]).slice(0, 8);
+const jsonPathLabels = JSON.stringify(topPaths.map(([p]) => p));
+const jsonPathData   = JSON.stringify(topPaths.map(([,n]) => n));
+
+// Cowrie top commands (agregados)
+const cmdCount: Record<string, number> = {};
+for (const r of reports) {
+  for (const c of (r.data.top_commands || [])) {
+    cmdCount[c] = (cmdCount[c] || 0) + 1;
+  }
+}
+const topCommands = Object.entries(cmdCount).sort((a,b) => b[1]-a[1]).slice(0, 8);
+const jsonCmdLabels = JSON.stringify(topCommands.map(([c]) => c));
+const jsonCmdData   = JSON.stringify(topCommands.map(([,n]) => n));
+
+// Totales de Backfire
+const totalBackfireScans = reports.reduce((s, r) => s + (r.data.backfire_scans || 0), 0);
+const totalBackfireIPs   = reports.reduce((s, r) => s + (r.data.backfire_ips || 0), 0);
+
+// Top attacker open ports (agregados)
+const backfirePortCount: Record<string, number> = {};
+for (const r of reports) {
+  for (const item of (r.data.backfire_ports_tally || [])) {
+    const portStr = String(item.port);
+    backfirePortCount[portStr] = (backfirePortCount[portStr] || 0) + item.count;
+  }
+}
+const topBackfirePorts = Object.entries(backfirePortCount).sort((a,b) => b[1]-a[1]);
+const jsonBackfirePortLabels = JSON.stringify(topBackfirePorts.map(([port]) => `Port ${port}`));
+const jsonBackfirePortData   = JSON.stringify(topBackfirePorts.map(([,n]) => n));
+---
+
+<BaseLayout title="Attack Stats — Honeypot Daily" description="Live statistics from the SSH honeypot network — connection trends, top attacker IPs, most used passwords.">
+
+<style>
+  .stats-hero {
+    text-align: center;
+    padding: 3rem 1rem 2rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .stats-hero h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); margin-bottom: 0.5rem; }
+  .stats-hero p  { color: var(--text-dim); max-width: 520px; margin: 0 auto; }
+
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+    padding: 2rem 1rem;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.2rem 1rem;
+    text-align: center;
+  }
+  .kpi .val {
+    font-size: 2rem;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent);
+    display: block;
+  }
+  .kpi .lbl {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 0.25rem;
+  }
+
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 1rem 1rem 2rem;
+  }
+  @media (max-width: 720px) { .charts-grid { grid-template-columns: 1fr; } }
+
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+  }
+  .chart-card.wide { grid-column: 1 / -1; }
+  .chart-card h3 {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    margin-bottom: 1rem;
+  }
+  .chart-card canvas { max-height: 280px; }
+
+  .powered {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--text-dim);
+    font-size: 0.75rem;
+    border-top: 1px solid var(--border);
+  }
+  .sensor-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 0.25rem 0.8rem;
+    font-size: 0.72rem;
+    margin: 0.25rem;
+    color: var(--text-dim);
+  }
+  .sensor-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; animation: blink 1.5s ease-in-out infinite; }
+</style>
+
+<div class="stats-hero">
+  <h1>📊 Attack Statistics</h1>
+  <p>Last {reports.length} days of live threat data from the honeypot network — SSH, web probes, and credential stuffing attacks.</p>
+  <div style="margin-top:1.2rem; max-width: 800px; margin-left: auto; margin-right: auto; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem;">
+    <span class="sensor-badge"><span class="dot"></span> SSH (22)</span>
+    <span class="sensor-badge"><span class="dot"></span> HTTP (80/443)</span>
+    <span class="sensor-badge"><span class="dot"></span> Tarpit (222)</span>
+    <span class="sensor-badge"><span class="dot"></span> FTP (21)</span>
+    <span class="sensor-badge"><span class="dot"></span> Telnet (23)</span>
+    <span class="sensor-badge"><span class="dot"></span> SMTP (25)</span>
+    <span class="sensor-badge"><span class="dot"></span> MySQL (3306)</span>
+    <span class="sensor-badge"><span class="dot"></span> Redis (6379)</span>
+    <span class="sensor-badge"><span class="dot"></span> Git (9418)</span>
+    <span class="sensor-badge"><span class="dot"></span> VNC (5900)</span>
+    <span class="sensor-badge"><span class="dot"></span> RDP (3389)</span>
+  </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="kpi-grid">
+  <div class="kpi">
+    <span class="val">{totalConns.toLocaleString()}</span>
+    <span class="lbl">SSH connections</span>
+  </div>
+  <div class="kpi">
+    <span class="val">{totalLogins.toLocaleString()}</span>
+    <span class="lbl">Login attempts</span>
+  </div>
+  <div class="kpi">
+    <span class="val">{totalCmds.toLocaleString()}</span>
+    <span class="lbl">Commands captured</span>
+  </div>
+  <div class="kpi">
+    <span class="val">{reports.length}</span>
+    <span class="lbl">Days monitored</span>
+  </div>
+  {totalGalahReqs > 0 && (
+    <div class="kpi" style="border-color: rgba(167,139,250,0.4); background: rgba(167,139,250,0.05);">
+      <span class="val" style="color:#a78bfa">{totalGalahReqs.toLocaleString()}</span>
+      <span class="lbl">Web Hits</span>
+    </div>
+  )}
+  {totalBackfireScans > 0 && (
+    <div class="kpi" style="border-color: rgba(244,63,94,0.4); background: rgba(244,63,94,0.05);">
+      <span class="val" style="color:#f43f5e">{totalBackfireScans.toLocaleString()}</span>
+      <span class="lbl">Reverse Scans</span>
+    </div>
+  )}
+</div>
+
+<!-- Charts -->
+<div class="charts-grid">
+  <!-- SSH connections over time -->
+  <div class="chart-card wide">
+    <h3>🔌 SSH Connections — Last {reports.length} days</h3>
+    <canvas id="chart-ssh"></canvas>
+  </div>
+
+  <!-- Login attempts -->
+  <div class="chart-card">
+    <h3>🔐 Login attempts per day</h3>
+    <canvas id="chart-logins"></canvas>
+  </div>
+
+  <!-- Unique IPs -->
+  <div class="chart-card">
+    <h3>🌍 Unique attacking IPs per day</h3>
+    <canvas id="chart-ips"></canvas>
+  </div>
+
+  <!-- Top passwords -->
+  <div class="chart-card wide">
+    <h3>🔑 Most used passwords (last {reports.length} days)</h3>
+    <canvas id="chart-passwords"></canvas>
+  </div>
+
+  <!-- Galah HTTP hits -->
+  {totalGalahReqs > 0 && (
+    <div class="chart-card wide">
+      <h3>🌐 HTTP Hits per day</h3>
+      <canvas id="chart-galah"></canvas>
+    </div>
+  )}
+
+  <!-- Top paths (Galah) -->
+  {topPaths.length > 0 && (
+    <div class="chart-card">
+      <h3>🎯 Most probed HTTP paths</h3>
+      <canvas id="chart-paths"></canvas>
+    </div>
+  )}
+
+  <!-- Top SSH commands -->
+  {topCommands.length > 0 && (
+    <div class="chart-card">
+      <h3>💻 Top SSH commands run by attackers</h3>
+      <canvas id="chart-cmds"></canvas>
+    </div>
+  )}
+
+  <!-- Top attacker open ports -->
+  {topBackfirePorts.length > 0 && (
+    <div class="chart-card">
+      <h3>💥 Open Ports Discovered on Attackers</h3>
+      <canvas id="chart-backfire-ports"></canvas>
+    </div>
+  )}
+</div>
+
+<div class="powered">
+  Data collected by <strong>HoneyAI</strong> and legacy decoys on a Raspberry Pi 5 homelab ·
+  Updated daily at 22:30 UTC ·
+  <a href="/reports" style="color:var(--accent)">View daily reports →</a>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" is:inline></script>
+<script define:vars={{ jsonDates, jsonSSH, jsonLogins, jsonIPs, jsonColors, jsonPassLabels, jsonPassData, jsonGalah, jsonPathLabels, jsonPathData, jsonCmdLabels, jsonCmdData, jsonBackfirePortLabels, jsonBackfirePortData }}>
+
+const DATES   = JSON.parse(jsonDates);
+const SSH     = JSON.parse(jsonSSH);
+const LOGINS  = JSON.parse(jsonLogins);
+const IPS     = JSON.parse(jsonIPs);
+const COLORS  = JSON.parse(jsonColors);
+const PW_LBL  = JSON.parse(jsonPassLabels);
+const PW_DATA = JSON.parse(jsonPassData);
+const GALAH   = JSON.parse(jsonGalah);
+const PATH_LBL = JSON.parse(jsonPathLabels);
+const PATH_DATA = JSON.parse(jsonPathData);
+const CMD_LBL  = JSON.parse(jsonCmdLabels);
+const CMD_DATA = JSON.parse(jsonCmdData);
+const BK_PORT_LBL = JSON.parse(jsonBackfirePortLabels);
+const BK_PORT_DATA = JSON.parse(jsonBackfirePortData);
+
+const baseOpts = {
+  responsive: true,
+  maintainAspectRatio: true,
+  plugins: {
+    legend: { display: false },
+    tooltip: { backgroundColor: '#0f172a', borderColor: '#1e293b', borderWidth: 1 }
+  },
+  scales: {
+    x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { size: 10 } }, beginAtZero: true }
+  }
+};
+
+// SSH connections line chart
+new Chart(document.getElementById('chart-ssh'), {
+  type: 'line',
+  data: {
+    labels: DATES,
+    datasets: [{
+      data: SSH,
+      borderColor: '#e94560',
+      backgroundColor: 'rgba(233,69,96,0.1)',
+      fill: true,
+      tension: 0.4,
+      pointBackgroundColor: COLORS,
+      pointRadius: 5,
+      pointHoverRadius: 8,
+    }]
+  },
+  options: { ...baseOpts }
+});
+
+// Login attempts bar
+new Chart(document.getElementById('chart-logins'), {
+  type: 'bar',
+  data: {
+    labels: DATES,
+    datasets: [{
+      data: LOGINS,
+      backgroundColor: COLORS,
+      borderRadius: 4,
+    }]
+  },
+  options: { ...baseOpts }
+});
+
+// Unique IPs area
+new Chart(document.getElementById('chart-ips'), {
+  type: 'line',
+  data: {
+    labels: DATES,
+    datasets: [{
+      data: IPS,
+      borderColor: '#22d3ee',
+      backgroundColor: 'rgba(34,211,238,0.1)',
+      fill: true,
+      tension: 0.4,
+      pointRadius: 4,
+    }]
+  },
+  options: { ...baseOpts }
+});
+
+// Top passwords horizontal bar
+new Chart(document.getElementById('chart-passwords'), {
+  type: 'bar',
+  data: {
+    labels: PW_LBL,
+    datasets: [{
+      data: PW_DATA,
+      backgroundColor: 'rgba(233,69,96,0.7)',
+      borderColor: '#e94560',
+      borderWidth: 1,
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    ...baseOpts,
+    indexAxis: 'y',
+    scales: {
+      x: { ...baseOpts.scales.x, beginAtZero: true },
+      y: { ...baseOpts.scales.y, ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 11 } } }
+    }
+  }
+});
+
+// Galah HTTP hits
+if (document.getElementById('chart-galah')) {
+  new Chart(document.getElementById('chart-galah'), {
+    type: 'bar',
+    data: {
+      labels: DATES,
+      datasets: [{
+        data: GALAH,
+        backgroundColor: 'rgba(167,139,250,0.6)',
+        borderColor: '#a78bfa',
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: { ...baseOpts }
+  });
+}
+
+// Top paths (Galah)
+if (document.getElementById('chart-paths') && PATH_LBL.length) {
+  new Chart(document.getElementById('chart-paths'), {
+    type: 'bar',
+    data: {
+      labels: PATH_LBL,
+      datasets: [{
+        data: PATH_DATA,
+        backgroundColor: 'rgba(167,139,250,0.5)',
+        borderColor: '#a78bfa',
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      ...baseOpts,
+      indexAxis: 'y',
+      scales: {
+        x: { ...baseOpts.scales.x, beginAtZero: true },
+        y: { ...baseOpts.scales.y, ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 10 } } }
+      }
+    }
+  });
+}
+
+// Top SSH commands
+if (document.getElementById('chart-cmds') && CMD_LBL.length) {
+  new Chart(document.getElementById('chart-cmds'), {
+    type: 'bar',
+    data: {
+      labels: CMD_LBL,
+      datasets: [{
+        data: CMD_DATA,
+        backgroundColor: 'rgba(34,211,238,0.5)',
+        borderColor: '#22d3ee',
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      ...baseOpts,
+      indexAxis: 'y',
+      scales: {
+        x: { ...baseOpts.scales.x, beginAtZero: true },
+        y: { ...baseOpts.scales.y, ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 10 } } }
+      }
+    }
+  });
+}
+
+// Top attacker open ports
+if (document.getElementById('chart-backfire-ports') && BK_PORT_LBL.length) {
+  new Chart(document.getElementById('chart-backfire-ports'), {
+    type: 'bar',
+    data: {
+      labels: BK_PORT_LBL,
+      datasets: [{
+        data: BK_PORT_DATA,
+        backgroundColor: 'rgba(244,63,94,0.5)',
+        borderColor: '#f43f5e',
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      ...baseOpts,
+      indexAxis: 'y',
+      scales: {
+        x: { ...baseOpts.scales.x, beginAtZero: true },
+        y: { ...baseOpts.scales.y, ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 10 } } }
+      }
+    }
+  });
+}
+</script>
+
+</BaseLayout>
