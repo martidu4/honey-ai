@@ -138,13 +138,13 @@ const TEST_CASES = [
         protocol: 'http',
         name: 'SQL Injection query to dump users (should contain decoy tokens)',
         input: 'GET /index.php?id=1%20UNION%20SELECT%201,username,password%20FROM%20users HTTP/1.1\r\nHost: localhost\r\n\r\n',
-        expectContains: ['sk_test_', 'AKIAIOSFODNN7EXAMPLE', 'ghp_']
+        expectContains: ['sk_live_', 'AKIAIOSFODNN7EXAMPLE', 'ghp_']
     },
     {
         protocol: 'http',
         name: 'URL-encoded SQL Injection query (hex encoded)',
         input: 'GET /index.php?id=1%20%75%6e%69%6f%6e%20%73%65%6c%65%63%74%201,username,password%20FROM%20users HTTP/1.1\r\nHost: localhost\r\n\r\n',
-        expectContains: ['sk_test_']
+        expectContains: ['sk_live_']
     },
     {
         protocol: 'http',
