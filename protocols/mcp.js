@@ -14,6 +14,8 @@ const backfire = require('../core/backfire');
 
 let server = null;
 const sseConnections = new Map();
+const SSE_COUNTS = new Map();
+setInterval(() => SSE_COUNTS.clear(), 60_000).unref();
 
 function start(customPort) {
     const cfg = config.protocols.mcp;
@@ -259,6 +261,15 @@ function start(customPort) {
     // GET /sse -> Connect to Server-Sent Events stream
     app.get('/sse', (req, res) => {
         const ip = req.socket.remoteAddress.replace(/^::ffff:/, '');
+
+        // Rate limit SSE connections per IP
+        const sseCount = (SSE_COUNTS.get(ip) || 0) + 1;
+        SSE_COUNTS.set(ip, sseCount);
+        if (sseCount > 5) {
+            logger.warn(`MCP SSE rate limit hit for ${ip}`, { protocol: 'mcp', ip });
+            return res.status(429).end();
+        }
+
         const sessionId = Math.random().toString(36).substring(2, 15);
 
         logger.info(`MCP client connected to SSE from ${ip} (session: ${sessionId})`, { protocol: 'mcp', ip });
@@ -274,6 +285,13 @@ function start(customPort) {
 
         sseConnections.set(sessionId, res);
 
+        // Timeout SSE after 30 minutes to prevent fd exhaustion
+        req.setTimeout(30 * 60 * 1000, () => {
+            logger.info(`MCP SSE timeout for session ${sessionId}`, { protocol: 'mcp', ip });
+            sseConnections.delete(sessionId);
+            res.end();
+        });
+
         req.on('close', () => {
             logger.info(`MCP client disconnected from SSE (session: ${sessionId})`, { protocol: 'mcp', ip });
             sseConnections.delete(sessionId);
@@ -284,6 +302,15 @@ function start(customPort) {
     app.post('/message', (req, res) => {
         const ip = req.socket.remoteAddress.replace(/^::ffff:/, '');
         const sessionId = req.query.sessionId;
+
+        // CRIT-03: Require valid SSE session to prevent bypass
+        if (!sessionId || !sseConnections.has(sessionId)) {
+            logEvent({ protocol: 'mcp', ip, port, attack_type: 'mcp_invalid_session' });
+            return res.status(403).json(jsonRpcResponse(null, undefined, {
+                code: -32600,
+                message: 'Invalid session'
+            }));
+        }
 
         const body = req.body;
         if (!body || typeof body !== 'object') {

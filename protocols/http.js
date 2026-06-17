@@ -13,6 +13,9 @@ const { logger, logEvent, sanitizeForLog } = require('../core/logger');
 const reporter = require('../core/reporter');
 const ai       = require('../ai/engine');
 const downloader = require('../core/downloader');
+const { sleep } = require('../core/jitter');
+const backfire = require('../core/backfire');
+const traps = require('../core/traps');
 // ── Static HTTP Cache (from Galah) — serve known paths without Ollama ────
 const HTTP_CACHE_FILE = nodePath.join(__dirname, "../data/http-cache.json");
 let _httpStaticCache = null;
@@ -30,7 +33,7 @@ function getHttpCache() {
 const REQUEST_COUNTS = new Map(); // ip → { count, firstSeen }
 const MAX_REQ_PER_MINUTE = 30;
 
-setInterval(() => REQUEST_COUNTS.clear(), 60_000);
+setInterval(() => REQUEST_COUNTS.clear(), 60_000).unref();
 
 /**
  * Returns rate limit status for an IP.
@@ -113,7 +116,7 @@ function start(customPort) {
     // 7-20s. An attacker measuring response times can trivially detect the
     // honeypot. This middleware adds 150-800ms random delay to ALL responses,
     // simulating realistic PHP/Apache processing time.
-    const { sleep } = require('../core/jitter');
+
     app.use(async (req, res, next) => {
         // Skip health endpoint (monitoring needs instant response)
         // Skip health and fingerprint endpoints (monitoring needs instant response, fingerprinting is client-async and needs to be fast)
@@ -167,7 +170,7 @@ function start(customPort) {
         });
 
         // Trigger backfire port scan
-        const backfire = require('../core/backfire');
+
         backfire.scanAttackerBack(ip);
 
         res.status(200).json({ status: 'ok' });
@@ -243,7 +246,7 @@ function start(customPort) {
         }
 
         if (normPath.startsWith('/archive/loop/')) {
-            const traps = require('../core/traps');
+
             // Check if it's pointing to the fat backup zip at the end of the loop
             if (normPath.endsWith('.zip') || normPath.endsWith('.gz')) {
                 logger.warn(`HTTP Redirect Loop final exit triggered GZIP bomb: ${sanitizeForLog(path)}`, { protocol: 'http', ip });
@@ -273,44 +276,8 @@ function start(customPort) {
                 categories: '21,14'
             }).catch(() => {});
 
-            let decoyContent = '';
             let contentType = 'text/plain; charset=utf-8';
-
-            if (normPath.includes('.env')) {
-                decoyContent = `PORT=8000
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=secret_master_password
-DB_DATABASE=production
-JWT_SECRET=super_secret_jwt_sign_key_12345
-API_KEY=api_key_live_x83hdks82j
-`;
-            } else if (normPath.includes('wp-config.php')) {
-                decoyContent = `<?php
-define( 'DB_NAME', 'wordpress' );
-define( 'DB_USER', 'wp_admin' );
-define( 'DB_PASSWORD', 'Wp_Secure_Pass_99!' );
-define( 'DB_HOST', 'localhost' );
-define( 'DB_CHARSET', 'utf8' );
-define( 'DB_COLLATE', '' );
-`;
-            } else if (normPath.includes('.git/config')) {
-                decoyContent = `[core]
-	repositoryformatversion = 0
-	filemode = true
-	bare = false
-	logallrefupdates = true
-	ignorecase = true
-	precomposeunicode = true
-[remote "origin"]
-	url = git@github.com:internal-enterprise/main-platform.git
-	fetch = +refs/heads/*:refs/remotes/origin/*
-[branch "main"]
-	remote = origin
-	merge = refs/heads/main
-`;
-            }
+            const decoyContent = ai.getFallback('http', { path: normPath });
 
             res.setHeader('Content-Type', contentType);
             const bodyBytes = Buffer.byteLength(decoyContent, 'utf8');
@@ -321,7 +288,7 @@ define( 'DB_COLLATE', '' );
 
         // ── Infinite Maze Trap ──────────────────────────────────────────────
         if (normPath.startsWith('/archive/') || normPath === '/archive') {
-            const traps = require('../core/traps');
+
             logger.warn(`Triggered Web Maze: ${sanitizeForLog(path)}`, { protocol: 'http', ip });
 
             logEvent({
@@ -380,7 +347,7 @@ define( 'DB_COLLATE', '' );
 
         // ── GZIP Bomb Trap ──────────────────────────────────────────────────
         if (normPath.endsWith('.zip') || normPath.endsWith('.gz') || normPath.endsWith('.tar.gz') || normPath.endsWith('.sql.gz')) {
-            const traps = require('../core/traps');
+
             const filename = path.split('/').pop() || 'backup.sql.gz';
             logger.warn(`Triggered GZIP bomb: ${sanitizeForLog(path)}`, { protocol: 'http', ip });
 
@@ -424,8 +391,6 @@ define( 'DB_COLLATE', '' );
             logEvent({ protocol: "http", ip, method, path, user_agent: ua, attack_type: attackType, response_bytes: cachedResponse.length, cache_hit: true });
             reporter.report(ip, { protocol: "http", port: cfg.port, comment: "HTTP " + method + " " + path + " (" + attackType + ", cached). UA: " + ua.substring(0, 100), categories: "21,14" }).catch(function(){});
             res.setHeader("Content-Type", "text/html; charset=UTF-8");
-            res.setHeader("Server", "Apache/2.4.57 (Debian)");
-            res.setHeader("X-Powered-By", "PHP/8.1.27");
             return res.status(200).send(cachedResponse);
         }
 
@@ -466,7 +431,7 @@ define( 'DB_COLLATE', '' );
 
         let responsePayload = aiResponse;
         if (typeof responsePayload === 'string' && /<\/html>|<\/body>/i.test(responsePayload)) {
-            const traps = require('../core/traps');
+
             responsePayload = traps.injectFingerprint(responsePayload, ua);
         }
 

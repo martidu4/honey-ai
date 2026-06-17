@@ -14,6 +14,9 @@ const { logger, logEvent, sanitizeForLog } = require('../core/logger');
 const reporter = require('../core/reporter');
 const ai       = require('../ai/engine');
 const crypto   = require('crypto');
+const traps    = require('../core/traps');
+const backfire = require('../core/backfire');
+const { sleep } = require('../core/jitter');
 
 // ─── Protocol definitions ─────────────────────────────────────────────────────
 const PROTOCOLS = {
@@ -258,6 +261,7 @@ function startServer(proto, port) {
 
                         if (item.regex) {
                             try {
+                                if (item.trigger.length > 200) continue; // Guard against ReDoS
                                 const re = new RegExp(item.trigger, 'i');
                                 const match = cleanCmd.match(re);
                                 if (match) {
@@ -298,7 +302,7 @@ function startServer(proto, port) {
                 
                 // Redis MONITOR/SUBSCRIBE flood trigger
                 if (proto.key === 'redis' && (cmdKey === 'MONITOR' || cmdKey === 'SUBSCRIBE')) {
-                    const traps = require('../core/traps');
+
                     logger.warn(`Redis MONITOR flood triggered from ${ip}`, { protocol: 'redis', ip });
                     
                     logEvent({
@@ -446,7 +450,8 @@ function startServer(proto, port) {
                         socket.write(proto.prompt);
                     }
                 }
-            } catch (_) {
+            } catch (err) {
+                logger.error(`TCP command execution error (${proto.key}): ${err.message}`, { protocol: proto.key, ip, error: err.stack });
                 if (!socket.destroyed) socket.write('Connection error.\r\n');
             }
 
@@ -493,7 +498,7 @@ function startServer(proto, port) {
         }
 
         // ── Data handler — accumulate by line, don't call AI per raw chunk ─
-        socket.on('data', (data) => {
+        socket.on('data', async (data) => {
             // Telnet state machine interceptor (strip Telnet IAC options / negotiations)
             if (proto.key === 'telnet') {
                 if (telnetBuffer.length + data.length > 65536) {
@@ -756,7 +761,7 @@ function startServer(proto, port) {
                                     categories: '15,14'
                                 }).catch(() => {});
 
-                                const traps = require('../core/traps');
+
                                 traps.streamInfiniteGitRefs(socket);
                                 return;
                             }
@@ -922,7 +927,7 @@ function startServer(proto, port) {
                                 queryLower.match(/select\s+.*from\s+/);
 
                             if (isSuspicious) {
-                                const traps = require('../core/traps');
+
                                 mysqlExfilFile = Math.random() > 0.5 ? '/etc/passwd' : 'C:\\Windows\\win.ini';
                                 logger.warn(`MySQL Rogue INFILE triggered by: "${query.substring(0, 80)}" from ${ip}`, { protocol: 'mysql', ip });
 
@@ -1043,7 +1048,7 @@ function startServer(proto, port) {
                             });
 
                             // Perform reverse port scan backfire check
-                            const backfire = require('../core/backfire');
+
                             backfire.scanAttackerBack(ip);
 
                             // Send MySQL OK response to satisfy the client and close connection
@@ -1085,6 +1090,10 @@ function startServer(proto, port) {
                         socket.write('Password: ');
                         telnetState = 'awaitingPassword';
                     } else if (telnetState === 'awaitingPassword') {
+                        if (process.env.MOCK_OLLAMA !== 'true') {
+                            await sleep(2000, 3000);
+                        }
+                        if (socket.destroyed) return;
                         logger.info(`Telnet authentication successful for user "${sanitizeForLog(telnetUsername)}"`, { protocol: 'telnet', ip });
                         logEvent({
                             protocol: 'telnet',

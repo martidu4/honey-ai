@@ -65,7 +65,7 @@ function logEvent(event) {
 
     // Rotate when file exceeds 100MB
     if (currentEventsSize > MAX_EVENTS_SIZE) {
-        eventsStream.end();
+        const oldStream = eventsStream;
         try {
             const rotated = eventsFile + '.' + Date.now();
             fs.renameSync(eventsFile, rotated);
@@ -73,6 +73,7 @@ function logEvent(event) {
         eventsStream = fs.createWriteStream(eventsFile, { flags: 'a' });
         eventsStream.on('error', (err) => logger.error(`Events stream error: ${err.message}`));
         currentEventsSize = 0;
+        oldStream.end();
     }
 
     eventsStream.write(line); // Async — does NOT block the event loop

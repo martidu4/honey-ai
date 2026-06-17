@@ -15,6 +15,7 @@ const reporter = require('../core/reporter');
 const ai       = require('../ai/engine');
 const downloader = require('../core/downloader');
 const { sleep, writeWithJitter } = require('../core/jitter');
+const traps = require('../core/traps');
 
 // ─── Canary Tokens / honeyfs Integration ──────────────────────────────────────
 const HONEYFS_DIR = path.join(__dirname, '../honeyfs');
@@ -167,7 +168,7 @@ function start(customCfg) {
 const SSH_CONNECTION_COUNTS = new Map();
 const MAX_SSH_CONN_PER_MINUTE = 15;
 
-setInterval(() => SSH_CONNECTION_COUNTS.clear(), 60_000);
+setInterval(() => SSH_CONNECTION_COUNTS.clear(), 60_000).unref();
 
 function getSSHRateLimitStatus(ip) {
     const slot = SSH_CONNECTION_COUNTS.get(ip) || { count: 0 };
@@ -181,6 +182,22 @@ function getSSHRateLimitStatus(ip) {
         return 2; // Silent block
     }
     return 0; // Allowed
+}
+
+function isGzipBombTarget(cmd) {
+    const match = cmd.match(/^\s*(cat|less|more|head|tail|strings)\s+(.+)$/i);
+    if (!match) return false;
+    const filePath = match[2].trim().replace(/['"]/g, '').split(/\s/)[0];
+    const lowerPath = filePath.toLowerCase();
+    return lowerPath.endsWith('.zip') || lowerPath.endsWith('.gz') ||
+           lowerPath.endsWith('.tar.gz') || lowerPath.endsWith('.sql.gz');
+}
+
+function isTarpitCommand(cmd) {
+    const lowerCmd = cmd.toLowerCase().trim();
+    return lowerCmd.startsWith('ping') || lowerCmd.startsWith('find') ||
+           lowerCmd.startsWith('grep') || lowerCmd.startsWith('nmap') ||
+           lowerCmd.startsWith('masscan');
 }
 
 function startInteractiveSSH(cfg) {
@@ -401,6 +418,7 @@ function getStaticSSHResponse(cmd, sessionState) {
 
             if (item.regex) {
                 try {
+                    if (item.trigger.length > 200) continue; // Guard against ReDoS
                     const re = new RegExp(item.trigger, 'i');
                     const match = cleanCmd.match(re);
                     if (match) {
@@ -678,17 +696,7 @@ async function runFakeShell(stream, ip, cfg, sessionState) {
                     parseFSCommand(cmd, sessionState);
 
                     // 2b. Intercept GZIP/ZIP bomb file reads
-                    const readMatch = cmd.match(/^\s*(cat|less|more|head|tail|strings)\s+(.+)$/i);
-                    let isBomb = false;
-                    if (readMatch) {
-                        let filePath = readMatch[2].trim().replace(/['"]/g, '').split(/\s/)[0];
-                        const lowerPath = filePath.toLowerCase();
-                        if (lowerPath.endsWith('.zip') || lowerPath.endsWith('.gz') || lowerPath.endsWith('.tar.gz') || lowerPath.endsWith('.sql.gz')) {
-                            isBomb = true;
-                        }
-                    }
-
-                    if (isBomb) {
+                    if (isGzipBombTarget(cmd)) {
                         logger.warn(`SSH GZIP bomb triggered: ${sanitizeForLog(cmd)}`, { protocol: 'ssh', ip });
                         logEvent({ protocol: 'ssh', ip, command: cmd, attack_type: 'ssh_gzip_bomb_triggered' });
                         reporter.report(ip, {
@@ -710,9 +718,7 @@ async function runFakeShell(stream, ip, cfg, sessionState) {
                     }
 
                     // 2c. Intercept SSH Command Tarpit
-                    const lowerCmd = cmd.toLowerCase().trim();
-                    const isTarpitCmd = lowerCmd.startsWith('ping') || lowerCmd.startsWith('find') || lowerCmd.startsWith('grep') || lowerCmd.startsWith('nmap') || lowerCmd.startsWith('masscan');
-                    if (isTarpitCmd) {
+                    if (isTarpitCommand(cmd)) {
                         logger.warn(`SSH command tarpit triggered: ${sanitizeForLog(cmd)}`, { protocol: 'ssh', ip });
                         logEvent({ protocol: 'ssh', ip, command: cmd, attack_type: 'ssh_command_tarpit_triggered' });
                         reporter.report(ip, {
@@ -722,7 +728,6 @@ async function runFakeShell(stream, ip, cfg, sessionState) {
                             categories: '22,18'
                         }).catch(() => {});
 
-                        const traps = require('../core/traps');
                         activeTarpit = traps.tarpitSSHCommand(stream, cmd, () => {
                             activeTarpit = null;
                             printPrompt();
@@ -810,17 +815,7 @@ async function handleExecCommand(stream, command, ip, cfg, sessionState) {
     parseFSCommand(command, sessionState);
 
     // 2b. Intercept GZIP/ZIP bomb file reads
-    const readMatchExec = command.match(/^\s*(cat|less|more|head|tail|strings)\s+(.+)$/i);
-    let isBombExec = false;
-    if (readMatchExec) {
-        let filePath = readMatchExec[2].trim().replace(/['"]/g, '').split(/\s/)[0];
-        const lowerPath = filePath.toLowerCase();
-        if (lowerPath.endsWith('.zip') || lowerPath.endsWith('.gz') || lowerPath.endsWith('.tar.gz') || lowerPath.endsWith('.sql.gz')) {
-            isBombExec = true;
-        }
-    }
-
-    if (isBombExec) {
+    if (isGzipBombTarget(command)) {
         logger.warn(`SSH exec GZIP bomb triggered: ${sanitizeForLog(command)}`, { protocol: 'ssh', ip });
         logEvent({ protocol: 'ssh', ip, command, mode: 'exec', attack_type: 'ssh_gzip_bomb_triggered' });
         reporter.report(ip, {
@@ -843,10 +838,7 @@ async function handleExecCommand(stream, command, ip, cfg, sessionState) {
     }
 
     // 2c. Intercept SSH Command Tarpit in exec
-    const lowerCommand = command.toLowerCase().trim();
-    const isTarpitExec = lowerCommand.startsWith('ping') || lowerCommand.startsWith('find') || lowerCommand.startsWith('grep') || lowerCommand.startsWith('nmap') || lowerCommand.startsWith('masscan');
-
-    if (isTarpitExec) {
+    if (isTarpitCommand(command)) {
         logger.warn(`SSH exec command tarpit triggered: ${sanitizeForLog(command)}`, { protocol: 'ssh', ip });
         logEvent({ protocol: 'ssh', ip, command, mode: 'exec', attack_type: 'ssh_command_tarpit_triggered' });
         reporter.report(ip, {
@@ -856,7 +848,6 @@ async function handleExecCommand(stream, command, ip, cfg, sessionState) {
             categories: '22,18'
         }).catch(() => {});
 
-        const traps = require('../core/traps');
         traps.tarpitSSHCommand(stream, command, () => {
             stream.exit(0);
             stream.end();

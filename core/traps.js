@@ -69,7 +69,13 @@ function streamGzipBomb(res, filename = 'backup.sql.gz') {
         zeroStream.pipe(gzip).pipe(res);
 
         // Decrement counter when stream ends or client disconnects
-        const decrementBombs = () => { activeBombs = Math.max(0, activeBombs - 1); };
+        let bombDecremented = false;
+        const decrementBombs = () => {
+            if (!bombDecremented) {
+                bombDecremented = true;
+                activeBombs = Math.max(0, activeBombs - 1);
+            }
+        };
         res.on('close', decrementBombs);
         res.on('finish', decrementBombs);
     } catch (err) {
