@@ -111,7 +111,7 @@ pnpm build    # Generates dist/
 Add to your Caddyfile:
 
 ```caddyfile
-threats.yourdomain.com {
+honey-ai.dev {
     # Serve static blog
     root * /opt/honeyai/blog/dist
     file_server
@@ -159,14 +159,14 @@ sudo iptables -A INPUT -p tcp --dport 443 -j ACCEPT
 
 #### 4. DNS
 
-Point `threats.yourdomain.com` (or your chosen subdomain) to your server's public IP. Caddy auto-provisions Let's Encrypt TLS.
+Point `honey-ai.dev` (or your domain) to your server's public IP. Caddy auto-provisions Let's Encrypt TLS.
 
 ### Option C: Nginx
 
 ```nginx
 server {
     listen 443 ssl;
-    server_name threats.yourdomain.com;
+    server_name honey-ai.dev;
 
     root /opt/honeyai/blog/dist;
     index index.html;
