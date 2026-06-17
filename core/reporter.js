@@ -6,6 +6,7 @@
 
 const axios  = require('axios');
 const fs     = require('fs');
+const shodan = require('./shodan');
 const path   = require('path');
 const config = require('./config');
 const { logger } = require('./logger');
@@ -239,7 +240,18 @@ async function submitMalware(fileBuffer, filename) {
 // ─── Telegram ─────────────────────────────────────────────────────────────────
 async function sendTelegram(ip, protocol, port) {
     if (!notify.telegram?.enabled || !notify.telegram.bot_token) return;
-    const msg = `🍯 *HoneyAI Attack*\n\`${ip}\` → ${protocol?.toUpperCase()} port ${port}`;
+    // Enrich with Shodan InternetDB (best-effort, non-blocking)
+    let shodanInfo = '';
+    try {
+        const data = await shodan.enrichAttacker(ip);
+        if (data) {
+            if (data.shodan_ports.length) shodanInfo += `\nPorts: ${data.shodan_ports.join(', ')}`;
+            if (data.shodan_vulns.length) shodanInfo += `\n⚠️ CVEs: ${data.shodan_vulns.slice(0, 3).join(', ')}`;
+            if (data.shodan_hostnames.length) shodanInfo += `\nHost: ${data.shodan_hostnames[0]}`;
+            if (data.is_known_scanner) shodanInfo += '\n🔍 Known scanner';
+        }
+    } catch { /* best effort */ }
+    const msg = `🍯 *HoneyAI Attack*\n\`${ip}\` → ${protocol?.toUpperCase() || '?'} port ${port}${shodanInfo}`;
     await axios.post(
         `https://api.telegram.org/bot${notify.telegram.bot_token}/sendMessage`,
         { chat_id: notify.telegram.chat_id, text: msg, parse_mode: 'Markdown' },
@@ -247,4 +259,4 @@ async function sendTelegram(ip, protocol, port) {
     );
 }
 
-module.exports = { report, submitMalware, sendTelegram };
+module.exports = { report, submitMalware, sendTelegram, shodanSelfScan: shodan.selfScan };
