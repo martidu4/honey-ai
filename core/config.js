@@ -35,8 +35,11 @@ function load() {
     
     if (abuseipdbKey)  setNested(raw, 'reporting.abuseipdb.api_key', abuseipdbKey);
     if (otxKey)        setNested(raw, 'reporting.otx.api_key', otxKey);
-    if (process.env.OTX_SSH_PULSE_ID) setNested(raw, 'reporting.otx.ssh_pulse_id', process.env.OTX_SSH_PULSE_ID);
-    if (process.env.OTX_PULSE_ID)     setNested(raw, 'reporting.otx.http_pulse_id', process.env.OTX_PULSE_ID);
+    if (process.env.OTX_SSH_PULSE_ID)     setNested(raw, 'reporting.otx.ssh_pulse_id', process.env.OTX_SSH_PULSE_ID);
+    if (process.env.OTX_PULSE_ID)         setNested(raw, 'reporting.otx.web_pulse_id', process.env.OTX_PULSE_ID);
+    if (process.env.OTX_WEB_PULSE_ID)     setNested(raw, 'reporting.otx.web_pulse_id', process.env.OTX_WEB_PULSE_ID);
+    if (process.env.OTX_DB_PULSE_ID)      setNested(raw, 'reporting.otx.db_pulse_id', process.env.OTX_DB_PULSE_ID);
+    if (process.env.OTX_NETWORK_PULSE_ID) setNested(raw, 'reporting.otx.network_pulse_id', process.env.OTX_NETWORK_PULSE_ID);
     if (dshieldKey)    setNested(raw, 'reporting.dshield.api_key', dshieldKey);
     if (process.env.DSHIELD_USER_ID)  setNested(raw, 'reporting.dshield.user_id', process.env.DSHIELD_USER_ID);
     if (blocklistKey)  setNested(raw, 'reporting.blocklist_de.api_key', blocklistKey);

@@ -164,9 +164,30 @@ async function reportAbuseIPDB(ip, comment, categories, protocol) {
 }
 
 // ─── AlienVault OTX ───────────────────────────────────────────────────────────
+// Protocol → pulse category routing
+const OTX_PULSE_MAP = {
+    ssh:       'ssh_pulse_id',
+    telnet:    'ssh_pulse_id',
+    http:      'web_pulse_id',
+    mcp:       'web_pulse_id',
+    httpproxy: 'web_pulse_id',
+    mysql:     'db_pulse_id',
+    mssql:     'db_pulse_id',
+    redis:     'db_pulse_id',
+    ftp:       'network_pulse_id',
+    smtp:      'network_pulse_id',
+    git:       'network_pulse_id',
+    vnc:       'network_pulse_id',
+    rdp:       'network_pulse_id',
+    snmp:      'network_pulse_id',
+    samba:     'network_pulse_id',
+    portscan:  'network_pulse_id',
+};
+
 async function reportOTX(ip, protocol) {
     if (!rep.otx?.enabled || !rep.otx.api_key) return;
-    const pulseId = protocol === 'ssh' ? rep.otx.ssh_pulse_id : rep.otx.http_pulse_id;
+    const pulseKey = OTX_PULSE_MAP[protocol] || 'network_pulse_id';
+    const pulseId = rep.otx[pulseKey];
     if (!pulseId) return;
     try {
         await axios.patch(
@@ -174,7 +195,7 @@ async function reportOTX(ip, protocol) {
             { indicators: { add: [{ indicator: ip, type: 'IPv4', description: `Attacked via ${protocol} service` }] } },
             { headers: { 'X-OTX-API-KEY': rep.otx.api_key }, timeout: 10000 }
         );
-        logger.info(`OTX: added ${ip} to pulse ${pulseId}`, { protocol: 'reporter', ip });
+        logger.info(`OTX: added ${ip} to pulse ${pulseId} (${protocol})`, { protocol: 'reporter', ip });
     } catch (e) {
         logger.warn(`OTX failed for ${ip}: ${e.message}`, { protocol: 'reporter' });
     }
