@@ -406,6 +406,75 @@ function start(customPort) {
             return res.status(404).send('<!DOCTYPE html>\n<html><head><title>Page not found &#8211; Site</title></head><body><div class="wp-die-message"><h1>Not Found</h1><p>The requested URL was not found on this server.</p></div></body></html>');
         }
 
+        // ── Scanner catch-all — static responses for common probe paths (0% CPU) ──
+        // These paths were bypassing WordPress filter and hitting Ollama on every request
+        const SCANNER_PHPINFO_PATHS = ['phpinfo', 'phpinfo.php', '_phpinfo.php', 'info.php', 'test.php', 'php_info.php', 'pi.php', 'i.php', 'php.php'];
+        const SCANNER_PATTERNS = {
+            // Yii2 debug panel
+            debug_panel: (p) => p.includes('/debug/default/view') || p.includes('/debug/default/index'),
+            // Symfony profiler
+            symfony: (p) => p.includes('/_profiler') || p.includes('/app_dev.php'),
+            // phpinfo — check any segment of the path
+            phpinfo: (p) => {
+                const segments = p.split('/').filter(Boolean);
+                return segments.some(s => SCANNER_PHPINFO_PATHS.includes(s)) || p.includes('phpinfo');
+            },
+            // OwnCloud / Nextcloud
+            cloud_storage: (p) => p.includes('/owncloud/') || p.includes('/nextcloud/') || p.includes('/remote.php/') || p.includes('/ocm-provider/'),
+            // Common CMS
+            cms: (p) => p.includes('/joomla/') || p.includes('/drupal/') || p.includes('/magento/') || p.includes('/moodle/') || p.includes('/typo3/'),
+            // Java / Spring
+            java_spring: (p) => p.includes('/actuator') || p.includes('/jolokia') || p.includes('/heapdump') || p.includes('/env') && p.includes('/actuator'),
+            // Laravel / PHP frameworks
+            php_framework: (p) => p.includes('/telescope/') || p.includes('/horizon/') || p.includes('/vendor/') || p.includes('/laravel/') || p.includes('/artisan'),
+            // Server status / info
+            server_info: (p) => p === '/server-status' || p === '/server-info' || p === '/.htaccess' || p === '/.htpasswd',
+            // CGI / legacy
+            cgi: (p) => p.startsWith('/cgi-bin/') || p.startsWith('/cgi/') || p.includes('.cgi'),
+            // API probes / config
+            api_probe: (p) => p.includes('/api/v1/') || p.includes('/api/v2/') || p.includes('/graphql') || p === '/swagger.json' || p === '/openapi.json' || p.includes('/swagger-ui'),
+            // ASP.NET / Windows
+            aspnet: (p) => p.includes('/elmah.axd') || p.includes('/trace.axd') || p.includes('/web.config') || p.includes('.aspx') || p.includes('.asmx'),
+            // Node.js / Express
+            nodejs: (p) => p === '/package.json' || p === '/package-lock.json' || p === '/node_modules/' || p === '/.npmrc',
+            // Docker / DevOps
+            devops: (p) => p.includes('/docker-compose') || p === '/Dockerfile' || p === '/.dockerenv' || p.includes('/kubernetes/') || p.includes('/helm/'),
+            // Database
+            database: (p) => p.includes('/adminer') || p.includes('/db.php') || p.includes('/sql.php') || p.includes('/dbadmin'),
+            // WebDAV
+            webdav: (p) => p.includes('/webdav/') || p.includes('/_vti_bin/') || p.includes('/_vti_inf.html'),
+            // Tomcat
+            tomcat: (p) => p.includes('/manager/html') || p.includes('/host-manager/') || p === '/status' || p.includes('.jsp') || p.includes('.do'),
+            // Common files scanners look for
+            misc_files: (p) => p === '/robots.txt.bak' || p === '/sitemap.xml' || p === '/crossdomain.xml' || p === '/clientaccesspolicy.xml' || p === '/.DS_Store' || p === '/Thumbs.db' || p === '/.well-known/security.txt',
+            // SDK / API config leaks
+            sdk_leaks: (p) => p.includes('/SDK/') || p.includes('/sdk/') || p.includes('/webLanguage'),
+        };
+
+        const matchedScanner = Object.entries(SCANNER_PATTERNS).find(([, testFn]) => testFn(normPath));
+        if (matchedScanner) {
+            const scannerType = matchedScanner[0];
+            logger.info(`Scanner static (${scannerType}): ${sanitizeForLog(path)}`, { protocol: 'http', ip });
+            logEvent({ protocol: 'http', ip, method, path, user_agent: ua, attack_type: attackType, response_bytes: 0, cache_hit: true });
+            reporter.report(ip, { protocol: 'http', port: cfg.port, comment: `HTTP ${method} ${path} (${scannerType}, static). UA: ${ua.substring(0, 100)}`, categories: '21,14' }).catch(() => {});
+
+            res.setHeader('Server', 'Apache/2.4.57 (Debian)');
+            res.setHeader('X-Powered-By', 'PHP/8.1.27');
+
+            // Return realistic response based on scanner type
+            if (scannerType === 'phpinfo') {
+                res.setHeader('Content-Type', 'text/html; charset=UTF-8');
+                return res.status(200).send('<!DOCTYPE html><html><head><title>phpinfo()</title><meta name="ROBOTS" content="NOINDEX,NOFOLLOW,NOARCHIVE" /></head><body><div class="center"><table><tr class="h"><td><a href="http://www.php.net/"><img border="0" src="/phpinfo.php?=PHPE9568F36-D428-11d2-A769-00AA001ACF42" alt="PHP Logo" /></a><h1 class="p">PHP Version 8.1.27</h1></td></tr></table><table><tr><td class="e">System</td><td class="v">Linux debian 6.1.0-18-amd64 #1 SMP x86_64</td></tr><tr><td class="e">Build Date</td><td class="v">Dec 19 2023 17:14:12</td></tr><tr><td class="e">Server API</td><td class="v">Apache 2.0 Handler</td></tr><tr><td class="e">Document Root</td><td class="v">/var/www/html</td></tr><tr><td class="e">DOCUMENT_ROOT</td><td class="v">/var/www/html</td></tr><tr><td class="e">SERVER_SOFTWARE</td><td class="v">Apache/2.4.57 (Debian)</td></tr><tr><td class="e">REMOTE_ADDR</td><td class="v">' + ip + '</td></tr></table></div></body></html>');
+            }
+            if (scannerType === 'debug_panel' || scannerType === 'symfony' || scannerType === 'server_info') {
+                res.setHeader('Content-Type', 'text/html; charset=UTF-8');
+                return res.status(403).send('<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">\n<html><head><title>403 Forbidden</title></head><body><h1>Forbidden</h1><p>You don\'t have permission to access this resource.</p><hr><address>Apache/2.4.57 (Debian) Server at ' + req.headers.host + ' Port 80</address></body></html>');
+            }
+            // Default: 404 Not Found (Apache style)
+            res.setHeader('Content-Type', 'text/html; charset=iso-8859-1');
+            return res.status(404).send('<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">\n<html><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>The requested URL was not found on this server.</p><hr><address>Apache/2.4.57 (Debian) Server at ' + req.headers.host + ' Port 80</address></body></html>');
+        }
+
         // ── Generate AI response (fallback for unknown paths) ───────────
         const aiResponse = await ai.generate({
             protocol: 'http',
