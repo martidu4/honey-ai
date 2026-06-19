@@ -438,6 +438,10 @@ async function generate({ protocol = 'http', attackerInput, context = {} }) {
         if (staticResp !== null) {
             return staticResp;
         }
+        // Unknown Telnet commands → static fallback (NEVER hit Ollama for Telnet)
+        const telCmd = safeInput.trim().split(/\s+/)[0] || '';
+        logger.info(`Telnet static fallback for unknown command: ${telCmd.substring(0, 50)}`, { protocol: 'telnet' });
+        return `% Unknown command or computer name, or unable to find computer address`;
     }
 
     // 1.5.1. Static SSH command interception — ponytail: 90% of commands answered with 0% CPU
@@ -446,6 +450,11 @@ async function generate({ protocol = 'http', attackerInput, context = {} }) {
         if (staticResp !== null) {
             return staticResp;
         }
+        // Unknown SSH commands → static fallback (NEVER hit Ollama for SSH)
+        // Bots send hundreds of commands per session — each LLM call burns 388% CPU for 15-30s
+        const cmd = safeInput.trim().split(/\s+/)[0] || '';
+        logger.info(`SSH static fallback for unknown command: ${cmd.substring(0, 50)}`, { protocol: 'ssh' });
+        return `-bash: ${cmd}: command not found`;
     }
 
     // 1.5.5. Static Redis RESP command interception
