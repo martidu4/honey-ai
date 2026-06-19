@@ -51,7 +51,7 @@ const blog = defineCollection({
     tags: z.array(z.string()).default([]),
     total_ips: z.number().default(0),
     total_events: z.number().default(0),
-    ai_model: z.string().default('qwen2.5:0.5b'),
+    ai_model: z.string().default('qwen2.5:1.5b'),
     report_date: z.string().default(''),  // links back to the data report
   }),
 });
