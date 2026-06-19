@@ -14,7 +14,7 @@ BLOG_DIR="/mnt/ssd/www/honeypot-blog"
 REPORT_FILE="${BLOG_DIR}/src/content/reports/${TODAY}.md"
 BLOG_FILE="${BLOG_DIR}/src/content/blog/${TODAY}.md"
 LOG="/opt/honeyai/scripts/honeypot-publish.log"
-OLLAMA_MODEL="qwen2.5:1.5b"
+OLLAMA_MODEL="qwen2.5:0.5b"
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] BLOG-AI: $1" >> "$LOG" 2>/dev/null || true; }
 
