@@ -17,13 +17,15 @@ const MAX_INPUT_BYTES  = 512;   // Max attacker input sent to LLM
 const MAX_OUTPUT_BYTES = 4096;  // Truncate LLM output if too long
 
 // ─── Ollama concurrency & rate limiting ───────────────────────────────────────
-const MAX_CONCURRENT_OLLAMA = 2;   // Max parallel Ollama requests
+const MAX_CONCURRENT_OLLAMA = 1;   // Max 1 parallel Ollama request (~100% CPU vs 388% with 2)
 const RATE_LIMIT_PER_IP     = 5;   // Max LLM requests per IP per window
 const RATE_LIMIT_WINDOW_MS  = 60000; // 1 minute window
+const MAX_LLM_PER_SESSION   = 5;   // First 5 commands use AI, then static fallback
 
 let _ollamaInFlight = 0;
 const _ollamaQueue  = [];
 const _ipRateMap    = new Map(); // ip -> { count, resetAt }
+const _sessionLLMCount = new Map(); // ip -> count of LLM calls this session
 
 function _acquireOllamaSlot() {
     return new Promise((resolve) => {
@@ -438,6 +440,13 @@ async function generate({ protocol = 'http', attackerInput, context = {} }) {
         if (staticResp !== null) {
             return staticResp;
         }
+        // Session LLM budget: first 5 unknown commands use AI, then static
+        const telCount = _sessionLLMCount.get(ip) || 0;
+        if (telCount >= MAX_LLM_PER_SESSION) {
+            const telCmd = safeInput.trim().split(/\s+/)[0] || '';
+            logger.info(`Telnet LLM budget exhausted (${telCount}/${MAX_LLM_PER_SESSION}), static fallback: ${telCmd.substring(0, 50)}`, { protocol: 'telnet', ip });
+            return `% Unknown command or computer name, or unable to find computer address`;
+        }
     }
 
     // 1.5.1. Static SSH command interception — ponytail: 90% of commands answered with 0% CPU
@@ -445,6 +454,13 @@ async function generate({ protocol = 'http', attackerInput, context = {} }) {
         const staticResp = getStaticSSHResponse(safeInput);
         if (staticResp !== null) {
             return staticResp;
+        }
+        // Session LLM budget: first 5 unknown commands use AI, then static
+        const sshCount = _sessionLLMCount.get(ip) || 0;
+        if (sshCount >= MAX_LLM_PER_SESSION) {
+            const cmd = safeInput.trim().split(/\s+/)[0] || '';
+            logger.info(`SSH LLM budget exhausted (${sshCount}/${MAX_LLM_PER_SESSION}), static fallback: ${cmd.substring(0, 50)}`, { protocol: 'ssh', ip });
+            return `-bash: ${cmd}: command not found`;
         }
     }
 
@@ -579,8 +595,10 @@ Generate the protocol response (raw output only):`;
         return getFallback(protocol, context);
     }
 
-    // ── Concurrency gate: max 2 parallel Ollama requests ──
+    // ── Concurrency gate: max 1 parallel Ollama request ──
     await _acquireOllamaSlot();
+    // Track per-IP LLM usage for session budgeting
+    _sessionLLMCount.set(ip, (_sessionLLMCount.get(ip) || 0) + 1);
     try {
         let response;
         if (ai.provider === 'ollama') {
