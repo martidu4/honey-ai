@@ -9,7 +9,7 @@ honeyai:
 ai:
   provider: "ollama"           # "ollama" | "openai" (any OpenAI-compatible API)
   url: "http://localhost:11434"
-  model: "qwen2.5:1.5b"       # Fast. Use qwen3:4b for richer responses
+  model: "qwen2.5:0.5b"       # Lightweight default. Use qwen2.5:1.5b or qwen3:4b for richer responses
   timeout: 60000               # ms - LLMs can be slow
   temperature: 0.9
   keep_alive: "10s"            # How long Ollama keeps the model loaded (e.g. "10s", "5m"). Use "0s" to unload immediately.

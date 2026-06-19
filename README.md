@@ -62,6 +62,7 @@ Every attacker IP is automatically reported to **5 threat intelligence platforms
 | 📡 **Reporting** | Auto-reports to AbuseIPDB, OTX, DShield, Blocklist.de, VirusTotal |
 | 📲 **Telegram** | Real-time attack notifications via Telegram bot |
 | 🤖 **Any LLM** | Works with Ollama (local) or any OpenAI-compatible API |
+| ⚡ **Smart Throttle** | Per-IP session budget (first N commands use AI, then static fallback) — prevents CPU abuse from bot swarms |
 
 ---
 
@@ -74,7 +75,7 @@ Every attacker IP is automatically reported to **5 threat intelligence platforms
 - **Node.js** ≥ 18
 - **[pnpm](https://pnpm.io)** — install with `npm install -g pnpm`
 - **[Ollama](https://ollama.ai)** running locally (or any OpenAI-compatible API)
-- A model pulled: `ollama pull qwen2.5:1.5b` (fast, 1GB RAM)
+- A model pulled: `ollama pull qwen2.5:0.5b` (fast, 400MB RAM) or `qwen2.5:1.5b` (better, 1GB RAM)
 
 > **⚠️ Why pnpm only?** This project **blocks npm and yarn** via a preinstall hook. npm executes arbitrary lifecycle scripts (`preinstall`, `postinstall`) from every dependency during install — this is a known supply chain attack vector ([reference](https://blog.npmjs.org/post/141702881055/package-install-scripts-vulnerability)). For a security tool like a honeypot, this is unacceptable. pnpm does not run these scripts by default, uses a content-addressable store that prevents phantom dependencies, and provides strict isolation. If you try `npm install`, it will fail intentionally.
 
@@ -119,12 +120,13 @@ docker compose logs -f honeyai
 
 Docker Compose automatically:
 - Starts **Ollama** with persistent model storage
-- Pulls the **qwen2.5:1.5b** model on first run
+- Pulls the configured model on first run (default: `qwen2.5:1.5b`)
 - Starts **HoneyAI** with all 17 protocols + passive detectors
 
 To use a different model:
 ```bash
-AI_MODEL=qwen3:4b docker compose up -d
+AI_MODEL=qwen2.5:0.5b docker compose up -d   # Lightweight (Pi, VPS)
+AI_MODEL=qwen3:4b docker compose up -d        # High-quality deception
 ```
 
 To add reporting API keys, create a `.env` file:
@@ -379,12 +381,21 @@ sudo sh -c "iptables-save > /etc/iptables/rules.v4"
 
 | Model | Size | Speed | Quality | Best for |
 |-------|------|-------|---------|----------|
-| `qwen2.5:0.5b` | 400MB | ⚡⚡⚡ | Good | Low-resource devices (Pi, VPS) |
-| `qwen2.5:1.5b` | 1GB | ⚡⚡ | Better | **Recommended** — best balance |
-| `qwen3:4b` | 2.5GB | ⚡ | Best | High-quality deception |
+| `qwen2.5:0.5b` | 400MB | ⚡⚡⚡ | Good | **Recommended** — Pi, VPS, external LLM setups |
+| `qwen2.5:1.5b` | 1GB | ⚡⚡ | Better | Dedicated hardware with ≥4 cores |
+| `qwen3:4b` | 2.5GB | ⚡ | Best | High-quality deception (GPU recommended) |
 | Any OpenAI-compat | cloud | ⚡ | Excellent | Cloud deployments |
 
-> **Tip:** On a Raspberry Pi 5, `qwen2.5:1.5b` gives great results. You can also run Ollama on a separate machine and point HoneyAI to it.
+> **Tip:** On a Raspberry Pi or low-power VPS, use `qwen2.5:0.5b` — it's 3x lighter than `1.5b` with similar honeypot quality. Run Ollama on a separate machine with `docker-compose.external-llm.yml` for best results.
+
+### Smart Throttling
+
+HoneyAI includes built-in CPU protection for high-traffic deployments:
+
+- **Per-IP session budget** — First 5 unknown commands per attacker use AI, then static fallback. The attacker gets engaged with realistic AI responses initially, but prolonged bot sessions don't burn CPU infinitely.
+- **Concurrency gate** — Only 1 LLM inference runs at a time (configurable in `engine.js`).
+- **Scanner path filter** — 40+ common scanner paths (phpinfo, Yii2 debug, Symfony profiler, etc.) return static responses without touching the LLM.
+- **Fast model unload** — `keep_alive: 5s` ensures the model releases CPU quickly between request bursts.
 
 ---
 
