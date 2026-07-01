@@ -258,21 +258,93 @@ async function submitMalware(fileBuffer, filename) {
     }
 }
 
+// ─── MITRE ATT&CK Mapping ─────────────────────────────────────────────────────
+const PROTO_ATTACK = {
+    ssh:       'T1110 Brute Force',
+    http:      'T1190 Exploit Public App',
+    ftp:       'T1078 Valid Accounts',
+    telnet:    'T1021.007 Remote Service',
+    smtp:      'T1071.003 Mail Protocol',
+    mssql:     'T1190 Exploit DB',
+    mysql:     'T1190 Exploit DB',
+    redis:     'T1190 Exposed Service',
+    samba:     'T1021.002 SMB/Windows Admin',
+    snmp:      'T1046 Network Scan',
+    mcp:       'T1190 Exploit API',
+    httpproxy: 'T1090 Proxy',
+    vnc:       'T1021.005 VNC',
+    rdp:       'T1021.001 RDP',
+    git:       'T1213 Data from Repos',
+    portscan:  'T1046 Network Scan',
+};
+
+// ─── Severity Classification ──────────────────────────────────────────────────
+function classifySeverity(protocol, details = {}) {
+    // SEV1: Active exploitation / malware / C2
+    if (details.malware_download || details.c2_callback || details.command_exec) {
+        return { sev: 1, emoji: '🔴', label: 'CRITICAL' };
+    }
+    // SEV2: Successful auth / known exploit / active shell
+    if (details.auth_success || details.exploit_attempt || details.shell_session) {
+        return { sev: 2, emoji: '🟠', label: 'HIGH' };
+    }
+    // SEV3: Brute force / credential stuffing / recon
+    if (['ssh', 'ftp', 'telnet', 'mssql', 'mysql', 'rdp', 'vnc', 'samba'].includes(protocol)) {
+        return { sev: 3, emoji: '🟡', label: 'MEDIUM' };
+    }
+    // SEV4: Passive scan / bot probe
+    return { sev: 4, emoji: '⚪', label: 'LOW' };
+}
+
+// ─── Confidence Scoring ───────────────────────────────────────────────────────
+function assessConfidence(shodanData, protocol) {
+    let indicators = 0;
+    // Known protocol attack
+    if (PROTO_ATTACK[protocol]) indicators++;
+    // Shodan enrichment available
+    if (shodanData) {
+        if (shodanData.shodan_vulns?.length) indicators++;
+        if (shodanData.is_known_scanner) indicators++;
+        if (shodanData.shodan_ports?.length > 5) indicators++;  // many open ports = likely attacker infra
+    }
+    // Repeated offender (in reported cache)
+    // protocols with auth = higher confidence
+    if (['ssh', 'mssql', 'mysql', 'ftp', 'telnet'].includes(protocol)) indicators++;
+
+    if (indicators >= 3) return 'HIGH';
+    if (indicators >= 1) return 'MEDIUM';
+    return 'LOW';
+}
+
 // ─── Telegram ─────────────────────────────────────────────────────────────────
-async function sendTelegram(ip, protocol, port) {
+async function sendTelegram(ip, protocol, port, details = {}) {
     if (!notify.telegram?.enabled || !notify.telegram.bot_token) return;
     // Enrich with Shodan InternetDB (best-effort, non-blocking)
     let shodanInfo = '';
+    let shodanData = null;
     try {
-        const data = await shodan.enrichAttacker(ip);
-        if (data) {
-            if (data.shodan_ports.length) shodanInfo += `\nPorts: ${data.shodan_ports.join(', ')}`;
-            if (data.shodan_vulns.length) shodanInfo += `\n⚠️ CVEs: ${data.shodan_vulns.slice(0, 3).join(', ')}`;
-            if (data.shodan_hostnames.length) shodanInfo += `\nHost: ${data.shodan_hostnames[0]}`;
-            if (data.is_known_scanner) shodanInfo += '\n🔍 Known scanner';
+        shodanData = await shodan.enrichAttacker(ip);
+        if (shodanData) {
+            if (shodanData.shodan_ports.length) shodanInfo += `\nPorts: ${shodanData.shodan_ports.join(', ')}`;
+            if (shodanData.shodan_vulns.length) shodanInfo += `\n⚠️ CVEs: ${shodanData.shodan_vulns.slice(0, 3).join(', ')}`;
+            if (shodanData.shodan_hostnames.length) shodanInfo += `\nHost: ${shodanData.shodan_hostnames[0]}`;
+            if (shodanData.is_known_scanner) shodanInfo += '\n🔍 Known scanner';
         }
     } catch { /* best effort */ }
-    const msg = `🍯 *HoneyAI Attack*\n\`${ip}\` → ${protocol?.toUpperCase() || '?'} port ${port}${shodanInfo}`;
+
+    // Severity & confidence
+    const sev = classifySeverity(protocol, details);
+    const confidence = assessConfidence(shodanData, protocol);
+    const attack = PROTO_ATTACK[protocol] || 'T1595 Active Scan';
+
+    const msg = [
+        `${sev.emoji} *HoneyAI Alert* \\[${sev.label}\\]`,
+        `\`${ip}\` → ${protocol?.toUpperCase() || '?'} port ${port}`,
+        `🎯 ${attack}`,
+        `📊 Confidence: ${confidence}`,
+        shodanInfo,
+    ].filter(Boolean).join('\n');
+
     await axios.post(
         `https://api.telegram.org/bot${notify.telegram.bot_token}/sendMessage`,
         { chat_id: notify.telegram.chat_id, text: msg, parse_mode: 'Markdown' },
@@ -280,4 +352,5 @@ async function sendTelegram(ip, protocol, port) {
     );
 }
 
-module.exports = { report, submitMalware, sendTelegram, shodanSelfScan: shodan.selfScan };
+module.exports = { report, submitMalware, sendTelegram, classifySeverity, assessConfidence, shodanSelfScan: shodan.selfScan };
+

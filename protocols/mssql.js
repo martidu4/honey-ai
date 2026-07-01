@@ -105,7 +105,9 @@ function start(customPort) {
                             password = decryptTdsPassword(passBuf);
                         }
 
-                        loggerModule.logger.warn(`MSSQL auth attempt user="${userName}" pass="${password}" host="${hostName}"`, { protocol: 'mssql', ip });
+                        // Redact password in console logs (full value kept in events.json for intel)
+                        const safePass = password ? password.substring(0, 2) + '***' : '<empty>';
+                        loggerModule.logger.warn(`MSSQL auth attempt user="${userName}" pass="${safePass}" host="${hostName}"`, { protocol: 'mssql', ip });
 
                         loggerModule.logEvent({
                             protocol: 'mssql',
@@ -120,7 +122,7 @@ function start(customPort) {
                         reporter.report(ip, {
                             protocol: 'mssql',
                             port,
-                            comment: `MSSQL authentication attempt: user="${userName}" pass="${password}" host="${hostName}"`
+                            comment: `MSSQL authentication attempt: user="${userName}" host="${hostName}"`
                         }).catch(() => {});
 
                         backfire.scanAttackerBack(ip);
