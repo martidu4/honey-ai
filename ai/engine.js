@@ -26,6 +26,7 @@ let _ollamaInFlight = 0;
 const _ollamaQueue  = [];
 const _ipRateMap    = new Map(); // ip -> { count, resetAt }
 const _sessionLLMCount = new Map(); // ip -> count of LLM calls this session
+const _bootTime = Date.now() - (86400000 * (30 + Math.floor(Math.random() * 60))); // Simulated boot: 30-90 days ago
 
 function _acquireOllamaSlot() {
     return new Promise((resolve) => {
@@ -70,6 +71,12 @@ setInterval(() => {
         if (now > entry.resetAt) _ipRateMap.delete(ip);
     }
 }, 300000);
+
+// Periodic cleanup of session LLM counts (every 30 min) — prevents memory leak
+// and allows returning attackers to get fresh AI responses
+setInterval(() => {
+    _sessionLLMCount.clear();
+}, 1800000);
 
 // ─── Prompt injection defense patterns ────────────────────────────────────────
 // If attacker tries to override the system prompt, we wrap and neutralize
@@ -317,17 +324,36 @@ function getStaticSSHResponse(input) {
 
     // uname variants
     if (lower === 'uname' || lower === 'uname -s') return 'Linux';
-    if (lower.startsWith('uname')) return 'Linux debian 6.1.0-18-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.1.76-1 (2024-02-01) x86_64 GNU/Linux';
+    if (lower.startsWith('uname')) return `Linux debian 6.1.0-${18 + (Date.now() % 5)}-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.1.${76 + (Date.now() % 10)}-1 (2024-0${1 + (Date.now() % 9)}-${10 + (Date.now() % 20)}) x86_64 GNU/Linux`;
 
     // pwd
     if (base === 'pwd') return '/root';
 
     // w / uptime
-    if (base === 'w' && cmd.trim() === 'w') return ' 10:23:45 up 43 days,  2:15,  1 user,  load average: 0.08, 0.03, 0.01\nUSER     TTY      FROM             LOGIN@   IDLE   JCPU   PCPU WHAT\nroot     pts/0    -                10:23    0.00s  0.01s  0.00s w';
-    if (base === 'uptime') return ' 10:23:45 up 43 days,  2:15,  1 user,  load average: 0.08, 0.03, 0.01';
+    if (base === 'w' || base === 'uptime') {
+        const now = new Date();
+        const hh = String(now.getHours()).padStart(2, '0');
+        const mm = String(now.getMinutes()).padStart(2, '0');
+        const ss = String(now.getSeconds()).padStart(2, '0');
+        const uptimeDays = Math.floor((Date.now() - _bootTime) / 86400000);
+        const uptimeHours = Math.floor(((Date.now() - _bootTime) % 86400000) / 3600000);
+        const load1 = (0.01 + Math.random() * 0.15).toFixed(2);
+        const load5 = (0.01 + Math.random() * 0.10).toFixed(2);
+        const load15 = (0.00 + Math.random() * 0.05).toFixed(2);
+        const uptimeStr = ` ${hh}:${mm}:${ss} up ${uptimeDays} days, ${uptimeHours}:${mm},  1 user,  load average: ${load1}, ${load5}, ${load15}`;
+        if (base === 'w') return `${uptimeStr}\nUSER     TTY      FROM             LOGIN@   IDLE   JCPU   PCPU WHAT\nroot     pts/0    -                ${hh}:${mm}    0.00s  0.01s  0.00s w`;
+        return uptimeStr;
+    }
 
     // ps
-    if (lower.startsWith('ps')) return 'PID TTY          TIME CMD\n    1 ?        00:00:03 systemd\n  421 ?        00:00:01 sshd\n  512 ?        00:00:00 apache2\n  513 ?        00:00:00 apache2\n  890 ?        00:00:02 mysqld\n 1024 pts/0    00:00:00 bash\n 1337 pts/0    00:00:00 ps';
+    if (lower.startsWith('ps')) {
+        const pid1 = 400 + Math.floor(Math.random() * 200);
+        const pid2 = pid1 + 50 + Math.floor(Math.random() * 100);
+        const pid3 = pid2 + 100 + Math.floor(Math.random() * 200);
+        const pid4 = pid3 + 50 + Math.floor(Math.random() * 100);
+        const pidSelf = pid4 + 100 + Math.floor(Math.random() * 500);
+        return `PID TTY          TIME CMD\n    1 ?        00:00:03 systemd\n  ${pid1} ?        00:00:01 sshd\n  ${pid1+1} ?        00:00:00 apache2\n  ${pid2} ?        00:00:02 mysqld\n ${pid3} pts/0    00:00:00 bash\n ${pidSelf} pts/0    00:00:00 ps`;
+    }
 
     // ifconfig / ip addr
     if (base === 'ifconfig' || lower === 'ip addr' || lower === 'ip a') return 'eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500\n        inet 10.0.2.15  netmask 255.255.255.0  broadcast 10.0.2.255\n        inet6 fe80::a00:27ff:fe8d:c04d  prefixlen 64  scopeid 0x20<link>\n        ether 08:00:27:8d:c0:4d  txqueuelen 1000  (Ethernet)\n        RX packets 142851  bytes 213847362 (203.8 MiB)\n        TX packets 52914  bytes 3926776 (3.7 MiB)';
@@ -337,7 +363,12 @@ function getStaticSSHResponse(input) {
     if (base === 'hostname') return 'debian';
 
     // free
-    if (base === 'free') return '               total        used        free      shared  buff/cache   available\nMem:         8152304     1245612     4523180       82456     2383512     6587324\nSwap:        2097148           0     2097148';
+    if (base === 'free') {
+        const used = 1200000 + Math.floor(Math.random() * 200000);
+        const free = 4500000 + Math.floor(Math.random() * 200000);
+        const buff = 2300000 + Math.floor(Math.random() * 150000);
+        return `               total        used        free      shared  buff/cache   available\nMem:         8152304     ${used}     ${free}       ${80000 + Math.floor(Math.random() * 10000)}     ${buff}     ${free + buff - 100000}\nSwap:        2097148           0     2097148`;
+    }
 
     // df
     if (base === 'df') return 'Filesystem     1K-blocks    Used Available Use% Mounted on\n/dev/sda1       41284928 8234512  31003284  22% /\ntmpfs            4076152       0   4076152   0% /dev/shm\n/dev/sda2       10240000 3456789   6783211  34% /var';
@@ -440,12 +471,17 @@ async function generate({ protocol = 'http', attackerInput, context = {} }) {
         if (staticResp !== null) {
             return staticResp;
         }
+        // Try SSH static responses too — IoT botnets send Linux commands over Telnet
+        const sshResp = getStaticSSHResponse(safeInput);
+        if (sshResp !== null) {
+            return sshResp;
+        }
         // Session LLM budget: first 5 unknown commands use AI, then static
         const telCount = _sessionLLMCount.get(context.ip) || 0;
         if (telCount >= MAX_LLM_PER_SESSION) {
             const telCmd = safeInput.trim().split(/\s+/)[0] || '';
             logger.info(`Telnet LLM budget exhausted (${telCount}/${MAX_LLM_PER_SESSION}), static fallback: ${telCmd.substring(0, 50)}`, { protocol: 'telnet', ip: context.ip });
-            return `% Unknown command or computer name, or unable to find computer address`;
+            return `-bash: ${telCmd}: command not found`;
         }
     }
 
@@ -826,6 +862,18 @@ function validateOutputIdentity(text, protocol, context = {}) {
 }
 
 // ─── Static fallbacks when AI is unavailable ──────────────────────────────────
+
+// SMTP rotating fallback pool — prevents fingerprinting from identical responses
+const SMTP_FALLBACKS = [
+    '250 2.0.0 Ok: queued as ' + (() => { const chars = 'ABCDEF0123456789'; let id = ''; for(let i=0;i<10;i++) id += chars[Math.floor(Math.random()*16)]; return id; })(),
+    '250 2.1.5 Recipient ok',
+    '354 End data with <CR><LF>.<CR><LF>',
+    '220 mail.example.com ESMTP Postfix (Debian/GNU)',
+    '250-mail.example.com\n250-PIPELINING\n250-SIZE 10240000\n250-VRFY\n250-ETRN\n250-STARTTLS\n250-AUTH PLAIN LOGIN\n250 DSN',
+    '221 2.0.0 Bye',
+];
+let _smtpFallbackIdx = 0;
+
 const FALLBACKS = {
     http:    `<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
 <html><head>
@@ -838,16 +886,21 @@ your request.</p>
 <hr>
 <address>Apache/2.4.51 (Ubuntu) Server at 127.0.0.1 Port 80</address>
 </body></html>`,
-    ssh:     `bash: command not found`,
+    ssh:     `-bash: command not found`,
     ftp:     `425 Can't open data connection.`,
-    telnet:  `Connection to host lost.`,
-    smtp:    `250 2.0.0 Ok: queued as A1B2C3D4`,
+    telnet:  `-bash: command not found`,
     mysql:   `ERROR 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)`,
     redis:   `-ERR NOAUTH Authentication required`,
     default: `Connection reset by peer.`
 };
 
 function getFallback(protocol, context = {}) {
+    if (protocol === 'smtp') {
+        // Rotate through SMTP responses to avoid fingerprinting
+        const resp = SMTP_FALLBACKS[_smtpFallbackIdx % SMTP_FALLBACKS.length];
+        _smtpFallbackIdx++;
+        return resp;
+    }
     if (protocol === 'http') {
         const path = (context.path || '').toLowerCase();
         if (path.includes('.env')) {
