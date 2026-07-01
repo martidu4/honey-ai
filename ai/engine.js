@@ -441,10 +441,10 @@ async function generate({ protocol = 'http', attackerInput, context = {} }) {
             return staticResp;
         }
         // Session LLM budget: first 5 unknown commands use AI, then static
-        const telCount = _sessionLLMCount.get(ip) || 0;
+        const telCount = _sessionLLMCount.get(context.ip) || 0;
         if (telCount >= MAX_LLM_PER_SESSION) {
             const telCmd = safeInput.trim().split(/\s+/)[0] || '';
-            logger.info(`Telnet LLM budget exhausted (${telCount}/${MAX_LLM_PER_SESSION}), static fallback: ${telCmd.substring(0, 50)}`, { protocol: 'telnet', ip });
+            logger.info(`Telnet LLM budget exhausted (${telCount}/${MAX_LLM_PER_SESSION}), static fallback: ${telCmd.substring(0, 50)}`, { protocol: 'telnet', ip: context.ip });
             return `% Unknown command or computer name, or unable to find computer address`;
         }
     }
@@ -456,10 +456,10 @@ async function generate({ protocol = 'http', attackerInput, context = {} }) {
             return staticResp;
         }
         // Session LLM budget: first 5 unknown commands use AI, then static
-        const sshCount = _sessionLLMCount.get(ip) || 0;
+        const sshCount = _sessionLLMCount.get(context.ip) || 0;
         if (sshCount >= MAX_LLM_PER_SESSION) {
             const cmd = safeInput.trim().split(/\s+/)[0] || '';
-            logger.info(`SSH LLM budget exhausted (${sshCount}/${MAX_LLM_PER_SESSION}), static fallback: ${cmd.substring(0, 50)}`, { protocol: 'ssh', ip });
+            logger.info(`SSH LLM budget exhausted (${sshCount}/${MAX_LLM_PER_SESSION}), static fallback: ${cmd.substring(0, 50)}`, { protocol: 'ssh', ip: context.ip });
             return `-bash: ${cmd}: command not found`;
         }
     }
@@ -598,7 +598,7 @@ Generate the protocol response (raw output only):`;
     // ── Concurrency gate: max 1 parallel Ollama request ──
     await _acquireOllamaSlot();
     // Track per-IP LLM usage for session budgeting
-    _sessionLLMCount.set(ip, (_sessionLLMCount.get(ip) || 0) + 1);
+    _sessionLLMCount.set(context.ip, (_sessionLLMCount.get(context.ip) || 0) + 1);
     try {
         let response;
         if (ai.provider === 'ollama') {
