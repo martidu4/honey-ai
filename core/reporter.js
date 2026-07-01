@@ -316,9 +316,100 @@ function assessConfidence(shodanData, protocol) {
     return 'LOW';
 }
 
-// ─── Telegram ─────────────────────────────────────────────────────────────────
+// ─── Telegram (batched per-IP to avoid spam) ──────────────────────────────────
+const telegramBatch = new Map(); // ip → { hits: [{protocol, port}], timer, firstSeen }
+const TELEGRAM_BATCH_WINDOW = 60_000; // 60s — accumulate alerts per IP then send summary
+const MAX_TELEGRAM_BATCH = 10_000;
+
 async function sendTelegram(ip, protocol, port, details = {}) {
     if (!notify.telegram?.enabled || !notify.telegram.bot_token) return;
+
+    const sev = classifySeverity(protocol, details);
+
+    // SEV1 CRITICAL: bypass batching — send immediately
+    if (sev.sev === 1) {
+        return _sendTelegramNow(ip, protocol, port, details, sev);
+    }
+
+    // Batch: accumulate hits per IP, flush after TELEGRAM_BATCH_WINDOW
+    const existing = telegramBatch.get(ip);
+    if (existing) {
+        existing.hits.push({ protocol, port, time: Date.now() });
+        // Already has a timer running — just accumulate
+        return;
+    }
+
+    // New IP — start batch window
+    if (telegramBatch.size >= MAX_TELEGRAM_BATCH) {
+        // Evict oldest to prevent memory leak
+        const oldest = telegramBatch.keys().next().value;
+        const old = telegramBatch.get(oldest);
+        if (old?.timer) clearTimeout(old.timer);
+        telegramBatch.delete(oldest);
+    }
+
+    const entry = {
+        hits: [{ protocol, port, time: Date.now() }],
+        firstSeen: Date.now(),
+        details,
+        timer: setTimeout(() => _flushTelegramBatch(ip), TELEGRAM_BATCH_WINDOW),
+    };
+    telegramBatch.set(ip, entry);
+}
+
+async function _flushTelegramBatch(ip) {
+    const batch = telegramBatch.get(ip);
+    telegramBatch.delete(ip);
+    if (!batch || !batch.hits.length) return;
+
+    const hitCount = batch.hits.length;
+
+    // If only 1 hit, send normal alert
+    if (hitCount === 1) {
+        const h = batch.hits[0];
+        return _sendTelegramNow(ip, h.protocol, h.port, batch.details);
+    }
+
+    // Multiple hits — send summary
+    const protocols = [...new Set(batch.hits.map(h => h.protocol?.toUpperCase()).filter(Boolean))];
+    const ports = [...new Set(batch.hits.map(h => h.port).filter(Boolean))];
+    const duration = Math.round((Date.now() - batch.firstSeen) / 1000);
+
+    // Enrich with Shodan (best-effort)
+    let shodanInfo = '';
+    try {
+        const data = await shodan.enrichAttacker(ip);
+        if (data) {
+            if (data.shodan_ports?.length) shodanInfo += `\nPorts: ${data.shodan_ports.join(', ')}`;
+            if (data.shodan_vulns?.length) shodanInfo += `\n⚠️ CVEs: ${data.shodan_vulns.slice(0, 3).join(', ')}`;
+            if (data.shodan_hostnames?.length) shodanInfo += `\nHost: ${data.shodan_hostnames[0]}`;
+            if (data.is_known_scanner) shodanInfo += '\n🔍 Known scanner';
+        }
+    } catch { /* best effort */ }
+
+    // Determine highest severity from batch
+    const mainProto = batch.hits[0].protocol;
+    const sev = classifySeverity(mainProto, batch.details);
+    const attack = PROTO_ATTACK[mainProto] || 'T1595 Active Scan';
+
+    const msg = [
+        `${sev.emoji} *HoneyAI Alert* \\[${sev.label}\\]`,
+        `\`${ip}\` — *${hitCount} hits* in ${duration}s`,
+        `📡 ${protocols.join(', ')} → ports ${ports.join(', ')}`,
+        `🎯 ${attack}`,
+        shodanInfo,
+    ].filter(Boolean).join('\n');
+
+    try {
+        await axios.post(
+            `https://api.telegram.org/bot${notify.telegram.bot_token}/sendMessage`,
+            { chat_id: notify.telegram.chat_id, text: msg, parse_mode: 'Markdown' },
+            { timeout: 5000 }
+        );
+    } catch { /* best effort */ }
+}
+
+async function _sendTelegramNow(ip, protocol, port, details = {}, sevOverride) {
     // Enrich with Shodan InternetDB (best-effort, non-blocking)
     let shodanInfo = '';
     let shodanData = null;
@@ -333,7 +424,7 @@ async function sendTelegram(ip, protocol, port, details = {}) {
     } catch { /* best effort */ }
 
     // Severity & confidence
-    const sev = classifySeverity(protocol, details);
+    const sev = sevOverride || classifySeverity(protocol, details);
     const confidence = assessConfidence(shodanData, protocol);
     const attack = PROTO_ATTACK[protocol] || 'T1595 Active Scan';
 
@@ -353,4 +444,5 @@ async function sendTelegram(ip, protocol, port, details = {}) {
 }
 
 module.exports = { report, submitMalware, sendTelegram, classifySeverity, assessConfidence, shodanSelfScan: shodan.selfScan };
+
 

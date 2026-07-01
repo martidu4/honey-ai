@@ -39,18 +39,41 @@ async function reportToAbuseIPDB(ip, path, ua) {
   }).catch(() => {});
 }
 
-// Helper: send Telegram alert
+// Helper: send Telegram alert (rate-limited per IP to avoid spam)
+const _telegramCooldown = new Map(); // ip → { lastSent, hitCount }
+const TELEGRAM_COOLDOWN_MS = 5 * 60 * 1000; // 5 min per IP
+
 function alertTelegram(emoji, rawPath, ip, ua, extra = '') {
   if (!TELEGRAM_TOKEN || !TELEGRAM_CHAT) return;
   const isPrivateIP = /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|::1)/.test(ip);
   if (isPrivateIP) return;
   if (INTERNAL_UA.some(u => ua.includes(u))) return;
+
+  // Per-IP rate limit: 1 alert per 5 minutes, count suppressed hits
+  const now = Date.now();
+  const entry = _telegramCooldown.get(ip);
+  if (entry && (now - entry.lastSent) < TELEGRAM_COOLDOWN_MS) {
+    entry.hitCount++;
+    return; // suppress — already alerted recently
+  }
+
+  // Build alert with hit count if suppressed hits exist
+  const hitInfo = entry?.hitCount > 0 ? `\n🔁 <b>${entry.hitCount} hits suppressed</b> since last alert` : '';
+  _telegramCooldown.set(ip, { lastSent: now, hitCount: 0 });
+
+  // Evict old entries to prevent memory growth (Vercel serverless = short lived, but just in case)
+  if (_telegramCooldown.size > 5000) {
+    const oldest = _telegramCooldown.keys().next().value;
+    _telegramCooldown.delete(oldest);
+  }
+
   const msg =
     `${emoji} <b>HoneyAI Web Decoy</b>\n` +
     `📍 <code>${rawPath}</code>\n` +
     `🌍 IP: <code>${ip}</code>\n` +
     `🖥️ UA: <code>${ua.substring(0, 80)}</code>` +
-    (extra ? `\n${extra}` : '');
+    (extra ? `\n${extra}` : '') +
+    hitInfo;
   fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -58,8 +81,8 @@ function alertTelegram(emoji, rawPath, ip, ua, extra = '') {
   }).catch(() => {});
 }
 
-// Blocked abusive IPs (e.g. HostPapa Seattle scanner hammering .env every 30s)
-const BLOCKED_IPS = ['192.3.53.186', '45.88.138.44'];
+// Blocked abusive IPs — instant 403, no tarpit, no alerts
+const BLOCKED_IPS = ['192.3.53.186', '45.88.138.44', '18.141.228.177'];
 
 export default async function handler(req, res) {
   const rawPath = req.url || '/';
