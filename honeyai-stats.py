@@ -112,6 +112,9 @@ def main():
     ssh_ips = set()
     ssh_passwords = []
     ssh_credentials_list = []
+    # SSH only stores password_hash by design, so its "passwords" are hashes.
+    # Other protocols (MSSQL today) do log the cleartext attempt — collect those too.
+    other_passwords = []
     
     oc_events = 0
     oc_ips = set()
@@ -178,6 +181,11 @@ def main():
             identity_leak_blocked += 1
             continue
         
+        if proto != 'ssh':
+            p_clear = e.get('password')
+            if p_clear and p_clear != '(key)':
+                other_passwords.append(str(p_clear))
+
         if proto == 'ssh':
             ssh_connections += 1
             ssh_ips.add(ip)
@@ -310,20 +318,81 @@ def main():
         counts = Counter(items)
         return [{"cred": item, "count": count} for item, count in counts.most_common(limit)]
 
+    # OPSEC: passwords and commands below end up on a public page, so an attacker who
+    # guesses a real internal identifier must never see it confirmed back there.
+    # The terms themselves are deployment-specific and must NOT live in this repo:
+    # put one per line in .opsec-terms next to this script (gitignored), or set
+    # OPSEC_FILTER_TERMS=term1,term2. Private ranges are always filtered.
+    internal_terms = tuple(
+        t.strip().lower()
+        for t in os.environ.get('OPSEC_FILTER_TERMS', '').split(',')
+        if t.strip()
+    )
+    terms_file = os.environ.get(
+        'OPSEC_TERMS_FILE',
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), '.opsec-terms'),
+    )
+    if os.path.isfile(terms_file):
+        with open(terms_file) as fh:
+            internal_terms += tuple(
+                line.strip().lower() for line in fh
+                if line.strip() and not line.startswith('#')
+            )
+
+    def leaks_internal(s):
+        low = str(s).lower()
+        return any(t in low for t in internal_terms) or '192.168.' in low
+
+    ssh_passwords = [p for p in ssh_passwords if not leaks_internal(p)]
+    other_passwords = [p for p in other_passwords if not leaks_internal(p)]
+    ssh_commands = [c for c in ssh_commands if not leaks_internal(c)]
+    ssh_credentials_list = [c for c in ssh_credentials_list if not leaks_internal(c)]
+
     top_ips = get_top_items(all_ips, 30) # get up to 30 for dashboard
     top_commands = get_top_items(ssh_commands, 5)
-    top_passwords = get_top_items(ssh_passwords, 5)
+    all_passwords = ssh_passwords + other_passwords
+    top_passwords = get_top_items(all_passwords, 5)
     galah_top_paths = get_top_items(galah_paths, 5)
     galah_top_agents = get_top_items(galah_agents, 5)
     
-    # Funny passwords
-    funny_passwords = [p for p in ssh_passwords if not p.isdigit() and len(p) > 4]
-    funny_pass = get_top_items(funny_passwords, 5)
+    # Funny passwords (excluding generic/boring ones)
+    boring_pws = {
+        'admin', 'password', 'root', '123456', '12345', '12345678', '1234', 'default',
+        'user', 'guest', 'ubuntu', 'debian', 'raspberry', 'support', 'qwerty', '123456789',
+        'admin123', 'pass', '1234567', 'oracle', 'postgres', 'mysql', 'centos', '1234567890',
+        '1qaz@wsx', 'qwe123', 'abc123', '123321', 'zxcvbn', 'azerty', 'telecom', 'admin1',
+        'admin2', '000000', '111111', '222222', '333333', '123123', '1111', 'testing', 'test',
+        'unknown', 'system', 'logins', 'login', 'manager', 'supervisor', 'cisco', 'fortinet',
+        'huawei', 'dlink', 'tplink', 'password123', 'pass123', '123pass'
+    }
+    funny_passwords = [p for p in set(all_passwords) if p.lower() not in boring_pws and not p.isdigit() and 4 < len(p) < 30]
+    # Sort candidates by complexity
+    funny_passwords.sort(key=lambda x: (len(set(x)) * (1.5 if not x.isalnum() else 1.0)), reverse=True)
+    funny_pass = funny_passwords[:5]
+    if not funny_pass:
+        funny_pass = get_top_items([p for p in all_passwords if not p.isdigit() and len(p) > 4], 5)
     
-    # Funny commands
-    funny_cmds_patterns = re.compile(r'miner|bitcoin|wget|chmod|curl|/etc/passwd|uname|id$|whoami', re.IGNORECASE)
-    funny_commands = [c for c in ssh_commands if funny_cmds_patterns.search(c)]
-    funny_cmds = list(set(funny_commands))[:5]
+    # Funny commands (excluding standard recon ones)
+    boring_cmds_parts = {'uname', 'whoami', 'id', 'w', 'ps', 'ls', 'exit', 'uptime', 'df', 'free'}
+    funny_cmds_patterns = re.compile(r'miner|bitcoin|wallet|/etc/shadow|rm\s+-rf|backdoor|hacked|exploit|hack|wget|curl|chmod|cat|nano|vi|bash|sh|exec', re.IGNORECASE)
+    
+    candidate_cmds = []
+    for c in set(ssh_commands):
+        c_clean = c.strip()
+        if not c_clean: continue
+        if c_clean.lower() in boring_cmds_parts or len(c_clean) < 4:
+            continue
+        if any(x in c_clean.lower() for x in ('uname -a', 'cat /proc/meminfo', 'cat /proc/cpuinfo', 'ls -la')):
+            continue
+        if funny_cmds_patterns.search(c_clean):
+            candidate_cmds.append(c_clean)
+            
+    candidate_cmds.sort(key=len, reverse=True)
+    funny_cmds = candidate_cmds[:5]
+    if not funny_cmds:
+        fallback_cmds = [c for c in set(ssh_commands) if len(c) > 6 and c.lower() not in boring_cmds_parts]
+        fallback_cmds.sort(key=len, reverse=True)
+        funny_cmds = fallback_cmds[:5]
     
     # Target files accessed
     file_patterns = re.compile(r'(wallet\.dat|passwords?\.txt|id_rsa|\.aws/credentials|\.env|db.dump|backup\.sql|config\.json)', re.IGNORECASE)

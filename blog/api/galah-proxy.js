@@ -4,6 +4,7 @@
 // Reports to ALL 4 platforms via shared helper
 
 import { reportToAllPlatforms } from './_lib/report-all.js';
+import { clientIp, isReportableIp } from './_lib/client-ip.js';
 //
 // Flujo: Scanner → honey-ai.dev/wp-login.php
 //        → vercel.json catch-all → /api/galah-proxy
@@ -93,10 +94,10 @@ export default async function handler(req, res) {
     return res.status(404).json({ error: 'Not found' });
   }
 
-  const ip =
-    (req.headers['x-forwarded-for'] || '').split(',')[0].trim() ||
-    req.headers['x-real-ip'] ||
-    'unknown';
+  // Trusted source only — see _lib/client-ip.js. This IP feeds BLOCKED_IPS and
+  // the AbuseIPDB report, so a spoofable one both bypasses the blocklist and
+  // gets innocent addresses reported.
+  const ip = clientIp(req);
 
   // Return 403 instantly for blocked abusive IPs to save CPU/bandwidth
   if (BLOCKED_IPS.includes(ip)) {

@@ -187,6 +187,28 @@ function ssrfSafeLookup(hostname, options, callback) {
 const httpAgent = new http.Agent({ lookup: ssrfSafeLookup });
 const httpsAgent = new https.Agent({ lookup: ssrfSafeLookup });
 
+/**
+ * Pre-flight SSRF check for URLs whose host is already a literal IP.
+ *
+ * ssrfSafeLookup only runs inside the agent's DNS lookup, and Node skips the
+ * lookup entirely when the host is an IP literal — so http://[::ffff:127.0.0.1]/
+ * and http://0.0.0.0/ reached the socket completely unchecked. Verified: the
+ * downloader fetched from loopback and forwarded the body to VirusTotal.
+ *
+ * Checking a literal here is safe from the DNS-rebinding TOCTOU that the
+ * hostname path deliberately avoids: there is no name to re-resolve.
+ *
+ * @param {string} hostname - URL.hostname (IPv6 literals still bracketed)
+ * @returns {boolean} true if this is a literal IP pointing somewhere private
+ */
+function isPrivateIPLiteral(hostname) {
+    const host = hostname.startsWith('[') && hostname.endsWith(']')
+        ? hostname.slice(1, -1)
+        : hostname;
+    if (!net.isIP(host)) return false;   // a name: leave it to ssrfSafeLookup
+    return isPrivateIP(host);
+}
+
 function isPrivateTarget(hostname) {
     const cleanHost = hostname.startsWith('[') && hostname.endsWith(']')
         ? hostname.slice(1, -1)
@@ -233,9 +255,16 @@ async function processDownload(urlString, ip, sourceProtocol = 'ssh') {
 
     try {
         while (redirectCount <= maxRedirects) {
-            // SSRF protection: ssrfSafeLookup in httpAgent/httpsAgent validates
-            // resolved IPs AFTER DNS resolution. No pre-flight hostname check here
-            // to prevent DNS rebinding TOCTOU attacks.
+            // SSRF protection, two layers:
+            //  - hostnames: ssrfSafeLookup in httpAgent/httpsAgent validates the
+            //    resolved IP AFTER resolution, so a rebinding TOCTOU cannot slip
+            //    past a pre-flight name check.
+            //  - IP literals: Node skips the agent's lookup entirely for those,
+            //    so they must be rejected here. Re-checked on every redirect hop,
+            //    since Location can point straight at an internal address.
+            if (isPrivateIPLiteral(currentUrl.hostname)) {
+                throw new Error(`Refusing to fetch a private/local IP literal (SSRF blocked): ${currentUrl.hostname}`);
+            }
 
             response = await axios({
                 method: 'get',

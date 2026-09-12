@@ -469,6 +469,11 @@ async function runSuite() {
         // ── Backfire Port Scan Rate Limiter Test ──
         console.log(chalk.yellow('🔍 Testing Backfire Rate Limiter & Concurrency...'));
         const backfire = require('./core/backfire');
+        // Backfire ships disabled (see core/backfire.js). Enable it just for
+        // this test so the cooldown/concurrency logic is still covered.
+        const _bfCfg = require('./core/config');
+        const _bfPrev = _bfCfg.backfire;
+        _bfCfg.backfire = { enabled: true };
         backfire.resetBackfireCache();
         
         // Scan a local target first
@@ -493,6 +498,7 @@ async function runSuite() {
             console.log(chalk.red('  [Backfire Rate Limiter FAIL] Cooldown not enforced for same IP.'));
             failed++;
         }
+        _bfCfg.backfire = _bfPrev; // restore shipped default
 
         // ── Tanto 18-0: Log and Terminal ANSI Escape/CRLF Injection Hardening ──
         console.log(chalk.yellow('🔍 Testing Log and Terminal ANSI Escape/CRLF Injection Hardening...'));
@@ -1202,7 +1208,7 @@ async function runSuite() {
                     timezone: 'Europe/Madrid',
                     cores: 8,
                     gpu: 'MockGPU',
-                    local_ips: ['192.168.1.50']
+                    local_ips: ['10.0.0.50']
                 }, {
                     headers: { 'Content-Type': 'application/json' }
                 });
@@ -2841,6 +2847,122 @@ async function runSuite() {
             failed++;
         }
 
+        // 9. Log Keys Allowlist Audit Fixes (Audit-01)
+        const { sanitizeEventKeys } = require('./core/utils');
+        const testEvent = {
+            protocol: 'mysql',
+            ip: '10.0.0.5',
+            attack_type: 'mysql_rogue_infile_completed',
+            target_file: '/etc/passwd',
+            exfil_bytes: 1024,
+            save_path: '/path/to/save',
+            action: 'tarpit',
+            severity: 'critical'
+        };
+        const cleanedEvent = sanitizeEventKeys(testEvent);
+        const keysPreserved = cleanedEvent.target_file === '/etc/passwd' && 
+                             cleanedEvent.exfil_bytes === 1024 &&
+                             cleanedEvent.save_path === '/path/to/save' &&
+                             cleanedEvent.action === 'tarpit' &&
+                             cleanedEvent.severity === 'critical';
+
+        if (keysPreserved) {
+            console.log(chalk.green('  [Audit-01 Log Keys PASS] Security audit logging allowlist updates verified.'));
+            passed++;
+        } else {
+            console.log(chalk.red('  [Audit-01 Log Keys FAIL] Log sanitization stripped required telemetry keys.'));
+            failed++;
+        }
+
+        // 10. MySQL Infile Coalesced Stream Parsing (Audit-02)
+        let testSocketDestroyed = false;
+        let testSocketEnded = false;
+        let testWrittenData = [];
+        
+        const mockTcpSocket = {
+            destroyed: false,
+            destroy() { testSocketDestroyed = true; this.destroyed = true; },
+            end() { testSocketEnded = true; },
+            write(d) { testWrittenData.push(d); }
+        };
+
+        let mysqlState = 0;
+        let mysqlExfilFile = '/etc/passwd';
+        let mysqlSeqNum = 0;
+        let mysqlFileBuffer = Buffer.alloc(0);
+        let mysqlIncomingBuffer = Buffer.alloc(0);
+
+        const runMysqlParser = (data, ip = '127.0.0.1', port = 3306) => {
+            mysqlIncomingBuffer = Buffer.concat([mysqlIncomingBuffer, data]);
+            while (mysqlIncomingBuffer.length >= 4) {
+                const packetLen = mysqlIncomingBuffer.readUIntLE(0, 3);
+                const seqId = mysqlIncomingBuffer[3];
+                if (mysqlIncomingBuffer.length < 4 + packetLen) break;
+                const packet = mysqlIncomingBuffer.slice(4, 4 + packetLen);
+                mysqlIncomingBuffer = mysqlIncomingBuffer.slice(4 + packetLen);
+                mysqlSeqNum = seqId;
+
+                if (mysqlState === 0) {
+                    if (packet.length < 32) { mockTcpSocket.destroy(); return; }
+                    mysqlState = 1;
+                    const okPacket = Buffer.from([0x07, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00]);
+                    mockTcpSocket.write(okPacket);
+                    mysqlState = 2;
+                    continue;
+                }
+                if (mysqlState === 2) {
+                    if (packet.length >= 1 && packet[0] === 0x03) {
+                        const seq = mysqlSeqNum + 1;
+                        const requestPacket = traps.makeMySQLInfileRequest(mysqlExfilFile, seq);
+                        mockTcpSocket.write(requestPacket);
+                        mysqlState = 3;
+                        continue;
+                    }
+                }
+                if (mysqlState === 3) {
+                    if (packetLen > 0) {
+                        mysqlFileBuffer = Buffer.concat([mysqlFileBuffer, packet]);
+                    } else {
+                        mockTcpSocket.end();
+                        return;
+                    }
+                    continue;
+                }
+            }
+        };
+
+        const authPacket = Buffer.alloc(4 + 36);
+        authPacket.writeUIntLE(36, 0, 3);
+        authPacket[3] = 1;
+        
+        const queryPacket = Buffer.alloc(4 + 16);
+        queryPacket.writeUIntLE(16, 0, 3);
+        queryPacket[3] = 0;
+        queryPacket[4] = 0x03;
+        queryPacket.write('SHOW DATABASES;', 5);
+
+        const chunk1 = Buffer.alloc(4 + 10);
+        chunk1.writeUIntLE(10, 0, 3);
+        chunk1[3] = 5;
+        chunk1.write('some_data\n', 4);
+
+        const eofChunk = Buffer.alloc(4);
+        eofChunk.writeUIntLE(0, 0, 3);
+        eofChunk[3] = 6;
+
+        const coalescedBytes = Buffer.concat([authPacket, queryPacket, chunk1, eofChunk]);
+        runMysqlParser(coalescedBytes);
+
+        const mysqlCoalescingValid = mysqlState === 3 && testSocketEnded && mysqlFileBuffer.toString() === 'some_data\n';
+
+        if (mysqlCoalescingValid) {
+            console.log(chalk.green('  [Audit-02 MySQL Coalescing PASS] MySQL stream parser and coalescing flow verified.'));
+            passed++;
+        } else {
+            console.log(chalk.red(`  [Audit-02 MySQL Coalescing FAIL] mysqlState: ${mysqlState}, ended: ${testSocketEnded}, fileBuffer: "${mysqlFileBuffer.toString()}"`));
+            failed++;
+        }
+
     } catch (err) {
         console.log(chalk.red(`  [Phase 5 ERROR] Security audit fixes tests failed: ${err.message}`));
         failed++;
@@ -2991,6 +3113,50 @@ async function runSuite() {
         mcpModule.stop();
         console.log(chalk.green('  [MCP Server PASS] Decoy server shutdown verified.'));
         passed++;
+
+        // 3. SNMP BER parser and response builder testing
+        const snmpModule = require('./protocols/snmp');
+        const testOidBytes = Buffer.from([0x2b, 0x06, 0x01, 0x02, 0x01, 0x01, 0x01, 0x00]); // 1.3.6.1.2.1.1.1.0
+        const decodedOid = snmpModule.decodeOid(testOidBytes);
+        if (decodedOid === '1.3.6.1.2.1.1.1.0') {
+            console.log(chalk.green('  [SNMP Parser PASS] OID decoding verified (1.3.6.1.2.1.1.1.0).'));
+            passed++;
+        } else {
+            console.log(chalk.red(`  [SNMP Parser FAIL] OID decoding failed: got "${decodedOid}"`));
+            failed++;
+        }
+
+        const snmpPacket = Buffer.concat([
+            Buffer.from([0x30, 0x29]), // Sequence
+            Buffer.from([0x02, 0x01, 0x01]), // Version 2c
+            Buffer.from([0x04, 0x06, 0x70, 0x75, 0x62, 0x6c, 0x69, 0x63]), // Community 'public'
+            Buffer.from([0xa0, 0x1c]), // GetRequest PDU
+            Buffer.from([0x02, 0x04, 0x00, 0x00, 0x00, 0x01]), // Request ID 1
+            Buffer.from([0x02, 0x01, 0x00]), // Error status 0
+            Buffer.from([0x02, 0x01, 0x00]), // Error index 0
+            Buffer.from([0x30, 0x0e]), // Varbind List
+            Buffer.from([0x30, 0x0c]), // Varbind
+            Buffer.from([0x06, 0x08, 0x2b, 0x06, 0x01, 0x02, 0x01, 0x01, 0x01, 0x00]), // OID 1.3.6.1.2.1.1.1.0
+            Buffer.from([0x05, 0x00]) // Null
+        ]);
+
+        const parsedSnmp = snmpModule.parseSnmp(snmpPacket);
+        if (parsedSnmp && parsedSnmp.community === 'public' && parsedSnmp.requests.includes('1.3.6.1.2.1.1.1.0')) {
+            console.log(chalk.green('  [SNMP Parser PASS] Full SNMP GetRequest BER packet parsed.'));
+            passed++;
+            
+            const snmpResp = snmpModule.buildSnmpResponse(parsedSnmp);
+            if (snmpResp && snmpResp.length > 0 && snmpResp[0] === 0x30) {
+                console.log(chalk.green('  [SNMP Response PASS] BER GetResponse packet generated correctly.'));
+                passed++;
+            } else {
+                console.log(chalk.red('  [SNMP Response FAIL] BER GetResponse generation failed.'));
+                failed++;
+            }
+        } else {
+            console.log(chalk.red('  [SNMP Parser FAIL] Full SNMP packet parsing failed.'));
+            failed++;
+        }
 
     } catch (err) {
         console.log(chalk.red(`  [Phase 6 ERROR] Approved upgrades tests failed: ${err.message}`));

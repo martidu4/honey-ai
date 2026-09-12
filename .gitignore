@@ -6,8 +6,10 @@
 /.env
 .env.*
 config.yaml
-config.*.yaml           # deployment-specific configs (config.pi5.yaml, etc.)
-.host_key               # persistent SSH host key
+# deployment-specific configs (config.pi5.yaml, etc.)
+config.*.yaml
+# persistent SSH host key
+.host_key
 
 # 📁 Runtime data
 logs/
@@ -16,6 +18,11 @@ logs-demo/
 
 # 🧪 Scratch / debug scripts
 scratch/
+*.bak
+*.orig
+*.rej
+# el bueno es ai/engine.js; una copia en la raiz es basura
+/engine.js
 
 # 🟦 Node
 node_modules/
@@ -38,3 +45,4 @@ blog/.vercel/
 blog/.env.local
 blog/.env.production.local
 blog/node_modules/
+.opsec-terms

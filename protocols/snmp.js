@@ -66,7 +66,10 @@ function buildTlv(tag, valueBuffer) {
     return Buffer.concat([Buffer.from([tag]), lenBuf, valueBuffer]);
 }
 
-function buildSnmpResponse(parseResult, responseValue = "Debian GNU/Linux 12 (bookworm) Linux 6.1.0-rpi7") {
+// sysDescr is one of the first things a scanner fingerprints, and "6.1.0-rpi7"
+// announced a Raspberry Pi — the host's real hardware, and inconsistent with the
+// x86_64 Debian every other protocol claims.
+function buildSnmpResponse(parseResult, responseValue = "Linux debian 6.1.0-18-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.1.76-1 x86_64") {
     const { versionBytes, communityBytes, requestIdBytes, oidBytesList } = parseResult;
     if (!oidBytesList || oidBytesList.length === 0) return null;
     

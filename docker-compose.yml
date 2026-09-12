@@ -68,6 +68,11 @@ services:
       # Reporting (optional — set in .env file)
       - ABUSEIPDB_KEY=${ABUSEIPDB_KEY:-}
       - OTX_KEY=${OTX_KEY:-}
+      - OTX_SSH_PULSE_ID=${OTX_SSH_PULSE_ID:-}
+      - OTX_PULSE_ID=${OTX_PULSE_ID:-}
+      - OTX_WEB_PULSE_ID=${OTX_WEB_PULSE_ID:-}
+      - OTX_DB_PULSE_ID=${OTX_DB_PULSE_ID:-}
+      - OTX_NETWORK_PULSE_ID=${OTX_NETWORK_PULSE_ID:-}
       - DSHIELD_KEY=${DSHIELD_KEY:-}
       - BLOCKLIST_KEY=${BLOCKLIST_KEY:-}
       - VT_KEY=${VT_KEY:-}
@@ -109,6 +114,13 @@ services:
     volumes:
       - ./config.yaml:/app/config.yaml:ro
       - ./honeyfs:/app/honeyfs:ro
+      # SSH host key. Sin este mount el contenedor (read_only) no puede
+      # escribirla, cae al catch de protocols/ssh.js y genera una EFIMERA en
+      # cada arranque: una clave de host que rota delata el honeypot.
+      # El fichero NO va en git (.gitignore + .dockerignore); si no existe,
+      # generalo antes de levantar:
+      #   node -e "const c=require('crypto'),f=require('fs');f.writeFileSync('.host_key',c.generateKeyPairSync('rsa',{modulusLength:2048,publicKeyEncoding:{type:'spki',format:'pem'},privateKeyEncoding:{type:'pkcs1',format:'pem'}}).privateKey,{mode:0o600})"
+      - ./.host_key:/app/.host_key:ro
       - ./logs:/app/logs
       # Passive detectors log mounts from host (optional, required if enabled in config)
       - /var/log/syslog:/var/log/syslog:ro

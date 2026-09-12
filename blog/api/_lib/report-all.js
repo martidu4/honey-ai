@@ -3,6 +3,18 @@
 //
 // Platforms: AbuseIPDB, Blocklist.de, DShield/SANS, AlienVault OTX
 
+import { isReportableIp } from './client-ip.js';
+
+// Telegram is called with parse_mode HTML and the path/UA come from the
+// attacker, so they have to be escaped or a crafted User-Agent can inject
+// markup (or links) into our own alerts — and break delivery with a 400.
+function esc(str) {
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 /**
  * Report an IP to all threat intelligence platforms
  * @param {string} ip - Attacker IP address
@@ -11,11 +23,9 @@
  * @param {object} opts - Optional: { categories, detail }
  */
 export async function reportToAllPlatforms(ip, path, ua, opts = {}) {
-  if (!ip || ip === 'unknown') return;
-
-  // Skip private/LAN IPs
-  const isPrivate = /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|::1)/.test(ip);
-  if (isPrivate) return;
+  // Last line of defence: never report anything that is not a routable public
+  // address, whatever the caller passed in.
+  if (!isReportableIp(ip)) return;
 
   const categories = opts.categories || '19,21';
   const detail = opts.detail || `Web honeypot trap at ${path}`;
@@ -110,8 +120,7 @@ export async function alertTelegram(ip, path, ua, opts = {}) {
   const TELEGRAM_CHAT  = process.env.TELEGRAM_CHAT_ID;
   if (!TELEGRAM_TOKEN || !TELEGRAM_CHAT) return;
 
-  const isPrivate = /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|::1)/.test(ip);
-  if (isPrivate) return;
+  if (!isReportableIp(ip)) return;
 
   const emoji = opts.emoji ||
     (path.includes('env') || path.includes('config') ? '🔑' :
@@ -124,9 +133,9 @@ export async function alertTelegram(ip, path, ua, opts = {}) {
   const extra = opts.extra || '';
   const msg =
     `${emoji} <b>Web Honeypot Hit</b>\n` +
-    `📍 Path: <code>${path}</code>\n` +
-    `🌍 IP: <code>${ip}</code>\n` +
-    `🖥️ UA: <code>${ua.substring(0, 80)}</code>` +
+    `📍 Path: <code>${esc(path)}</code>\n` +
+    `🌍 IP: <code>${esc(ip)}</code>\n` +
+    `🖥️ UA: <code>${esc(String(ua).substring(0, 80))}</code>` +
     (extra ? `\n${extra}` : '');
 
   await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {

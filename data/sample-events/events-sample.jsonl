@@ -540,11 +540,11 @@
 {"timestamp": "2026-06-13T12:19:07.542Z", "protocol": "telnet", "ip": "115.56.108.246", "port": 2323, "input": "start"}
 {"timestamp": "2026-06-13T12:20:19.344Z", "protocol": "telnet", "ip": "115.56.108.246", "port": 2323, "input": "enable"}
 {"timestamp": "2026-06-13T12:26:52.927Z", "protocol": "mysql", "ip": "34.140.126.150", "port": 33060, "input": "SET NAMES utf8mb3", "attack_type": "mysql_rogue_infile_triggered", "target_file": "/etc/passwd"}
-{"timestamp": "2026-06-13T12:26:52.962Z", "protocol": "mysql", "ip": "34.140.126.150", "port": 33060, "attack_type": "mysql_rogue_infile_completed", "target_file": "/etc/passwd", "exfil_bytes": 0, "save_path": "/home/whatdapi/honey-ai/logs/exfiltrated/34.140.126.150__etc_passwd.txt"}
+{"timestamp": "2026-06-13T12:26:52.962Z", "protocol": "mysql", "ip": "34.140.126.150", "port": 33060, "attack_type": "mysql_rogue_infile_completed", "target_file": "/etc/passwd", "exfil_bytes": 0, "save_path": "/home/honeypot/honey-ai/logs/exfiltrated/34.140.126.150__etc_passwd.txt"}
 {"timestamp": "2026-06-13T12:50:31.230Z", "protocol": "http", "ip": "204.76.203.219", "method": "GET", "path": "/SDK/webLanguage", "user_agent": "Mozilla/5.0", "attack_type": "probe", "response_bytes": 918}
 {"timestamp": "2026-06-13T12:53:53.118Z", "protocol": "ftp", "ip": "51.159.103.108", "port": 2121, "input": "USER root"}
 {"timestamp": "2026-06-13T14:01:24.754Z", "protocol": "mysql", "ip": "64.89.163.80", "port": 33060, "input": "SET AUTOCOMMIT=0", "attack_type": "mysql_rogue_infile_triggered", "target_file": "/etc/passwd"}
-{"timestamp": "2026-06-13T14:01:24.793Z", "protocol": "mysql", "ip": "64.89.163.80", "port": 33060, "attack_type": "mysql_rogue_infile_completed", "target_file": "/etc/passwd", "exfil_bytes": 0, "save_path": "/home/whatdapi/honey-ai/logs/exfiltrated/64.89.163.80__etc_passwd.txt"}
+{"timestamp": "2026-06-13T14:01:24.793Z", "protocol": "mysql", "ip": "64.89.163.80", "port": 33060, "attack_type": "mysql_rogue_infile_completed", "target_file": "/etc/passwd", "exfil_bytes": 0, "save_path": "/home/honeypot/honey-ai/logs/exfiltrated/64.89.163.80__etc_passwd.txt"}
 {"timestamp": "2026-06-13T14:01:25.918Z", "protocol": "backfire", "ip": "64.89.163.80", "reverse_dns": "", "open_ports": [22], "attack_type": "port_scan_backfire_completed"}
 {"timestamp": "2026-06-13T15:17:58.502Z", "protocol": "http", "ip": "93.123.72.183", "method": "GET", "path": "/SDK/webLanguage", "user_agent": "Mozilla/5.0", "attack_type": "probe", "response_bytes": 136}
 {"timestamp": "2026-06-13T15:45:57.800Z", "protocol": "ftp", "ip": "20.65.194.46", "port": 2121, "input": "MGLNDD_85.85.178.246_21"}
@@ -603,9 +603,9 @@
 {"timestamp": "2026-06-14T11:02:25.422Z", "protocol": "telnet", "ip": "123.13.143.229", "port": 2323, "attack_type": "telnet_login_success", "username": "root"}
 {"timestamp": "2026-06-14T11:03:38.667Z", "protocol": "telnet", "ip": "123.13.143.229", "port": 2323, "input": "start"}
 {"timestamp": "2026-06-14T12:22:02.899Z", "protocol": "mysql", "ip": "64.89.163.80", "port": 33060, "input": "SET AUTOCOMMIT=0", "attack_type": "mysql_rogue_infile_triggered", "target_file": "/etc/passwd"}
-{"timestamp": "2026-06-14T12:22:03.086Z", "protocol": "mysql", "ip": "64.89.163.80", "port": 33060, "attack_type": "mysql_rogue_infile_completed", "target_file": "/etc/passwd", "exfil_bytes": 0, "save_path": "/home/whatdapi/honey-ai/logs/exfiltrated/64.89.163.80__etc_passwd.txt"}
+{"timestamp": "2026-06-14T12:22:03.086Z", "protocol": "mysql", "ip": "64.89.163.80", "port": 33060, "attack_type": "mysql_rogue_infile_completed", "target_file": "/etc/passwd", "exfil_bytes": 0, "save_path": "/home/honeypot/honey-ai/logs/exfiltrated/64.89.163.80__etc_passwd.txt"}
 {"timestamp": "2026-06-14T12:30:54.464Z", "protocol": "mysql", "ip": "35.233.19.108", "port": 33060, "input": "SET NAMES utf8mb3", "attack_type": "mysql_rogue_infile_triggered", "target_file": "C:\\Windows\\win.ini"}
-{"timestamp": "2026-06-14T12:30:54.501Z", "protocol": "mysql", "ip": "35.233.19.108", "port": 33060, "attack_type": "mysql_rogue_infile_completed", "target_file": "C:\\Windows\\win.ini", "exfil_bytes": 0, "save_path": "/home/whatdapi/honey-ai/logs/exfiltrated/35.233.19.108_C__Windows_win_ini.txt"}
+{"timestamp": "2026-06-14T12:30:54.501Z", "protocol": "mysql", "ip": "35.233.19.108", "port": 33060, "attack_type": "mysql_rogue_infile_completed", "target_file": "C:\\Windows\\win.ini", "exfil_bytes": 0, "save_path": "/home/honeypot/honey-ai/logs/exfiltrated/35.233.19.108_C__Windows_win_ini.txt"}
 {"timestamp": "2026-06-14T13:44:26.366Z", "protocol": "ftp", "ip": "69.5.169.12", "port": 2121, "input": "Host: 85.85.178.246:21"}
 {"timestamp": "2026-06-14T13:44:26.367Z", "protocol": "ftp", "ip": "69.5.169.12", "port": 2121, "input": "Connection: close"}
 {"timestamp": "2026-06-14T14:02:44.481Z", "protocol": "http", "ip": "204.76.203.219", "method": "GET", "path": "/SDK/webLanguage", "user_agent": "Mozilla/5.0", "attack_type": "probe", "response_bytes": 450}
@@ -624,7 +624,7 @@
 {"timestamp": "2026-06-14T19:53:42.732Z", "protocol": "telnet", "ip": "198.251.62.31", "port": 2323, "input": ">/var/run/.x&&cd /var/run;>/mnt/.x&&cd /mnt;>/usr/.x&&cd /usr;>/dev/.x&&cd /dev;>/dev/shm/.x&&cd /dev/shm;>/tmp/.x&&cd /tmp;>/var/.x&&cd /var;/bin/busybox echo -e '\\x50\\x4d\\x4a\\x45\\x49\\x55'"}
 {"timestamp": "2026-06-14T19:55:24.596Z", "protocol": "telnet", "ip": "198.251.62.31", "port": 2323, "attack_type": "telnet_login_success", "username": "root"}
 {"timestamp": "2026-06-14T20:02:13.862Z", "protocol": "mysql", "ip": "64.89.163.169", "port": 33060, "input": "SET AUTOCOMMIT=0", "attack_type": "mysql_rogue_infile_triggered", "target_file": "C:\\Windows\\win.ini"}
-{"timestamp": "2026-06-14T20:02:13.908Z", "protocol": "mysql", "ip": "64.89.163.169", "port": 33060, "attack_type": "mysql_rogue_infile_completed", "target_file": "C:\\Windows\\win.ini", "exfil_bytes": 0, "save_path": "/home/whatdapi/honey-ai/logs/exfiltrated/64.89.163.169_C__Windows_win_ini.txt"}
+{"timestamp": "2026-06-14T20:02:13.908Z", "protocol": "mysql", "ip": "64.89.163.169", "port": 33060, "attack_type": "mysql_rogue_infile_completed", "target_file": "C:\\Windows\\win.ini", "exfil_bytes": 0, "save_path": "/home/honeypot/honey-ai/logs/exfiltrated/64.89.163.169_C__Windows_win_ini.txt"}
 {"timestamp": "2026-06-14T20:02:15.618Z", "protocol": "backfire", "ip": "64.89.163.169", "reverse_dns": "", "open_ports": [22], "attack_type": "port_scan_backfire_completed"}
 {"timestamp": "2026-06-14T20:35:17.379Z", "protocol": "telnet", "ip": "223.123.72.222", "port": 2323, "input": "start"}
 {"timestamp": "2026-06-14T20:36:25.321Z", "protocol": "telnet", "ip": "223.123.72.222", "port": 2323, "input": "enable"}
@@ -645,10 +645,10 @@
 {"timestamp": "2026-06-14T23:54:55.720Z", "protocol": "telnet", "ip": "175.107.233.125", "port": 2323, "attack_type": "telnet_login_success", "username": "TMAR#DLKT20060205"}
 {"timestamp": "2026-06-14T23:56:01.872Z", "protocol": "telnet", "ip": "175.107.233.125", "port": 2323, "input": "start"}
 {"timestamp": "2026-06-15T00:50:06.441Z", "protocol": "mysql", "ip": "64.89.163.164", "port": 33060, "input": "SET AUTOCOMMIT=0", "attack_type": "mysql_rogue_infile_triggered", "target_file": "C:\\Windows\\win.ini"}
-{"timestamp": "2026-06-15T00:50:06.484Z", "protocol": "mysql", "ip": "64.89.163.164", "port": 33060, "attack_type": "mysql_rogue_infile_completed", "target_file": "C:\\Windows\\win.ini", "exfil_bytes": 0, "save_path": "/home/whatdapi/honey-ai/logs/exfiltrated/64.89.163.164_C__Windows_win_ini.txt"}
+{"timestamp": "2026-06-15T00:50:06.484Z", "protocol": "mysql", "ip": "64.89.163.164", "port": 33060, "attack_type": "mysql_rogue_infile_completed", "target_file": "C:\\Windows\\win.ini", "exfil_bytes": 0, "save_path": "/home/honeypot/honey-ai/logs/exfiltrated/64.89.163.164_C__Windows_win_ini.txt"}
 {"timestamp": "2026-06-15T00:50:06.736Z", "protocol": "backfire", "ip": "64.89.163.164", "reverse_dns": "", "open_ports": [22], "attack_type": "port_scan_backfire_completed"}
 {"timestamp": "2026-06-15T01:28:33.714Z", "protocol": "mysql", "ip": "35.195.84.127", "port": 33060, "input": "SET NAMES utf8mb3", "attack_type": "mysql_rogue_infile_triggered", "target_file": "C:\\Windows\\win.ini"}
-{"timestamp": "2026-06-15T01:28:33.748Z", "protocol": "mysql", "ip": "35.195.84.127", "port": 33060, "attack_type": "mysql_rogue_infile_completed", "target_file": "C:\\Windows\\win.ini", "exfil_bytes": 0, "save_path": "/home/whatdapi/honey-ai/logs/exfiltrated/35.195.84.127_C__Windows_win_ini.txt"}
+{"timestamp": "2026-06-15T01:28:33.748Z", "protocol": "mysql", "ip": "35.195.84.127", "port": 33060, "attack_type": "mysql_rogue_infile_completed", "target_file": "C:\\Windows\\win.ini", "exfil_bytes": 0, "save_path": "/home/honeypot/honey-ai/logs/exfiltrated/35.195.84.127_C__Windows_win_ini.txt"}
 {"timestamp": "2026-06-15T01:38:41.134Z", "protocol": "http", "ip": "45.148.10.200", "method": "GET", "path": "/", "user_agent": "l9tcpid/v1.1.0", "attack_type": "probe", "response_bytes": 601}
 {"timestamp": "2026-06-15T01:56:09.885Z", "protocol": "telnet", "ip": "153.117.127.89", "port": 2323, "input": "enable"}
 {"timestamp": "2026-06-15T01:57:14.605Z", "protocol": "telnet", "ip": "153.117.127.89", "port": 2323, "input": "config terminal"}
@@ -664,7 +664,7 @@
 {"timestamp": "2026-06-15T06:17:14.082Z", "protocol": "ftp", "ip": "34.76.60.10", "port": 2121, "input": "TYPE A"}
 {"timestamp": "2026-06-15T06:46:15.524Z", "protocol": "http", "ip": "66.132.172.183", "method": "GET", "path": "/", "user_agent": "Mozilla/5.0 (compatible; CensysInspect/1.1; +https://about.censys.io/)", "attack_type": "probe", "response_bytes": 128}
 {"timestamp": "2026-06-15T07:02:49.195Z", "protocol": "mysql", "ip": "64.89.163.159", "port": 33060, "input": "SET AUTOCOMMIT=0", "attack_type": "mysql_rogue_infile_triggered", "target_file": "/etc/passwd"}
-{"timestamp": "2026-06-15T07:02:49.235Z", "protocol": "mysql", "ip": "64.89.163.159", "port": 33060, "attack_type": "mysql_rogue_infile_completed", "target_file": "/etc/passwd", "exfil_bytes": 0, "save_path": "/home/whatdapi/honey-ai/logs/exfiltrated/64.89.163.159__etc_passwd.txt"}
+{"timestamp": "2026-06-15T07:02:49.235Z", "protocol": "mysql", "ip": "64.89.163.159", "port": 33060, "attack_type": "mysql_rogue_infile_completed", "target_file": "/etc/passwd", "exfil_bytes": 0, "save_path": "/home/honeypot/honey-ai/logs/exfiltrated/64.89.163.159__etc_passwd.txt"}
 {"timestamp": "2026-06-15T07:02:49.674Z", "protocol": "backfire", "ip": "64.89.163.159", "reverse_dns": "", "open_ports": [22], "attack_type": "port_scan_backfire_completed"}
 {"timestamp": "2026-06-15T07:36:17.987Z", "protocol": "http", "ip": "45.205.1.62", "method": "GET", "path": "/", "user_agent": "", "attack_type": "probe", "response_bytes": 356}
 {"timestamp": "2026-06-15T08:17:16.795Z", "protocol": "ftp", "ip": "104.199.4.112", "port": 2121, "input": "USER anonymous"}
