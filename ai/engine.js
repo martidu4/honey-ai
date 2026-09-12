@@ -1086,6 +1086,47 @@ Gateway of last resort is not set
 C        10.0.0.0 is directly connected, FastEthernet0/1
       10.20.0.0/24 is subnetted, 1 subnets
 C        10.20.0.0 is directly connected, FastEthernet0/0`,
+    'show ip bgp summary': `BGP router identifier 192.0.2.1, local AS number 64512
+BGP table version is 17, main routing table version 17
+2 network entries using 288 bytes of memory
+2 path entries using 160 bytes of memory
+
+Neighbor        V           AS MsgRcvd MsgSent   TblVer  InQ OutQ Up/Down  State/PfxRcd
+203.0.113.2     4        64513    1842    1819       17    0    0 1d02h            8
+198.51.100.2    4        64514     433     428       17    0    0 05:12:09        3`,
+    'show ip ospf neighbor': `Neighbor ID     Pri   State           Dead Time   Address         Interface
+192.0.2.2         1   FULL/DR         00:00:33    10.0.0.2        FastEthernet0/1
+192.0.2.3         1   FULL/BDR        00:00:31    10.0.0.3        FastEthernet0/1`,
+    'show access-lists': `Extended IP access list OUTSIDE-IN
+    10 permit tcp any host 192.0.2.10 eq 443 (42 matches)
+    20 permit icmp any any echo-reply (7 matches)
+    30 deny ip any any log (118 matches)
+Standard IP access list MGMT
+    10 permit 198.51.100.0, wildcard bits 0.0.0.255`,
+    'show ip nat translations': `Pro  Inside global         Inside local          Outside local         Outside global
+tcp  203.0.113.10:51514    10.20.0.42:51514   198.51.100.20:443    198.51.100.20:443
+udp  203.0.113.10:53001    10.20.0.43:53001   198.51.100.53:53     198.51.100.53:53`,
+    'show ntp status': `Clock is synchronized, stratum 3, reference is 192.0.2.123
+nominal freq is 250.0000 Hz, actual freq is 249.9997 Hz, precision is 2**18
+reference time is E8F3A2B7.6A1F25C1 (09:18:47.414 UTC Sat Sep 5 2026)
+clock offset is 1.24 msec, root delay is 24.11 msec`,
+    '/ip address print': `Flags: X - disabled, I - invalid, D - dynamic
+ #   ADDRESS            NETWORK         INTERFACE
+ 0   192.168.88.1/24    192.168.88.0    bridge
+ 1 D 203.0.113.10/30    203.0.113.8     ether1-wan
+ 2   10.10.10.1/24      10.10.10.0      pppoe-clients`,
+    '/interface print': `Flags: D - dynamic, X - disabled, R - running, S - slave
+ #     NAME          TYPE      ACTUAL-MTU L2MTU  MAX-L2MTU MAC-ADDRESS
+ 0  R  ether1-wan    ether          1500  1598       2028  02:00:5E:00:53:01
+ 1  R  ether2-lan    ether          1500  1598       2028  02:00:5E:00:53:02
+ 2  R  bridge        bridge         1500  1598             02:00:5E:00:53:10
+ 3  R  pppoe-out1    pppoe-out      1480`,
+    '/ip route print': `Flags: D - dynamic, A - active, c - connect, s - static
+ #      DST-ADDRESS        GATEWAY            DISTANCE
+ 0  A S 0.0.0.0/0          203.0.113.9               1
+ 1 ADC 192.168.88.0/24     bridge                    0
+ 2 ADC 203.0.113.8/30      ether1-wan                0
+ 3 ADC 10.10.10.0/24       pppoe-clients             0`,
     'show interfaces': `FastEthernet0/0 is up, line protocol is up 
   Hardware is GigaEthernet, address is 000c.29ff.38a1 (bia 000c.29ff.38a1)
   Internet address is 10.20.0.1/24
