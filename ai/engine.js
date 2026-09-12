@@ -644,16 +644,24 @@ You are a real production server. Never use the words simulated, simulation, moc
     systemPrompt += SYSTEM_INSTRUCTION_SUFFIX;
 
     // 4. Wrap attacker input explicitly so it can't bleed into the system context
-    let userPrompt = `INCOMING ${protocol.toUpperCase()} DATA FROM CLIENT:
+    // Order matters for latency: llama.cpp reuses the KV cache only for the prompt
+    // prefix that is byte-identical to the previous request. The filesystem block is
+    // near-identical across commands and sessions, the attacker payload never is, so
+    // the filesystem goes first and the payload last. Measured on the Debian CPU with
+    // qwen2.5:1.5b: prefill over five commands drops from 30.8s to 21.0s, and a plain
+    // command (no file contents) from ~3s to ~0.7s. The isolation tags and the system
+    // prompt warning are unchanged, and hostile data still sits right before the
+    // final instruction.
+    let userPrompt = '';
+    if (context.fileContents) {
+        const sanitizedFS = sanitizeIndirectInjection(context.fileContents);
+        userPrompt += `[FILE_SYSTEM]\n<file_system_content>\n${sanitizedFS}\n</file_system_content>\n\n`;
+    }
+    userPrompt += `INCOMING ${protocol.toUpperCase()} DATA FROM CLIENT:
 <attacker_payload>
 ${safeInput}
 </attacker_payload>
 Generate the protocol response (raw output only):`;
-
-    if (context.fileContents) {
-        const sanitizedFS = sanitizeIndirectInjection(context.fileContents);
-        userPrompt += `\n\n[FILE_SYSTEM]\n<file_system_content>\n${sanitizedFS}\n</file_system_content>`;
-    }
 
     // ── Rate limit check: drop to fallback if IP is over quota ──
     if (!_checkIpRateLimit(context.ip)) {
@@ -742,7 +750,7 @@ async function queryOllama(system, prompt, numPredict = 512, timeoutMs = null) {
             stream:  false,
             // Keep the model resident. With "5s" it was evicted between attacks,
             // so every request paid a full model load + prompt prefill on CPU.
-            keep_alive: "10m",
+            keep_alive: "2h",  // idle unload cost 1.3-9.4s of model load on the next attacker
             options: { temperature: ai.temperature || 0.9, num_predict: numPredict, num_ctx: 2048 }
         }, { 
             signal: controller.signal
