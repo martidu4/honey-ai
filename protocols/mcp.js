@@ -259,9 +259,8 @@ function start(customPort) {
 </html>`);
     });
 
-    // GET /sse -> Connect to Server-Sent Events stream
     app.get('/sse', (req, res) => {
-        const ip = req.socket.remoteAddress.replace(/^::ffff:/, '');
+        const ip = (req.socket.remoteAddress || '').replace(/^::ffff:/, '');
 
         // Rate limit SSE connections per IP (normalized for IPv6 /64)
         const rateLimitKey = normalizeIP(ip);
@@ -302,7 +301,7 @@ function start(customPort) {
 
     // POST /message -> Handle messages for active SSE connection
     app.post('/message', (req, res) => {
-        const ip = req.socket.remoteAddress.replace(/^::ffff:/, '');
+        const ip = (req.socket.remoteAddress || '').replace(/^::ffff:/, '');
         const sessionId = req.query.sessionId;
 
         // CRIT-03: Require valid SSE session to prevent bypass
@@ -332,7 +331,7 @@ function start(customPort) {
 
     // POST / or POST /rpc -> Allow direct JSON-RPC POST (for clients not using SSE)
     const directHandler = (req, res) => {
-        const ip = req.socket.remoteAddress.replace(/^::ffff:/, '');
+        const ip = (req.socket.remoteAddress || '').replace(/^::ffff:/, '');
         const body = req.body;
 
         if (!body || typeof body !== 'object') {

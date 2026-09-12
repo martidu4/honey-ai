@@ -48,6 +48,27 @@ if (!fs.existsSync(eventsDir)) fs.mkdirSync(eventsDir, { recursive: true });
 
 // HIGH-03: Async write stream with rotation (prevents DoS via disk fill)
 const MAX_EVENTS_SIZE = 100 * 1024 * 1024; // 100MB
+// Rotation used to rename and never delete, so logs/ just grew: two 100MB
+// leftovers from July and August were still sitting there. Keep a bounded
+// number of rotations, like the winston File transport already does.
+const MAX_EVENTS_FILES = 3;
+
+function pruneRotatedEvents() {
+    try {
+        const dir  = path.dirname(eventsFile);
+        const base = path.basename(eventsFile) + '.';
+        const old  = fs.readdirSync(dir)
+            .filter(f => f.startsWith(base) && /\.\d+$/.test(f))
+            .sort()          // suffix is Date.now(), so lexical == chronological
+            .slice(0, -MAX_EVENTS_FILES);
+        for (const f of old) {
+            try {
+                fs.unlinkSync(path.join(dir, f));
+                logger.info(`Pruned old events log ${f}`, { protocol: 'core' });
+            } catch (_) {}
+        }
+    } catch (_) {}
+}
 let eventsStream = fs.createWriteStream(eventsFile, { flags: 'a' });
 let currentEventsSize = fs.existsSync(eventsFile) ? fs.statSync(eventsFile).size : 0;
 
@@ -77,6 +98,7 @@ function logEvent(event) {
         eventsStream.on('error', (err) => logger.error(`Events stream error: ${err.message}`));
         currentEventsSize = 0;
         oldStream.end();
+        pruneRotatedEvents();
     }
 
     eventsStream.write(line); // Async — does NOT block the event loop

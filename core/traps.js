@@ -88,6 +88,19 @@ function streamGzipBomb(res, filename = 'backup.sql.gz') {
     }
 }
 
+// ─── HTML escaping ───────────────────────────────────────────────────────────
+// req.url reaches the maze verbatim, so anything interpolated into the page has
+// to be escaped or the honeypot serves reflected XSS from its own public IP.
+// Quotes included: cleanPath also lands inside href="..." attributes.
+function escapeHtml(str) {
+    return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 // ─── 2. Infinite Web Directory Generator ─────────────────────────────────────
 // Seedable pseudo-random generator to make the maze stateless but consistent
 function getSeededRandom(seed) {
@@ -193,13 +206,15 @@ function generateWebMaze(req, res) {
 
     // Ensure path ends with trailing slash for clean navigation links
     const cleanPath = urlPath.endsWith('/') ? urlPath : urlPath + '/';
+    // Attacker-controlled: escape before it touches the HTML.
+    const safePath = escapeHtml(cleanPath);
 
     // Generate responsive Apache-style retro listing page with premium dark aesthetic
     const html = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Index of ${cleanPath}</title>
+  <title>Index of ${safePath}</title>
   <style>
     body {
       background-color: #0d0e15;
@@ -252,7 +267,7 @@ function generateWebMaze(req, res) {
   </style>
 </head>
 <body>
-  <h1>Index of ${cleanPath}</h1>
+  <h1>Index of ${safePath}</h1>
   <table>
     <tr>
       <th>Name</th>
@@ -262,7 +277,7 @@ function generateWebMaze(req, res) {
     </tr>
     ${cleanPath !== '/archive/' ? `
     <tr>
-      <td><a class="parent-dir" href="${cleanPath.substring(0, cleanPath.lastIndexOf('/', cleanPath.length - 2)) || '/archive/'}">Parent Directory</a></td>
+      <td><a class="parent-dir" href="${escapeHtml(cleanPath.substring(0, cleanPath.lastIndexOf('/', cleanPath.length - 2)) || '/archive/')}">Parent Directory</a></td>
       <td>-</td>
       <td>-</td>
       <td>Go back</td>
@@ -271,7 +286,7 @@ function generateWebMaze(req, res) {
         const lastMod = new Date(Date.now() - (Math.floor(rand() * 30) * 86400000)).toISOString().split('T')[0];
         return `
     <tr>
-      <td><a href="${cleanPath}${dir}/">${dir}/</a></td>
+      <td><a href="${safePath}${dir}/">${dir}/</a></td>
       <td>${lastMod} 12:00</td>
       <td>-</td>
       <td>Directory</td>
@@ -282,7 +297,7 @@ function generateWebMaze(req, res) {
         const size = file.isBomb ? `${Math.floor(rand() * 3) + 4} KB` : '1.2 KB';
         return `
     <tr>
-      <td><a href="${cleanPath}${file.name}">${file.name}</a></td>
+      <td><a href="${safePath}${file.name}">${file.name}</a></td>
       <td>${lastMod} 14:35</td>
       <td>${size}</td>
       <td>${file.isBomb ? 'Compressed Archive (Warning: Large)' : 'Configuration File'}</td>

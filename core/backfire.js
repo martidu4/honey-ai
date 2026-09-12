@@ -62,6 +62,14 @@ setInterval(() => {
  * @param {string} ip 
  */
 function scanAttackerBack(ip) {
+    // Off by default. Actively port-scanning the source IP is unauthorised
+    // scanning of a third party in most jurisdictions, and attacker IPs are
+    // usually compromised machines belonging to someone innocent. Use the
+    // passive Shodan InternetDB lookup (core/shodan.js) instead.
+    if (!config.backfire || config.backfire.enabled !== true) {
+        return;
+    }
+
     if (isPrivateIP(ip)) {
         logger.info(`Bypassing backfire port scan for private/local IP: ${ip}`, { protocol: 'backfire' });
         return;

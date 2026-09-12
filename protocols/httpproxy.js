@@ -20,7 +20,7 @@ function start(customPort) {
     const port = customPort || cfg.port || 8080;
 
     server = http.createServer((req, res) => {
-        const ip = req.socket.remoteAddress.replace(/^::ffff:/, '');
+        const ip = (req.socket.remoteAddress || '').replace(/^::ffff:/, '');
         const targetUrl = req.url;
 
         loggerModule.logger.warn(`Proxy hijack attempt (HTTP GET) from ${ip} targeting ${targetUrl}`, { protocol: 'httpproxy', ip });
@@ -61,7 +61,7 @@ function start(customPort) {
     });
 
     server.on('connect', (req, socket, head) => {
-        const ip = socket.remoteAddress.replace(/^::ffff:/, '');
+        const ip = (socket.remoteAddress || '').replace(/^::ffff:/, '');
         const targetHost = req.url;
 
         loggerModule.logger.warn(`Proxy hijack attempt (HTTP CONNECT) from ${ip} targeting ${targetHost}`, { protocol: 'httpproxy', ip });

@@ -4,6 +4,7 @@
 // Deployed at: /api/trap (Vercel native, works with static Astro site)
 
 import { reportToAllPlatforms, alertTelegram } from './_lib/report-all.js';
+import { clientIp, isReportableIp } from './_lib/client-ip.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -11,11 +12,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const ip =
-      (req.headers['x-forwarded-for'] || '').split(',')[0].trim() ||
-      req.headers['x-real-ip'] ||
-      req.socket?.remoteAddress ||
-      'unknown';
+    // Trusted source only — see _lib/client-ip.js
+    const ip = clientIp(req);
 
     const ua      = req.headers['user-agent'] || 'unknown';
     const referer = req.headers['referer'] || '';

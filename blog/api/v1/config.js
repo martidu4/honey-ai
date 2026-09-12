@@ -3,11 +3,11 @@
 // Reports directly to ALL 4 platforms + Telegram
 
 import { reportToAllPlatforms, alertTelegram } from '../_lib/report-all.js';
+import { clientIp, isReportableIp } from '../_lib/client-ip.js';
 
 export default async function handler(req, res) {
-  const ip =
-    (req.headers['x-forwarded-for'] || '').split(',')[0].trim() ||
-    req.headers['x-real-ip'] || 'unknown';
+  // Trusted source only — see _lib/client-ip.js
+  const ip = clientIp(req);
   const ua = req.headers['user-agent'] || 'unknown';
   const isPrivate = /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|::1)/.test(ip);
 

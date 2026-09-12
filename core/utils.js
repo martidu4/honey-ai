@@ -91,10 +91,15 @@ function normalizeIP(rawIp) {
 
 const VALID_EVENT_KEYS = new Set([
     'protocol', 'ip', 'port', 'command', 'method', 'path', 'user_agent',
-    'attack_type', 'username', 'password_hash', 'auth_method', 'response_bytes',
+    'attack_type', 'username', 'password', 'password_hash', 'password_length', 'auth_method', 'response_bytes',
     'cache_hit', 'mode', 'input', 'hostname', 'data', 'comment', 'service',
-    'oid', 'version', 'community', 'query', 'redirect_url', 'status_code',
-    'alert', 'session_id', 'tool_name', 'resource_uri', 'headers'
+    'oid', 'oids', 'version', 'community', 'query', 'redirect_url', 'status_code',
+    'alert', 'session_id', 'tool_name', 'resource_uri', 'headers',
+    'event_type', 'url', 'filename', 'sha256', 'file_size', 'vt_result', 'c2_urls',
+    'machine', 'share', 'operation', 'status', 'dst_ip', 'dst_port', 'src_port',
+    'proto', 'error_code', 'error_message', 'target_file', 'action', 'severity',
+    'exfil_bytes', 'save_path', 'client_name', 'client_version', 'tool_arguments',
+    'repository', 'metadata', 'vnc_response', 'down', 'keysym', 'key_char'
 ]);
 
 /**

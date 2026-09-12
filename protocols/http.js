@@ -56,6 +56,18 @@ function getRateLimitStatus(ip) {
     return 0; // Allowed
 }
 
+// ─── HTML escaping ────────────────────────────────────────────────────────────
+// The Host header is fully attacker-controlled and gets echoed into the Apache
+// 403/404 bodies, so it has to be escaped or those pages are reflected XSS.
+function escapeHtml(str) {
+    return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 // ─── Sanitize attacker input before sending to AI ─────────────────────────────
 function sanitizeInput(str, maxLen = 512) {
     return String(str || '')
@@ -424,7 +436,7 @@ function start(customPort) {
             // Common CMS
             cms: (p) => p.includes('/joomla/') || p.includes('/drupal/') || p.includes('/magento/') || p.includes('/moodle/') || p.includes('/typo3/'),
             // Java / Spring
-            java_spring: (p) => p.includes('/actuator') || p.includes('/jolokia') || p.includes('/heapdump') || p.includes('/env') && p.includes('/actuator'),
+            java_spring: (p) => p.includes('/actuator') || p.includes('/jolokia') || p.includes('/heapdump'),
             // Laravel / PHP frameworks
             php_framework: (p) => p.includes('/telescope/') || p.includes('/horizon/') || p.includes('/vendor/') || p.includes('/laravel/') || p.includes('/artisan'),
             // Server status / info
@@ -464,15 +476,15 @@ function start(customPort) {
             // Return realistic response based on scanner type
             if (scannerType === 'phpinfo') {
                 res.setHeader('Content-Type', 'text/html; charset=UTF-8');
-                return res.status(200).send('<!DOCTYPE html><html><head><title>phpinfo()</title><meta name="ROBOTS" content="NOINDEX,NOFOLLOW,NOARCHIVE" /></head><body><div class="center"><table><tr class="h"><td><a href="http://www.php.net/"><img border="0" src="/phpinfo.php?=PHPE9568F36-D428-11d2-A769-00AA001ACF42" alt="PHP Logo" /></a><h1 class="p">PHP Version 8.1.27</h1></td></tr></table><table><tr><td class="e">System</td><td class="v">Linux debian 6.1.0-18-amd64 #1 SMP x86_64</td></tr><tr><td class="e">Build Date</td><td class="v">Dec 19 2023 17:14:12</td></tr><tr><td class="e">Server API</td><td class="v">Apache 2.0 Handler</td></tr><tr><td class="e">Document Root</td><td class="v">/var/www/html</td></tr><tr><td class="e">DOCUMENT_ROOT</td><td class="v">/var/www/html</td></tr><tr><td class="e">SERVER_SOFTWARE</td><td class="v">Apache/2.4.57 (Debian)</td></tr><tr><td class="e">REMOTE_ADDR</td><td class="v">' + ip + '</td></tr></table></div></body></html>');
+                return res.status(200).send('<!DOCTYPE html><html><head><title>phpinfo()</title><meta name="ROBOTS" content="NOINDEX,NOFOLLOW,NOARCHIVE" /></head><body><div class="center"><table><tr class="h"><td><a href="http://www.php.net/"><img border="0" src="/phpinfo.php?=PHPE9568F36-D428-11d2-A769-00AA001ACF42" alt="PHP Logo" /></a><h1 class="p">PHP Version 8.1.27</h1></td></tr></table><table><tr><td class="e">System</td><td class="v">Linux debian 6.1.0-18-amd64 #1 SMP x86_64</td></tr><tr><td class="e">Build Date</td><td class="v">Dec 19 2023 17:14:12</td></tr><tr><td class="e">Server API</td><td class="v">Apache 2.0 Handler</td></tr><tr><td class="e">Document Root</td><td class="v">/var/www/html</td></tr><tr><td class="e">DOCUMENT_ROOT</td><td class="v">/var/www/html</td></tr><tr><td class="e">SERVER_SOFTWARE</td><td class="v">Apache/2.4.57 (Debian)</td></tr><tr><td class="e">REMOTE_ADDR</td><td class="v">' + escapeHtml(ip) + '</td></tr></table></div></body></html>');
             }
             if (scannerType === 'debug_panel' || scannerType === 'symfony' || scannerType === 'server_info') {
                 res.setHeader('Content-Type', 'text/html; charset=UTF-8');
-                return res.status(403).send('<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">\n<html><head><title>403 Forbidden</title></head><body><h1>Forbidden</h1><p>You don\'t have permission to access this resource.</p><hr><address>Apache/2.4.57 (Debian) Server at ' + req.headers.host + ' Port 80</address></body></html>');
+                return res.status(403).send('<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">\n<html><head><title>403 Forbidden</title></head><body><h1>Forbidden</h1><p>You don\'t have permission to access this resource.</p><hr><address>Apache/2.4.57 (Debian) Server at ' + escapeHtml(req.headers.host) + ' Port 80</address></body></html>');
             }
             // Default: 404 Not Found (Apache style)
             res.setHeader('Content-Type', 'text/html; charset=iso-8859-1');
-            return res.status(404).send('<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">\n<html><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>The requested URL was not found on this server.</p><hr><address>Apache/2.4.57 (Debian) Server at ' + req.headers.host + ' Port 80</address></body></html>');
+            return res.status(404).send('<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">\n<html><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>The requested URL was not found on this server.</p><hr><address>Apache/2.4.57 (Debian) Server at ' + escapeHtml(req.headers.host) + ' Port 80</address></body></html>');
         }
 
         // ── Generate AI response (fallback for unknown paths) ───────────

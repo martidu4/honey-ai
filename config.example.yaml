@@ -91,6 +91,18 @@ protocols:
 
 # ─── Reporting Platforms ──────────────────────────────────────────────────────
 reporting:
+  # Internal container port -> port actually published to the internet.
+  # Protocols report their internal listen port, but Docker publishes them
+  # elsewhere (see docker-compose.yml), so without this the intel sent to
+  # DShield/AbuseIPDB names the wrong port. Unlisted ports pass through.
+  port_map:
+    8081: 80        # http
+    14330: 1433     # mssql
+    2222: 22        # ssh
+    2121: 21        # ftp
+    2323: 23        # telnet
+    2525: 25        # smtp
+    16100: 161      # snmp
   cooldown_minutes: 1440         # Don't report same IP more than once per 24 hours
   enabled: true
 
@@ -119,6 +131,18 @@ reporting:
     api_key: ""                # Set via setup or .env VT_KEY — used for malware samples
 
 # ─── Notifications ────────────────────────────────────────────────────────────
+backfire:
+  # Reverse port-scan the attacker's IP (ports 22, 23, 80, 443, 8080, 8443) and
+  # alert on what is exposed. OFF BY DEFAULT AND SHOULD USUALLY STAY OFF:
+  #   - Port-scanning a third party without authorisation is a criminal offence
+  #     in many jurisdictions, including under the EU Cybercrime Directive.
+  #   - The attacking IP is nearly always a compromised host owned by an
+  #     innocent third party, not the attacker.
+  #   - It reveals that your honeypot is not passive.
+  # For attacker context, prefer the passive Shodan InternetDB lookup, which
+  # never touches the target. See core/shodan.js.
+  enabled: false
+
 notifications:
   telegram:
     enabled: false

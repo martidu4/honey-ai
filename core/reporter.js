@@ -99,10 +99,25 @@ function markReported(ip) {
     cacheIsDirty = true;
 }
 
+// ─── Internal → published port ────────────────────────────────────────────────
+// Protocols report cfg.port, which is the port INSIDE the container. Docker
+// publishes them on the real service ports (1433:14330, 80:8081, ...), so
+// DShield and AbuseIPDB were being told the attacker hit 14330 rather than 1433.
+// Configure the mapping under reporting.port_map; unmapped ports pass through.
+const PORT_MAP = (rep && rep.port_map) || {};
+
+function publicPort(port) {
+    if (port == null) return port;
+    const mapped = PORT_MAP[String(port)];
+    return mapped == null ? port : mapped;
+}
+
 // ─── Main entry point ─────────────────────────────────────────────────────────
 async function report(ip, { protocol, comment, port, categories } = {}) {
     if (!shouldReport(ip)) return;
     markReported(ip);
+
+    port = publicPort(port);
 
     const defaultComment = `Malicious activity via ${protocol?.toUpperCase() || 'UNKNOWN'} on port ${port || '?'}. Detected by automated IDS.`;
     const finalComment   = comment || defaultComment;
@@ -352,7 +367,10 @@ async function sendTelegram(ip, protocol, port, details = {}) {
         hits: [{ protocol, port, time: Date.now() }],
         firstSeen: Date.now(),
         details,
-        timer: setTimeout(() => _flushTelegramBatch(ip), TELEGRAM_BATCH_WINDOW),
+        // _flushTelegramBatch is fired by a timer, so nothing is there to catch a
+        // rejection: without this .catch() a Telegram outage became an
+        // unhandledRejection instead of a warning.
+        timer: setTimeout(() => { _flushTelegramBatch(ip).catch(() => {}); }, TELEGRAM_BATCH_WINDOW),
     };
     telegramBatch.set(ip, entry);
 }
@@ -393,7 +411,7 @@ async function _flushTelegramBatch(ip) {
     const attack = PROTO_ATTACK[mainProto] || 'T1595 Active Scan';
 
     const msg = [
-        `${sev.emoji} *HoneyAI Alert* \\[${sev.label}\\]`,
+        `${sev.emoji} *HoneyAI Alert* [${sev.label}]`,
         `\`${ip}\` — *${hitCount} hits* in ${duration}s`,
         `📡 ${protocols.join(', ')} → ports ${ports.join(', ')}`,
         `🎯 ${attack}`,
@@ -428,21 +446,30 @@ async function _sendTelegramNow(ip, protocol, port, details = {}, sevOverride) {
     const confidence = assessConfidence(shodanData, protocol);
     const attack = PROTO_ATTACK[protocol] || 'T1595 Active Scan';
 
+    // Telegram's legacy Markdown has no backslash escapes, so "\\[HIGH\\]" was
+    // rendered with the backslashes visible. Plain brackets are fine: only
+    // "[text](url)" is link syntax.
     const msg = [
-        `${sev.emoji} *HoneyAI Alert* \\[${sev.label}\\]`,
+        `${sev.emoji} *HoneyAI Alert* [${sev.label}]`,
         `\`${ip}\` → ${protocol?.toUpperCase() || '?'} port ${port}`,
         `🎯 ${attack}`,
         `📊 Confidence: ${confidence}`,
         shodanInfo,
     ].filter(Boolean).join('\n');
 
-    await axios.post(
-        `https://api.telegram.org/bot${notify.telegram.bot_token}/sendMessage`,
-        { chat_id: notify.telegram.chat_id, text: msg, parse_mode: 'Markdown' },
-        { timeout: 5000 }
-    );
+    // Best effort, like every other notification path. Throwing here surfaced as
+    // an unhandledRejection when called from the batch timer.
+    try {
+        await axios.post(
+            `https://api.telegram.org/bot${notify.telegram.bot_token}/sendMessage`,
+            { chat_id: notify.telegram.chat_id, text: msg, parse_mode: 'Markdown' },
+            { timeout: 5000 }
+        );
+    } catch (e) {
+        logger.warn(`Telegram alert failed for ${ip}: ${e.message}`, { protocol: 'reporter' });
+    }
 }
 
-module.exports = { report, submitMalware, sendTelegram, classifySeverity, assessConfidence, shodanSelfScan: shodan.selfScan };
+module.exports = { report, submitMalware, sendTelegram, classifySeverity, assessConfidence, publicPort, shodanSelfScan: shodan.selfScan };
 
 

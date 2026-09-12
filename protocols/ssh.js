@@ -274,7 +274,17 @@ try {
         logger.info('Generated and saved persistent SSH host key', { protocol: 'ssh' });
     }
 } catch (err) {
-    // Fallback: ephemeral key if disk write fails (e.g. read-only fs)
+    // Fallback: ephemeral key if disk write fails (e.g. read-only fs).
+    // This USED to be silent, which hid a real bug for months: the container
+    // runs read_only and .host_key was never mounted, so every restart handed
+    // out a different SSH host key — a rotating host key is a honeypot tell
+    // that Shodan/Censys pick up. Never let this path pass unnoticed again.
+    logger.warn(
+        `Could NOT persist the SSH host key (${err.message}). Falling back to an ` +
+        'EPHEMERAL key: the fingerprint will change on every restart, which is a ' +
+        'honeypot tell. Mount .host_key into the container (see docker-compose.yml).',
+        { protocol: 'ssh' }
+    );
     HOST_KEY = crypto.generateKeyPairSync('rsa', {
         modulusLength: 2048,
         publicKeyEncoding:  { type: 'spki',  format: 'pem' },
@@ -410,7 +420,11 @@ function startInteractiveSSH(cfg) {
             // Accept ALL credentials — we want them in!
             // MED-02: Artificial delay to throttle brute-force bots and prevent
             // event/report flooding (2-3s random delay simulates real auth latency)
-            setTimeout(() => ctx.accept(), 2000 + Math.random() * 1000);
+            setTimeout(() => {
+                try {
+                    ctx.accept();
+                } catch (_) {}
+            }, 2000 + Math.random() * 1000);
         });
 
         client.on('ready', () => {
