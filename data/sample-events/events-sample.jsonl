@@ -49,7 +49,7 @@
 {"timestamp": "2026-06-08T11:03:51.757Z", "protocol": "http", "ip": "185.226.93.242", "method": "GET", "path": "/login", "user_agent": "Go-http-client/1.1", "attack_type": "auth_bruteforce", "response_bytes": 451}
 {"timestamp": "2026-06-08T11:13:51.973Z", "protocol": "telnet", "ip": "14.1.107.170", "port": 2323, "input": "root"}
 {"timestamp": "2026-06-08T11:22:54.970Z", "protocol": "mysql", "ip": "18.97.19.213", "port": 33060, "input": "GET / HTTP/1.1"}
-{"timestamp": "2026-06-08T11:22:54.980Z", "protocol": "mysql", "ip": "18.97.19.213", "port": 33060, "input": "Host: 85.85.178.246:3306"}
+{"timestamp": "2026-06-08T11:22:54.980Z", "protocol": "mysql", "ip": "18.97.19.213", "port": 33060, "input": "Host: 203.0.113.10:3306"}
 {"timestamp": "2026-06-08T11:22:54.980Z", "protocol": "mysql", "ip": "18.97.19.213", "port": 33060, "input": "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"}
 {"timestamp": "2026-06-08T11:22:54.980Z", "protocol": "mysql", "ip": "18.97.19.213", "port": 33060, "input": "Accept-encoding: gzip"}
 {"timestamp": "2026-06-08T11:22:54.980Z", "protocol": "mysql", "ip": "18.97.19.213", "port": 33060, "input": "Accept: */*"}
@@ -191,7 +191,7 @@
 {"timestamp": "2026-06-08T17:14:54.801Z", "protocol": "ssh", "ip": "80.94.92.171", "username": "sol", "password_hash": null, "password_length": null, "auth_method": "none"}
 {"timestamp": "2026-06-08T17:35:34.696Z", "protocol": "mysql", "ip": "91.231.89.83", "port": 33060, "input": "????b???^??\ufffd\ufffdhC;\ufffdB\ufffd\ufffd\u02bd$\ufffd\ufffd\ufffd?\ufffd?O\ufffd=\ufffd<\ufffd\ufffd\ufffd\u7bad\ufffdr \ufffd\ufffdP=\ufffd\ufffd\u075a \ufffd\ufffd\ufffd\ufffd?/?}\ufffd\ufffd??\ufffd\ufffd*\ufffdl\ufffd\ufffd\ufffd\ufffd:?\ufffd???3?g\ufffd\ufffd\ufffd\ufffd?\ufffd?9?k\ufffd\ufffd\ufffd\ufffd?\ufffd?E?\ufffd?\ufffd?\ufffd?\ufffd\ufffd?\ufffd \ufffd#\ufffd\ufffd\ufffd\ufffd\ufffd+\ufffd"}
 {"timestamp": "2026-06-08T17:35:34.704Z", "protocol": "mysql", "ip": "91.231.89.83", "port": 33060, "input": "\ufffd$\ufffd\ufffd\ufffd\ufffd\ufffd,\ufffdr\ufffds\u0329????\ufffd?\ufffd?\ufffd?\ufffd?\ufffd'\ufffd/\ufffd?\ufffd(\ufffd0\ufffd`\ufffda\ufffdv\ufffdw\u0328??????\ufffd?\ufffd??"}
-{"timestamp": "2026-06-08T17:35:34.704Z", "protocol": "mysql", "ip": "91.231.89.83", "port": 33060, "input": "?/?<\ufffd\ufffd\ufffd\ufffd?\ufffd?5?=\ufffd\ufffd\ufffd\ufffd?\ufffd?A?\ufffd?\ufffd?\ufffd?????????\ufffd???????? 85.85.178.246?????????"}
+{"timestamp": "2026-06-08T17:35:34.704Z", "protocol": "mysql", "ip": "91.231.89.83", "port": 33060, "input": "?/?<\ufffd\ufffd\ufffd\ufffd?\ufffd?5?=\ufffd\ufffd\ufffd\ufffd?\ufffd?A?\ufffd?\ufffd?\ufffd?????????\ufffd???????? 203.0.113.10?????????"}
 {"timestamp": "2026-06-08T17:35:34.704Z", "protocol": "mysql", "ip": "91.231.89.83", "port": 33060, "input": "???"}
 {"timestamp": "2026-06-08T17:35:34.704Z", "protocol": "mysql", "ip": "91.231.89.83", "port": 33060, "input": "???????????#???????????????????? ?0?.??????????? ?"}
 {"timestamp": "2026-06-08T17:46:48.021Z", "protocol": "ssh", "ip": "172.191.157.64", "command": "cd ~ && rm -rf .ssh && mkdir .ssh && echo \"ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEArDp4cun2lhr4KUhBGE7VvAcwdli2a8dbnrTOrbMz1+5O73fcBOx8NVbUT0bUanUV9tJ2/9p7+vD0EpZ3Tz/+0kX34uAx1RV/75GVOmNx+9EuWOnvNoaJe0QXxziIg9eLBHpgLMuakb5+BgTFB+rKJAw9u9FSTDengvS8hX1kNFS4Mjux0hJOK8rvcEmPecjdySYMb66nylAKGwCEE6WEQHmd1mUPgHwGQ0hWCwsQk13yCGPK5w6hYp5zYkFnvlC8hGmd4Ww+u97k6pfTGTUbJk14ujvcD9iUKQTTWYYjIIu5PmUux5bsZ0R4WFwdIe6+i6rBLAsPKgAySVKPRK+oRw== mdrfckr\">>.ssh/authorized_keys && chmod -R go= ~/.ssh && cd ~", "mode": "exec"}
@@ -224,7 +224,7 @@
 {"timestamp": "2026-06-08T20:11:38.494Z", "protocol": "ftp", "ip": "35.216.234.82", "port": 2121, "input": "?"}
 {"timestamp": "2026-06-08T20:15:38.610Z", "protocol": "mysql", "ip": "94.231.206.13", "port": 33060, "input": "????b???^??:\ufffd\ufffd\ufffd\ufffd=\ufffd\ufffd+\ufffd?\u036c\ufffdN\ufffdb?\ufffd\ufffdb\ufffd\ufffd1F\ufffd#?;:?\ufffd \ufffd\ufffd\ufffd=\ufffd?1h)\ufffd0?\ufffd\ufffd?\ufffd\ufffd\ufffd?k\ufffd3\u018f\ufffd\ufffd?-]y3\ufffd?\ufffd???3?g\ufffd\ufffd\ufffd\ufffd?\ufffd?9?k\ufffd\ufffd\ufffd\ufffd?\ufffd?E?\ufffd?\ufffd?\ufffd?\ufffd\ufffd?\ufffd \ufffd#\ufffd\ufffd\ufffd\ufffd\ufffd+\ufffd"}
 {"timestamp": "2026-06-08T20:15:38.615Z", "protocol": "mysql", "ip": "94.231.206.13", "port": 33060, "input": "\ufffd$\ufffd\ufffd\ufffd\ufffd\ufffd,\ufffdr\ufffds\u0329????\ufffd?\ufffd?\ufffd?\ufffd?\ufffd'\ufffd/\ufffd?\ufffd(\ufffd0\ufffd`\ufffda\ufffdv\ufffdw\u0328??????\ufffd?\ufffd??"}
-{"timestamp": "2026-06-08T20:15:38.615Z", "protocol": "mysql", "ip": "94.231.206.13", "port": 33060, "input": "?/?<\ufffd\ufffd\ufffd\ufffd?\ufffd?5?=\ufffd\ufffd\ufffd\ufffd?\ufffd?A?\ufffd?\ufffd?\ufffd?????????\ufffd???????? 85.85.178.246?????????"}
+{"timestamp": "2026-06-08T20:15:38.615Z", "protocol": "mysql", "ip": "94.231.206.13", "port": 33060, "input": "?/?<\ufffd\ufffd\ufffd\ufffd?\ufffd?5?=\ufffd\ufffd\ufffd\ufffd?\ufffd?A?\ufffd?\ufffd?\ufffd?????????\ufffd???????? 203.0.113.10?????????"}
 {"timestamp": "2026-06-08T20:15:38.615Z", "protocol": "mysql", "ip": "94.231.206.13", "port": 33060, "input": "???"}
 {"timestamp": "2026-06-08T20:15:38.616Z", "protocol": "mysql", "ip": "94.231.206.13", "port": 33060, "input": "???????????#???????????????????? ?0?.??????????? ?"}
 {"timestamp": "2026-06-08T20:22:04.722Z", "protocol": "ftp", "ip": "147.185.132.156", "port": 2121, "input": "AUTH TLS"}
@@ -264,14 +264,14 @@
 {"timestamp": "2026-06-08T23:28:05.799Z", "protocol": "vnc", "ip": "5.83.143.40", "port": 59000, "event_type": "vnc_login_attempt", "vnc_response": "48256ab741268141f250257b094682fd"}
 {"timestamp": "2026-06-08T23:30:47.935Z", "protocol": "telnet", "ip": "139.135.45.218", "port": 2323, "input": "root"}
 {"timestamp": "2026-06-08T23:31:02.033Z", "protocol": "vnc", "ip": "5.83.143.40", "port": 59000, "event_type": "vnc_login_attempt", "vnc_response": "e8707ebe5b85a414a8d4529922e6e36e"}
-{"timestamp": "2026-06-08T23:32:23.310Z", "protocol": "ftp", "ip": "130.131.162.82", "port": 2121, "input": "MGLNDD_85.85.178.246_21"}
+{"timestamp": "2026-06-08T23:32:23.310Z", "protocol": "ftp", "ip": "130.131.162.82", "port": 2121, "input": "MGLNDD_203.0.113.10_21"}
 {"timestamp": "2026-06-08T23:34:01.117Z", "protocol": "vnc", "ip": "5.83.143.40", "port": 59000, "event_type": "vnc_login_attempt", "vnc_response": "b550a4451fd1d8180b72f4dd9bede46b"}
 {"timestamp": "2026-06-08T23:37:02.912Z", "protocol": "vnc", "ip": "5.83.143.40", "port": 59000, "event_type": "vnc_login_attempt", "vnc_response": "50df96cb70e645530f3b9f230dc3e8ac"}
 {"timestamp": "2026-06-08T23:38:53.225Z", "protocol": "tarpit", "ip": "172.21.0.2", "port": 2227}
 {"timestamp": "2026-06-08T23:40:02.988Z", "protocol": "vnc", "ip": "5.83.143.40", "port": 59000, "event_type": "vnc_login_attempt", "vnc_response": "2abb8e830fc5e3e18eabfaeebb49abb9"}
 {"timestamp": "2026-06-08T23:40:33.084Z", "protocol": "telnet", "ip": "144.48.132.1", "port": 2323, "input": "service"}
 {"timestamp": "2026-06-08T23:43:04.510Z", "protocol": "vnc", "ip": "5.83.143.40", "port": 59000, "event_type": "vnc_login_attempt", "vnc_response": "61fd8ca016bdd8861c645131132f23cc"}
-{"timestamp": "2026-06-08T23:45:05.079Z", "protocol": "mysql", "ip": "172.202.118.18", "port": 33060, "input": "MGLNDD_85.85.178.246_3306"}
+{"timestamp": "2026-06-08T23:45:05.079Z", "protocol": "mysql", "ip": "172.202.118.18", "port": 33060, "input": "MGLNDD_203.0.113.10_3306"}
 {"timestamp": "2026-06-08T23:46:03.922Z", "protocol": "vnc", "ip": "5.83.143.40", "port": 59000, "event_type": "vnc_login_attempt", "vnc_response": "31624b047c68243fd615806f54fb093b"}
 {"timestamp": "2026-06-08T23:49:01.562Z", "protocol": "vnc", "ip": "5.83.143.40", "port": 59000, "event_type": "vnc_login_attempt", "vnc_response": "d6fcf1ae2797f194a8bd6a4f0c1cd47e"}
 {"timestamp": "2026-06-08T23:52:05.371Z", "protocol": "vnc", "ip": "5.83.143.40", "port": 59000, "event_type": "vnc_login_attempt", "vnc_response": "3b9ca354073240f989f06b6681b914c3"}
@@ -334,13 +334,13 @@
 {"timestamp": "2026-06-09T02:18:34.550Z", "protocol": "vnc", "ip": "5.83.143.40", "port": 59000, "event_type": "vnc_login_attempt", "vnc_response": "3fe19d8994fa83fd96a06537d45efdb2"}
 {"timestamp": "2026-06-09T02:21:53.800Z", "protocol": "vnc", "ip": "5.83.143.40", "port": 59000, "event_type": "vnc_login_attempt", "vnc_response": "42d98fc47d8e3a09078d231944c33a2c"}
 {"timestamp": "2026-06-09T02:24:37.275Z", "protocol": "mysql", "ip": "18.117.246.36", "port": 33060, "input": "GET / HTTP/1.1"}
-{"timestamp": "2026-06-09T02:24:37.284Z", "protocol": "mysql", "ip": "18.117.246.36", "port": 33060, "input": "Host: 85.85.178.246:3306"}
+{"timestamp": "2026-06-09T02:24:37.284Z", "protocol": "mysql", "ip": "18.117.246.36", "port": 33060, "input": "Host: 203.0.113.10:3306"}
 {"timestamp": "2026-06-09T02:24:37.284Z", "protocol": "mysql", "ip": "18.117.246.36", "port": 33060, "input": "User-Agent: visionheight.com/scan Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/126.0.0.0 Safari/537.36"}
 {"timestamp": "2026-06-09T02:24:37.284Z", "protocol": "mysql", "ip": "18.117.246.36", "port": 33060, "input": "Accept: */*"}
 {"timestamp": "2026-06-09T02:24:37.284Z", "protocol": "mysql", "ip": "18.117.246.36", "port": 33060, "input": "Accept-Encoding: gzip"}
 {"timestamp": "2026-06-09T02:25:13.495Z", "protocol": "vnc", "ip": "5.83.143.40", "port": 59000, "event_type": "vnc_login_attempt", "vnc_response": "0f1c23dde94ab41569fb30412b04e4dc"}
 {"timestamp": "2026-06-09T02:26:40.300Z", "protocol": "mysql", "ip": "18.117.246.36", "port": 33060, "input": "GET / HTTP/1.1"}
-{"timestamp": "2026-06-09T02:26:40.302Z", "protocol": "mysql", "ip": "18.117.246.36", "port": 33060, "input": "Host: 85.85.178.246:3306"}
+{"timestamp": "2026-06-09T02:26:40.302Z", "protocol": "mysql", "ip": "18.117.246.36", "port": 33060, "input": "Host: 203.0.113.10:3306"}
 {"timestamp": "2026-06-09T02:26:40.302Z", "protocol": "mysql", "ip": "18.117.246.36", "port": 33060, "input": "User-Agent: visionheight.com/scan Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/126.0.0.0 Safari/537.36"}
 {"timestamp": "2026-06-09T02:26:40.302Z", "protocol": "mysql", "ip": "18.117.246.36", "port": 33060, "input": "Accept: */*"}
 {"timestamp": "2026-06-09T02:26:40.302Z", "protocol": "mysql", "ip": "18.117.246.36", "port": 33060, "input": "Accept-Encoding: gzip"}
@@ -379,7 +379,7 @@
 {"timestamp": "2026-06-09T04:43:45.393Z", "protocol": "telnet", "ip": "176.65.139.41", "port": 2323, "input": "echo SHELL_TEST"}
 {"timestamp": "2026-06-09T05:04:53.260Z", "protocol": "ssh", "ip": "103.251.165.133", "username": "345gs5662d34", "password_hash": "91566946b1d8deb0", "password_length": 12, "auth_method": "password"}
 {"timestamp": "2026-06-09T05:54:30.668Z", "protocol": "mysql", "ip": "45.156.129.82", "port": 33060, "input": "GET / HTTP/1.1"}
-{"timestamp": "2026-06-09T05:54:30.674Z", "protocol": "mysql", "ip": "45.156.129.82", "port": 33060, "input": "Host: 85.85.178.246:3306"}
+{"timestamp": "2026-06-09T05:54:30.674Z", "protocol": "mysql", "ip": "45.156.129.82", "port": 33060, "input": "Host: 203.0.113.10:3306"}
 {"timestamp": "2026-06-09T05:54:30.675Z", "protocol": "mysql", "ip": "45.156.129.82", "port": 33060, "input": "User-Agent: Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.86 Safari/537.36"}
 {"timestamp": "2026-06-09T05:54:30.675Z", "protocol": "mysql", "ip": "45.156.129.82", "port": 33060, "input": "Accept: */*"}
 {"timestamp": "2026-06-09T05:54:30.675Z", "protocol": "mysql", "ip": "45.156.129.82", "port": 33060, "input": "Accept-Encoding: gzip"}
@@ -435,7 +435,7 @@
 {"timestamp": "2026-06-09T09:40:33.637Z", "protocol": "mysql", "ip": "103.203.57.18", "port": 33060, "input": "Pragma: no-cache"}
 {"timestamp": "2026-06-09T09:40:33.637Z", "protocol": "mysql", "ip": "103.203.57.18", "port": 33060, "input": "User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64)"}
 {"timestamp": "2026-06-09T09:40:34.257Z", "protocol": "mysql", "ip": "103.203.57.18", "port": 33060, "input": "GET / HTTP/1.1"}
-{"timestamp": "2026-06-09T09:40:34.258Z", "protocol": "mysql", "ip": "103.203.57.18", "port": 33060, "input": "Host: 85.85.178.246:3306"}
+{"timestamp": "2026-06-09T09:40:34.258Z", "protocol": "mysql", "ip": "103.203.57.18", "port": 33060, "input": "Host: 203.0.113.10:3306"}
 {"timestamp": "2026-06-09T09:40:34.259Z", "protocol": "mysql", "ip": "103.203.57.18", "port": 33060, "input": "User-Agent: Mozilla/5.0"}
 {"timestamp": "2026-06-09T09:40:34.259Z", "protocol": "mysql", "ip": "103.203.57.18", "port": 33060, "input": "Accept-Encoding: gzip"}
 {"timestamp": "2026-06-09T09:40:34.259Z", "protocol": "mysql", "ip": "103.203.57.18", "port": 33060, "input": "Connection: close"}
@@ -547,7 +547,7 @@
 {"timestamp": "2026-06-13T14:01:24.793Z", "protocol": "mysql", "ip": "64.89.163.80", "port": 33060, "attack_type": "mysql_rogue_infile_completed", "target_file": "/etc/passwd", "exfil_bytes": 0, "save_path": "/home/honeypot/honey-ai/logs/exfiltrated/64.89.163.80__etc_passwd.txt"}
 {"timestamp": "2026-06-13T14:01:25.918Z", "protocol": "backfire", "ip": "64.89.163.80", "reverse_dns": "", "open_ports": [22], "attack_type": "port_scan_backfire_completed"}
 {"timestamp": "2026-06-13T15:17:58.502Z", "protocol": "http", "ip": "93.123.72.183", "method": "GET", "path": "/SDK/webLanguage", "user_agent": "Mozilla/5.0", "attack_type": "probe", "response_bytes": 136}
-{"timestamp": "2026-06-13T15:45:57.800Z", "protocol": "ftp", "ip": "20.65.194.46", "port": 2121, "input": "MGLNDD_85.85.178.246_21"}
+{"timestamp": "2026-06-13T15:45:57.800Z", "protocol": "ftp", "ip": "20.65.194.46", "port": 2121, "input": "MGLNDD_203.0.113.10_21"}
 {"timestamp": "2026-06-13T16:03:56.294Z", "protocol": "telnet", "ip": "223.123.125.178", "port": 2323, "input": ">/var/run/.x&&cd /var/run;>/mnt/.x&&cd /mnt;>/usr/.x&&cd /usr;>/dev/.x&&cd /dev;>/dev/shm/.x&&cd /dev/shm;>/tmp/.x&&cd /tmp;>/var/.x&&cd /var;/bin/busybox echo -e '\\x52\\x47\\x43\\x54\\x56\\x41'"}
 {"timestamp": "2026-06-13T16:05:19.107Z", "protocol": "telnet", "ip": "223.123.125.178", "port": 2323, "attack_type": "telnet_login_success", "username": "root"}
 {"timestamp": "2026-06-13T16:06:29.120Z", "protocol": "telnet", "ip": "223.123.125.178", "port": 2323, "input": "start"}
@@ -606,7 +606,7 @@
 {"timestamp": "2026-06-14T12:22:03.086Z", "protocol": "mysql", "ip": "64.89.163.80", "port": 33060, "attack_type": "mysql_rogue_infile_completed", "target_file": "/etc/passwd", "exfil_bytes": 0, "save_path": "/home/honeypot/honey-ai/logs/exfiltrated/64.89.163.80__etc_passwd.txt"}
 {"timestamp": "2026-06-14T12:30:54.464Z", "protocol": "mysql", "ip": "35.233.19.108", "port": 33060, "input": "SET NAMES utf8mb3", "attack_type": "mysql_rogue_infile_triggered", "target_file": "C:\\Windows\\win.ini"}
 {"timestamp": "2026-06-14T12:30:54.501Z", "protocol": "mysql", "ip": "35.233.19.108", "port": 33060, "attack_type": "mysql_rogue_infile_completed", "target_file": "C:\\Windows\\win.ini", "exfil_bytes": 0, "save_path": "/home/honeypot/honey-ai/logs/exfiltrated/35.233.19.108_C__Windows_win_ini.txt"}
-{"timestamp": "2026-06-14T13:44:26.366Z", "protocol": "ftp", "ip": "69.5.169.12", "port": 2121, "input": "Host: 85.85.178.246:21"}
+{"timestamp": "2026-06-14T13:44:26.366Z", "protocol": "ftp", "ip": "69.5.169.12", "port": 2121, "input": "Host: 203.0.113.10:21"}
 {"timestamp": "2026-06-14T13:44:26.367Z", "protocol": "ftp", "ip": "69.5.169.12", "port": 2121, "input": "Connection: close"}
 {"timestamp": "2026-06-14T14:02:44.481Z", "protocol": "http", "ip": "204.76.203.219", "method": "GET", "path": "/SDK/webLanguage", "user_agent": "Mozilla/5.0", "attack_type": "probe", "response_bytes": 450}
 {"timestamp": "2026-06-14T15:20:47.368Z", "protocol": "telnet", "ip": "144.48.135.214", "port": 2323, "input": "enable"}
@@ -629,8 +629,8 @@
 {"timestamp": "2026-06-14T20:35:17.379Z", "protocol": "telnet", "ip": "223.123.72.222", "port": 2323, "input": "start"}
 {"timestamp": "2026-06-14T20:36:25.321Z", "protocol": "telnet", "ip": "223.123.72.222", "port": 2323, "input": "enable"}
 {"timestamp": "2026-06-14T21:01:26.721Z", "protocol": "http", "ip": "45.205.1.62", "method": "GET", "path": "/", "user_agent": "", "attack_type": "probe", "response_bytes": 192}
-{"timestamp": "2026-06-14T21:11:22.259Z", "protocol": "ftp", "ip": "172.174.225.60", "port": 2121, "input": "MGLNDD_85.85.178.246_21"}
-{"timestamp": "2026-06-14T21:27:04.233Z", "protocol": "ftp", "ip": "69.5.169.6", "port": 2121, "input": "Host: 85.85.178.246:21"}
+{"timestamp": "2026-06-14T21:11:22.259Z", "protocol": "ftp", "ip": "172.174.225.60", "port": 2121, "input": "MGLNDD_203.0.113.10_21"}
+{"timestamp": "2026-06-14T21:27:04.233Z", "protocol": "ftp", "ip": "69.5.169.6", "port": 2121, "input": "Host: 203.0.113.10:21"}
 {"timestamp": "2026-06-14T21:27:04.233Z", "protocol": "ftp", "ip": "69.5.169.6", "port": 2121, "input": "Connection: close"}
 {"timestamp": "2026-06-14T21:27:38.707Z", "protocol": "telnet", "ip": "103.186.77.68", "port": 2323, "input": "config terminal"}
 {"timestamp": "2026-06-14T21:28:45.598Z", "protocol": "telnet", "ip": "103.186.77.68", "port": 2323, "input": "system"}
@@ -698,7 +698,7 @@
 {"timestamp": "2026-06-15T11:28:48.904Z", "protocol": "telnet", "ip": "72.255.19.32", "port": 2323, "input": "system"}
 {"timestamp": "2026-06-15T11:59:46.518Z", "protocol": "ssh", "ip": "78.128.112.74", "command": "echo 'SSH check'", "mode": "exec"}
 {"timestamp": "2026-06-15T12:23:17.418Z", "protocol": "mysql", "ip": "85.239.234.47", "port": 33060, "input": "SET AUTOCOMMIT = 0", "attack_type": "mysql_rogue_infile_triggered", "target_file": "C:\\Windows\\win.ini"}
-{"timestamp": "2026-06-15T12:56:46.274Z", "protocol": "ftp", "ip": "20.65.193.242", "port": 2121, "input": "MGLNDD_85.85.178.246_21"}
+{"timestamp": "2026-06-15T12:56:46.274Z", "protocol": "ftp", "ip": "20.65.193.242", "port": 2121, "input": "MGLNDD_203.0.113.10_21"}
 {"timestamp": "2026-06-15T13:20:53.713Z", "protocol": "ftp", "ip": "85.217.140.50", "port": 2121, "input": "?????????{??????????"}
 {"timestamp": "2026-06-15T14:24:44.663Z", "protocol": "http", "ip": "172.30.50.1", "method": "GET", "path": "/SDK/webLanguage", "user_agent": "Mozilla/5.0", "attack_type": "probe", "response_bytes": 143}
 {"timestamp": "2026-06-15T14:38:22.691Z", "protocol": "ftp", "ip": "185.247.137.123", "port": 2121, "input": "SYST"}
@@ -767,7 +767,7 @@
 {"timestamp": "2026-06-15T21:27:48.916Z", "protocol": "ftp", "ip": "64.23.241.213", "port": 2121, "input": "???"}
 {"timestamp": "2026-06-15T21:34:06.484Z", "protocol": "http", "ip": "172.30.50.1", "method": "GET", "path": "/", "user_agent": "Mozilla/5.0 zgrab/0.x", "attack_type": "probe", "response_bytes": 444}
 {"timestamp": "2026-06-15T22:07:31.340Z", "protocol": "ftp", "ip": "69.5.169.100", "port": 2121, "input": "AUTH TLS"}
-{"timestamp": "2026-06-15T22:14:12.723Z", "protocol": "ftp", "ip": "69.5.169.58", "port": 2121, "input": "Host: 85.85.178.246:21"}
+{"timestamp": "2026-06-15T22:14:12.723Z", "protocol": "ftp", "ip": "69.5.169.58", "port": 2121, "input": "Host: 203.0.113.10:21"}
 {"timestamp": "2026-06-15T22:14:12.724Z", "protocol": "ftp", "ip": "69.5.169.58", "port": 2121, "input": "Connection: close"}
 {"timestamp": "2026-06-15T22:30:59.992Z", "protocol": "ftp", "ip": "66.132.195.34", "port": 2121, "input": "AUTH SSL"}
 {"timestamp": "2026-06-15T23:00:32.548Z", "protocol": "ftp", "ip": "71.6.199.23", "port": 2121, "input": "HELP"}
@@ -924,12 +924,12 @@
 {"timestamp": "2026-06-16T18:39:54.214Z", "protocol": "ssh", "ip": "115.135.234.221", "command": "cd ~; chattr -ia .ssh; lockr -ia .ssh", "mode": "exec"}
 {"timestamp": "2026-06-16T18:40:31.727Z", "protocol": "redis", "ip": "205.210.31.101", "port": 6379, "input": "info"}
 {"timestamp": "2026-06-16T18:48:33.807Z", "protocol": "smtp", "ip": "3.129.187.38", "port": 2525, "input": "GET / HTTP/1.1"}
-{"timestamp": "2026-06-16T18:48:33.809Z", "protocol": "smtp", "ip": "3.129.187.38", "port": 2525, "input": "Host: 85.85.178.246:25"}
+{"timestamp": "2026-06-16T18:48:33.809Z", "protocol": "smtp", "ip": "3.129.187.38", "port": 2525, "input": "Host: 203.0.113.10:25"}
 {"timestamp": "2026-06-16T18:48:33.809Z", "protocol": "smtp", "ip": "3.129.187.38", "port": 2525, "input": "User-Agent: visionheight.com/scan Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/126.0.0.0 Safari/537.36"}
 {"timestamp": "2026-06-16T18:48:33.810Z", "protocol": "smtp", "ip": "3.129.187.38", "port": 2525, "input": "Accept: */*"}
 {"timestamp": "2026-06-16T18:48:33.810Z", "protocol": "smtp", "ip": "3.129.187.38", "port": 2525, "input": "Accept-Encoding: gzip"}
 {"timestamp": "2026-06-16T18:48:33.873Z", "protocol": "smtp", "ip": "3.129.187.38", "port": 2525, "input": "GET / HTTP/1.1"}
-{"timestamp": "2026-06-16T18:48:33.875Z", "protocol": "smtp", "ip": "3.129.187.38", "port": 2525, "input": "Host: 85.85.178.246:25"}
+{"timestamp": "2026-06-16T18:48:33.875Z", "protocol": "smtp", "ip": "3.129.187.38", "port": 2525, "input": "Host: 203.0.113.10:25"}
 {"timestamp": "2026-06-16T18:48:33.875Z", "protocol": "smtp", "ip": "3.129.187.38", "port": 2525, "input": "User-Agent: visionheight.com/scan Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/126.0.0.0 Safari/537.36"}
 {"timestamp": "2026-06-16T18:48:33.875Z", "protocol": "smtp", "ip": "3.129.187.38", "port": 2525, "input": "Accept: */*"}
 {"timestamp": "2026-06-16T18:48:33.875Z", "protocol": "smtp", "ip": "3.129.187.38", "port": 2525, "input": "Accept-Encoding: gzip"}
@@ -1025,7 +1025,7 @@
 {"timestamp": "2026-06-16T22:21:48.911Z", "protocol": "mssql", "ip": "165.232.137.121", "port": 14330, "username": "", "password": "", "hostname": "Nmap", "attack_type": "mssql_login_attempt"}
 {"timestamp": "2026-06-16T22:27:15.749Z", "protocol": "ssh", "ip": "80.94.92.171", "username": "ubuntu", "password_hash": null, "password_length": null, "auth_method": "none"}
 {"timestamp": "2026-06-16T22:36:25.517Z", "protocol": "ssh", "ip": "78.128.112.74", "username": "admin", "password_hash": null, "password_length": null, "auth_method": "none"}
-{"timestamp": "2026-06-16T22:47:30.382Z", "protocol": "smtp", "ip": "20.168.122.39", "port": 2525, "input": "MGLNDD_85.85.178.246_25"}
+{"timestamp": "2026-06-16T22:47:30.382Z", "protocol": "smtp", "ip": "20.168.122.39", "port": 2525, "input": "MGLNDD_203.0.113.10_25"}
 {"timestamp": "2026-06-16T22:58:19.207Z", "protocol": "ssh", "ip": "91.92.40.13", "username": "root", "password_hash": null, "password_length": null, "auth_method": "none"}
 {"timestamp": "2026-06-16T23:02:09.036Z", "protocol": "ssh", "ip": "91.92.40.13", "command": "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH\nuname=$(uname -s -v -n -m 2>/dev/null)\narch=$(uname -m 2>/dev/null)\nuptime=$(cat /proc/uptime 2>/dev/null | cut -d. -f1)\ncpus=$( (nproc 2>/dev/null || /usr/bin/nproc 2>/dev/null || grep -c \"^processor\" /proc/cpuinfo 2>/dev/null) | head -1)\ncpu_model=$( (grep -m1 -E \"model name|Hardware\" /proc/cpuinfo | cut -d: -f2- | sed 's/^ *//;s/ *$//' ; lscpu 2>/dev/null | awk -F: '/Model name/ {gsub(/^ +| +$/,\"\",$2); print $2; exit}' ; dmidecode -s processor-version 2>/dev/null | head -n1 ; uname -p 2>/dev/null) | awk 'NF{print; exit}' )\ngpu_info=$( (lspci 2>/dev/null | grep -i vga; lspci 2>/dev/null | grep -i nvidia) 2>/dev/null | head -n50)\ncat_help=$( (cat --help 2>&1 | tr '\\n' ' ') || cat --help 2>&1)\nls_help=$( (ls --help 2>&1 | tr '\\n' ' ') || ls --help 2>&1)\nlast_output=$(last 2>/dev/null | head -n 10)\necho \"UNAME:$uname\"\necho \"ARCH:$arch\"\necho \"UPTIME:$uptime\"\necho \"CPUS:$cpus\"\necho \"CPU_MODEL:$cpu_model\"\necho \"GPU:$gpu_info\"\necho \"CAT_HELP:$cat_help\"\necho \"LS_HELP:$ls_help\"\necho \"LAST:$last_output\"", "mode": "exec"}
 {"timestamp": "2026-06-16T23:08:13.059Z", "protocol": "ssh", "ip": "180.247.59.226", "command": "cd ~ && rm -rf .ssh && mkdir .ssh && echo \"ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEArDp4cun2lhr4KUhBGE7VvAcwdli2a8dbnrTOrbMz1+5O73fcBOx8NVbUT0bUanUV9tJ2/9p7+vD0EpZ3Tz/+0kX34uAx1RV/75GVOmNx+9EuWOnvNoaJe0QXxziIg9eLBHpgLMuakb5+BgTFB+rKJAw9u9FSTDengvS8hX1kNFS4Mjux0hJOK8rvcEmPecjdySYMb66nylAKGwCEE6WEQHmd1mUPgHwGQ0hWCwsQk13yCGPK5w6hYp5zYkFnvlC8hGmd4Ww+u97k6pfTGTUbJk14ujvcD9iUKQTTWYYjIIu5PmUux5bsZ0R4WFwdIe6+i6rBLAsPKgAySVKPRK+oRw== mdrfckr\">>.ssh/authorized_keys && chmod -R go= ~/.ssh && cd ~", "mode": "exec"}
@@ -1164,7 +1164,7 @@
 {"timestamp": "2026-06-17T04:15:25.388Z", "protocol": "mssql", "ip": "101.228.120.142", "port": 14330, "username": "sa", "password": "150290", "hostname": "616qu7ejaa", "attack_type": "mssql_login_attempt"}
 {"timestamp": "2026-06-17T04:16:00.304Z", "protocol": "redis", "ip": "185.226.197.12", "port": 6379, "input": "INFO"}
 {"timestamp": "2026-06-17T04:17:11.412Z", "protocol": "redis", "ip": "3.131.220.121", "port": 6379, "input": "GET / HTTP/1.1"}
-{"timestamp": "2026-06-17T04:17:11.412Z", "protocol": "redis", "ip": "3.131.220.121", "port": 6379, "input": "Host: 85.85.178.246:6379"}
+{"timestamp": "2026-06-17T04:17:11.412Z", "protocol": "redis", "ip": "3.131.220.121", "port": 6379, "input": "Host: 203.0.113.10:6379"}
 {"timestamp": "2026-06-17T04:17:11.412Z", "protocol": "redis", "ip": "3.131.220.121", "port": 6379, "input": "User-Agent: visionheight.com/scan Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/126.0.0.0 Safari/537.36"}
 {"timestamp": "2026-06-17T04:17:11.412Z", "protocol": "redis", "ip": "3.131.220.121", "port": 6379, "input": "Accept: */*"}
 {"timestamp": "2026-06-17T04:17:11.413Z", "protocol": "redis", "ip": "3.131.220.121", "port": 6379, "input": "Accept-Encoding: gzip"}
@@ -1199,12 +1199,12 @@
 {"timestamp": "2026-06-17T04:51:41.043Z", "protocol": "mssql", "ip": "218.245.1.252", "port": 14330, "username": "sa", "password": "81915944", "hostname": "SERVER", "attack_type": "mssql_login_attempt"}
 {"timestamp": "2026-06-17T04:52:09.358Z", "protocol": "mssql", "ip": "218.245.1.252", "port": 14330, "username": "sa", "password": "qazwsx123@#", "hostname": "SERVER", "attack_type": "mssql_login_attempt"}
 {"timestamp": "2026-06-17T04:55:39.198Z", "protocol": "redis", "ip": "16.58.56.214", "port": 6379, "input": "GET / HTTP/1.1"}
-{"timestamp": "2026-06-17T04:55:39.199Z", "protocol": "redis", "ip": "16.58.56.214", "port": 6379, "input": "Host: 85.85.178.246:6379"}
+{"timestamp": "2026-06-17T04:55:39.199Z", "protocol": "redis", "ip": "16.58.56.214", "port": 6379, "input": "Host: 203.0.113.10:6379"}
 {"timestamp": "2026-06-17T04:55:39.199Z", "protocol": "redis", "ip": "16.58.56.214", "port": 6379, "input": "User-Agent: visionheight.com/scan Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/126.0.0.0 Safari/537.36"}
 {"timestamp": "2026-06-17T04:55:39.199Z", "protocol": "redis", "ip": "16.58.56.214", "port": 6379, "input": "Accept: */*"}
 {"timestamp": "2026-06-17T04:55:39.199Z", "protocol": "redis", "ip": "16.58.56.214", "port": 6379, "input": "Accept-Encoding: gzip"}
 {"timestamp": "2026-06-17T04:56:06.879Z", "protocol": "redis", "ip": "16.58.56.214", "port": 6379, "input": "GET / HTTP/1.1"}
-{"timestamp": "2026-06-17T04:56:06.879Z", "protocol": "redis", "ip": "16.58.56.214", "port": 6379, "input": "Host: 85.85.178.246:6379"}
+{"timestamp": "2026-06-17T04:56:06.879Z", "protocol": "redis", "ip": "16.58.56.214", "port": 6379, "input": "Host: 203.0.113.10:6379"}
 {"timestamp": "2026-06-17T04:56:06.880Z", "protocol": "redis", "ip": "16.58.56.214", "port": 6379, "input": "User-Agent: visionheight.com/scan Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/126.0.0.0 Safari/537.36"}
 {"timestamp": "2026-06-17T04:56:06.880Z", "protocol": "redis", "ip": "16.58.56.214", "port": 6379, "input": "Accept: */*"}
 {"timestamp": "2026-06-17T04:56:06.880Z", "protocol": "redis", "ip": "16.58.56.214", "port": 6379, "input": "Accept-Encoding: gzip"}
@@ -1225,12 +1225,12 @@
 {"timestamp": "2026-06-17T05:13:42.039Z", "protocol": "ssh", "ip": "87.251.64.176", "username": "root", "password_hash": null, "password_length": null, "auth_method": "none"}
 {"timestamp": "2026-06-17T05:33:17.498Z", "protocol": "snmp", "ip": "205.210.31.169", "port": 16100, "attack_type": "snmp_probe"}
 {"timestamp": "2026-06-17T05:33:19.823Z", "protocol": "redis", "ip": "3.132.26.232", "port": 6379, "input": "GET / HTTP/1.1"}
-{"timestamp": "2026-06-17T05:33:19.824Z", "protocol": "redis", "ip": "3.132.26.232", "port": 6379, "input": "Host: 85.85.178.246:6379"}
+{"timestamp": "2026-06-17T05:33:19.824Z", "protocol": "redis", "ip": "3.132.26.232", "port": 6379, "input": "Host: 203.0.113.10:6379"}
 {"timestamp": "2026-06-17T05:33:19.824Z", "protocol": "redis", "ip": "3.132.26.232", "port": 6379, "input": "User-Agent: visionheight.com/scan Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/126.0.0.0 Safari/537.36"}
 {"timestamp": "2026-06-17T05:33:19.824Z", "protocol": "redis", "ip": "3.132.26.232", "port": 6379, "input": "Accept: */*"}
 {"timestamp": "2026-06-17T05:33:19.825Z", "protocol": "redis", "ip": "3.132.26.232", "port": 6379, "input": "Accept-Encoding: gzip"}
 {"timestamp": "2026-06-17T05:34:48.375Z", "protocol": "redis", "ip": "3.132.26.232", "port": 6379, "input": "GET / HTTP/1.1"}
-{"timestamp": "2026-06-17T05:34:48.375Z", "protocol": "redis", "ip": "3.132.26.232", "port": 6379, "input": "Host: 85.85.178.246:6379"}
+{"timestamp": "2026-06-17T05:34:48.375Z", "protocol": "redis", "ip": "3.132.26.232", "port": 6379, "input": "Host: 203.0.113.10:6379"}
 {"timestamp": "2026-06-17T05:34:48.375Z", "protocol": "redis", "ip": "3.132.26.232", "port": 6379, "input": "User-Agent: visionheight.com/scan Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/126.0.0.0 Safari/537.36"}
 {"timestamp": "2026-06-17T05:34:48.376Z", "protocol": "redis", "ip": "3.132.26.232", "port": 6379, "input": "Accept: */*"}
 {"timestamp": "2026-06-17T05:34:48.376Z", "protocol": "redis", "ip": "3.132.26.232", "port": 6379, "input": "Accept-Encoding: gzip"}
@@ -1265,7 +1265,7 @@
 {"timestamp": "2026-06-17T07:07:56.539Z", "protocol": "smtp", "ip": "160.250.133.208", "port": 2525, "input": "Rset"}
 {"timestamp": "2026-06-17T07:07:56.806Z", "protocol": "smtp", "ip": "160.250.133.208", "port": 2525, "input": "Mail from:<spameri@tiscali.it>"}
 {"timestamp": "2026-06-17T07:07:57.077Z", "protocol": "smtp", "ip": "160.250.133.208", "port": 2525, "input": "RCPT to:<spameri@tiscali.it>"}
-{"timestamp": "2026-06-17T07:07:57.925Z", "protocol": "smtp", "ip": "160.250.133.208", "port": 2525, "attack_type": "smtp_mail_data_received", "input": "From: spameri@tiscali.it\nSubject: 85.85.178.246\nTo: spameri@tiscali.it\nDate: Wed, 17 Jun 2026 14:07:57 +0700\nX-Priority: 3\nX-Library: Indy 8.0.25\n\nt_Smtp.LocalIP\n"}
+{"timestamp": "2026-06-17T07:07:57.925Z", "protocol": "smtp", "ip": "160.250.133.208", "port": 2525, "attack_type": "smtp_mail_data_received", "input": "From: spameri@tiscali.it\nSubject: 203.0.113.10\nTo: spameri@tiscali.it\nDate: Wed, 17 Jun 2026 14:07:57 +0700\nX-Priority: 3\nX-Library: Indy 8.0.25\n\nt_Smtp.LocalIP\n"}
 {"timestamp": "2026-06-17T07:07:58.240Z", "protocol": "smtp", "ip": "160.250.133.208", "port": 2525, "input": "Quit"}
 {"timestamp": "2026-06-17T07:19:52.188Z", "protocol": "ftp", "ip": "216.226.76.10", "port": 2121, "input": "?????????????????#??? ????????????????????????????\ufffd?????????+? ??????????3?&?$??? \ufffd\ufffd\ufffd\ufffdC\ufffd?"}
 {"timestamp": "2026-06-17T07:23:43.518Z", "protocol": "telnet", "ip": "119.160.215.50", "port": 2323, "input": ">/var/run/.x&&cd /var/run;>/mnt/.x&&cd /mnt;>/usr/.x&&cd /usr;>/dev/.x&&cd /dev;>/dev/shm/.x&&cd /dev/shm;>/tmp/.x&&cd /tmp;>/var/.x&&cd /var;/bin/busybox echo -e '\\x57\\x43\\x59\\x54\\x41\\x4c'"}
@@ -1291,7 +1291,7 @@
 {"timestamp": "2026-06-17T10:19:17.018Z", "protocol": "snmp", "ip": "52.73.169.169", "port": 16100, "community": "public", "version": 1, "oids": ["1.3.6.1.2.1.1.1.0"], "attack_type": "snmp_request"}
 {"timestamp": "2026-06-17T10:19:19.438Z", "protocol": "backfire", "ip": "52.73.169.169", "reverse_dns": "scanner2.scanning.cybergreen.net", "open_ports": [22, 80], "attack_type": "port_scan_backfire_completed"}
 {"timestamp": "2026-06-17T10:30:23.620Z", "protocol": "smtp", "ip": "74.82.47.2", "port": 2525, "input": "GET / HTTP/1.1"}
-{"timestamp": "2026-06-17T10:30:23.622Z", "protocol": "smtp", "ip": "74.82.47.2", "port": 2525, "input": "Host: 85.85.178.246:25"}
+{"timestamp": "2026-06-17T10:30:23.622Z", "protocol": "smtp", "ip": "74.82.47.2", "port": 2525, "input": "Host: 203.0.113.10:25"}
 {"timestamp": "2026-06-17T10:30:23.622Z", "protocol": "smtp", "ip": "74.82.47.2", "port": 2525, "input": "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15"}
 {"timestamp": "2026-06-17T10:30:23.622Z", "protocol": "smtp", "ip": "74.82.47.2", "port": 2525, "input": "Accept: */*"}
 {"timestamp": "2026-06-17T10:30:23.622Z", "protocol": "smtp", "ip": "74.82.47.2", "port": 2525, "input": "Accept-Encoding: gzip"}
@@ -1364,7 +1364,7 @@
 {"timestamp": "2026-06-17T13:21:20.796Z", "protocol": "ftp", "ip": "137.184.40.217", "port": 2121, "input": "\ufffd??9?8?\ufffd?\ufffd\ufffd \ufffd??3?2?\ufffd?\ufffd?E?D?\ufffd\ufffd\ufffd\ufffd\ufffd\ufffdQ?\ufffd\ufffd\ufffd\ufffd\ufffd\ufffdP?=?\ufffd?<?\ufffd?5?\ufffd?/?\ufffd?A???\ufffd???\ufffd?????????"}
 {"timestamp": "2026-06-17T13:21:57.293Z", "protocol": "telnet", "ip": "124.29.214.157", "port": 2323, "input": "config terminal"}
 {"timestamp": "2026-06-17T13:22:36.251Z", "protocol": "telnet", "ip": "124.29.214.157", "port": 2323, "input": "enable"}
-{"timestamp": "2026-06-17T13:31:02.621Z", "protocol": "shodan-selfscan", "src_ip": "85.85.178.246", "action": "self_scan", "ports": [21, 22, 23, 3306, 5900, 8080], "hostnames": ["246.85-85-178.dynamic.clientes.euskaltel.es"], "vulns": ["CVE-2009-0796", "CVE-2025-23048", "CVE-2024-36387", "CVE-2024-42516", "CVE-2025-14177", "CVE-2024-3566", "CVE-2012-4001", "CVE-2024-11233", "CVE-2024-38475", "CVE-2025-1736", "CVE-2024-5585", "CVE-2025-1735", "CVE-2026-33523", "CVE-2024-9026", "CVE-2024-43394", "CVE-2024-3096", "CVE-2024-39573", "CVE-2025-58098", "CVE-2025-1861", "CVE-2011-2688", "CVE-2026-34059", "CVE-2024-40898", "CVE-2025-1734", "CVE-2007-3205", "CVE-2025-55753", "CVE-2024-38476", "CVE-2025-59775", "CVE-2009-2299", "CVE-2024-38472", "CVE-2024-43204", "CVE-2023-31122", "CVE-2026-33857", "CVE-2024-8926", "CVE-2025-14178", "CVE-2024-8925", "CVE-2026-34032", "CVE-2013-2765", "CVE-2025-6491", "CVE-2025-53020", "CVE-2023-45802", "CVE-2024-8932", "CVE-2025-14180", "CVE-2025-1219", "CVE-2024-24795", "CVE-2024-4577", "CVE-2026-29169", "CVE-2024-38474", "CVE-2024-1874", "CVE-2024-27316", "CVE-2026-33006", "CVE-2024-38477", "CVE-2024-38473", "CVE-2025-1220", "CVE-2025-1217", "CVE-2024-11234", "CVE-2013-4365", "CVE-2025-49812", "CVE-2023-43622", "CVE-2026-33007", "CVE-2012-3526", "CVE-2025-49630", "CVE-2026-24072", "CVE-2023-38709", "CVE-2024-8929", "CVE-2013-0941", "CVE-2011-1176", "CVE-2024-8927", "CVE-2025-66200", "CVE-2025-65082", "CVE-2024-47252", "CVE-2012-4360", "CVE-2007-4723", "CVE-2024-5458", "CVE-2013-0942", "CVE-2024-11236", "CVE-2024-2408", "CVE-2013-2220"], "unexpected_ports": [8080], "cpes": ["cpe:/o:debian:debian_linux", "cpe:/a:openbsd:openssh:9.2p1", "cpe:/a:apache:http_server:2.4.57", "cpe:/a:oracle:mysql:5.7.44-0ubuntu0.22.04.1", "cpe:/o:linux:linux_kernel", "cpe:/a:php:php:8.1.27"], "tags": ["database", "eol-product"]}
+{"timestamp": "2026-06-17T13:31:02.621Z", "protocol": "shodan-selfscan", "src_ip": "203.0.113.10", "action": "self_scan", "ports": [21, 22, 23, 3306, 5900, 8080], "hostnames": ["246.85-85-178.dynamic.clientes.euskaltel.es"], "vulns": ["CVE-2009-0796", "CVE-2025-23048", "CVE-2024-36387", "CVE-2024-42516", "CVE-2025-14177", "CVE-2024-3566", "CVE-2012-4001", "CVE-2024-11233", "CVE-2024-38475", "CVE-2025-1736", "CVE-2024-5585", "CVE-2025-1735", "CVE-2026-33523", "CVE-2024-9026", "CVE-2024-43394", "CVE-2024-3096", "CVE-2024-39573", "CVE-2025-58098", "CVE-2025-1861", "CVE-2011-2688", "CVE-2026-34059", "CVE-2024-40898", "CVE-2025-1734", "CVE-2007-3205", "CVE-2025-55753", "CVE-2024-38476", "CVE-2025-59775", "CVE-2009-2299", "CVE-2024-38472", "CVE-2024-43204", "CVE-2023-31122", "CVE-2026-33857", "CVE-2024-8926", "CVE-2025-14178", "CVE-2024-8925", "CVE-2026-34032", "CVE-2013-2765", "CVE-2025-6491", "CVE-2025-53020", "CVE-2023-45802", "CVE-2024-8932", "CVE-2025-14180", "CVE-2025-1219", "CVE-2024-24795", "CVE-2024-4577", "CVE-2026-29169", "CVE-2024-38474", "CVE-2024-1874", "CVE-2024-27316", "CVE-2026-33006", "CVE-2024-38477", "CVE-2024-38473", "CVE-2025-1220", "CVE-2025-1217", "CVE-2024-11234", "CVE-2013-4365", "CVE-2025-49812", "CVE-2023-43622", "CVE-2026-33007", "CVE-2012-3526", "CVE-2025-49630", "CVE-2026-24072", "CVE-2023-38709", "CVE-2024-8929", "CVE-2013-0941", "CVE-2011-1176", "CVE-2024-8927", "CVE-2025-66200", "CVE-2025-65082", "CVE-2024-47252", "CVE-2012-4360", "CVE-2007-4723", "CVE-2024-5458", "CVE-2013-0942", "CVE-2024-11236", "CVE-2024-2408", "CVE-2013-2220"], "unexpected_ports": [8080], "cpes": ["cpe:/o:debian:debian_linux", "cpe:/a:openbsd:openssh:9.2p1", "cpe:/a:apache:http_server:2.4.57", "cpe:/a:oracle:mysql:5.7.44-0ubuntu0.22.04.1", "cpe:/o:linux:linux_kernel", "cpe:/a:php:php:8.1.27"], "tags": ["database", "eol-product"]}
 {"timestamp": "2026-06-17T13:43:51.993Z", "protocol": "ssh", "ip": "41.208.147.131", "command": "cd ~ && rm -rf .ssh && mkdir .ssh && echo \"ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEArDp4cun2lhr4KUhBGE7VvAcwdli2a8dbnrTOrbMz1+5O73fcBOx8NVbUT0bUanUV9tJ2/9p7+vD0EpZ3Tz/+0kX34uAx1RV/75GVOmNx+9EuWOnvNoaJe0QXxziIg9eLBHpgLMuakb5+BgTFB+rKJAw9u9FSTDengvS8hX1kNFS4Mjux0hJOK8rvcEmPecjdySYMb66nylAKGwCEE6WEQHmd1mUPgHwGQ0hWCwsQk13yCGPK5w6hYp5zYkFnvlC8hGmd4Ww+u97k6pfTGTUbJk14ujvcD9iUKQTTWYYjIIu5PmUux5bsZ0R4WFwdIe6+i6rBLAsPKgAySVKPRK+oRw== mdrfckr\">>.ssh/authorized_keys && chmod -R go= ~/.ssh && cd ~", "mode": "exec"}
 {"timestamp": "2026-06-17T13:48:09.481Z", "protocol": "ftp", "ip": "212.30.33.245", "port": 2121, "input": "USER anonymous"}
 {"timestamp": "2026-06-17T13:48:09.572Z", "protocol": "ftp", "ip": "212.30.33.245", "port": 2121, "input": "FEAT"}

@@ -802,7 +802,7 @@ const REAL_SECRET_PATTERNS = [
     // Internal IP leakage (real infrastructure IPs from common private ranges)
     /192\.168\.1\.\d{1,3}/g,
     // Tailscale internal IP
-    /100\.71\.140\.\d{1,3}/g,
+    /100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.\d{1,3}\.\d{1,3}/g,
     // Ollama API endpoint leak
     /http:\/\/192\.168\./g,
     /localhost:11434/g,

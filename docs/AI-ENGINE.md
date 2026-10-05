@@ -187,7 +187,7 @@ Before sending any response, these real-format patterns are scrubbed:
 | `-----BEGIN PRIVATE KEY-----` | Real PEM key header |
 | `sk-[a-zA-Z0-9]{48+}` | Real OpenAI API key format |
 | `192.168.1.*` | Internal LAN IPs |
-| `100.71.140.*` | Tailscale VPN IPs |
+| `100.64.0.0/10` | Tailscale / CGNAT VPN IPs |
 | `localhost:11434` | Ollama API endpoint |
 
 All matches are replaced with `[REDACTED]`.

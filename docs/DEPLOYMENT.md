@@ -79,7 +79,7 @@ TELEGRAM_CHAT_ID=your_chat_id
 HoneyAI listens on high ports (non-privileged). To receive traffic on standard ports, use iptables to redirect:
 
 ```bash
-# SSH (real SSH on 2297, honeypot SSH on 2226)
+# SSH (real SSH on a non-standard port, honeypot SSH on 2226)
 sudo iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 22 -j REDIRECT --to-port 2226
 
 # FTP
@@ -259,7 +259,7 @@ Access the built-in dashboard at `http://localhost:8081/dashboard` (or via your 
 
 ## Security Hardening Checklist
 
-- [ ] Move real SSH to a non-standard port (e.g., 2297)
+- [ ] Move real SSH to a non-standard port (e.g., a random high port)
 - [ ] Configure fail2ban for real SSH, exclude honeypot ports
 - [ ] Enable UFW and only allow necessary ports
 - [ ] Disable password auth for real SSH
